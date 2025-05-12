@@ -1,6 +1,7 @@
 ## ASP.NET Core ##
 bin/
 obj/
+appsettings.json
 appsettings.*.json
 *.user
 *.suo

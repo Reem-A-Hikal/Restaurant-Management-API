@@ -1,0 +1,19 @@
+## ASP.NET Core ##
+bin/
+obj/
+appsettings.*.json
+*.user
+*.suo
+*.userprefs
+*.userosscache
+*.sln.docstates
+.vs/
+.DS_Store
+
+## Common ##
+.env
+*.local
+.idea/
+.vscode/
+*.tmp
+*.bak

@@ -1,14 +1,14 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Rest.API.Models;
 
 namespace Rest.API
 {
-    public class RestDbContext : DbContext
+    public class RestDbContext : IdentityDbContext<User>
     {
         public RestDbContext(DbContextOptions<RestDbContext> options) : base(options)
         {}
 
-        public DbSet<User> Users { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<Product> Products { get; set; }
         public DbSet<Address> Addresses { get; set; }
@@ -25,7 +25,7 @@ namespace Rest.API
                 .IsUnique();
 
             modelBuilder.Entity<User>()
-                .HasIndex(u => u.Username)
+                .HasIndex(u => u.UserName)
                 .IsUnique();
 
             modelBuilder.Entity<Order>()

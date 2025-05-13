@@ -48,12 +48,12 @@ namespace Rest.API.Models
 
         // Foreign keys
         [Required]
-        public int UserId { get; set; }
+        public string UserId { get; set; }
 
         [Required]
         public int DeliveryAddressId { get; set; }
 
-        public int? DeliveryPersonId { get; set; }
+        public string? DeliveryPersonId { get; set; }
 
         // Navigation properties
         [ForeignKey("UserId")]

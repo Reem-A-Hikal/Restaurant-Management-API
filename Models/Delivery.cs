@@ -32,7 +32,7 @@ namespace Rest.API.Models
 
         // Foreign keys
         [Required]
-        public int DeliveryPersonId { get; set; }
+        public string DeliveryPersonId { get; set; }
 
         [Required]
         public int OrderId { get; set; }

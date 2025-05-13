@@ -28,7 +28,7 @@ namespace Rest.API.Models
         public string AddressType { get; set; } // Home, Work, Other
 
         // Foreign key
-        public int UserId { get; set; }
+        public string UserId { get; set; }
 
         // Navigation properties
         [ForeignKey("UserId")]

@@ -34,7 +34,7 @@ namespace Rest.API.Models
         public int OrderId { get; set; }
 
         [Required]
-        public int CustomerId { get; set; }
+        public string CustomerId { get; set; }
 
         public int? ProductId { get; set; }
 

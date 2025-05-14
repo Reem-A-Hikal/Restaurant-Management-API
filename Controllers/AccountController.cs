@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Rest.API.Dtos.AccountDtos;
 using Rest.API.Models;
 using Rest.API.Services.Interfaces;
+using Swashbuckle.AspNetCore.Annotations;
 using System.Security.Claims;
 
 namespace Rest.API.Controllers
@@ -31,6 +32,9 @@ namespace Rest.API.Controllers
         }
 
         [HttpPost("register")]
+        [SwaggerOperation(Summary = "Register a new user", Description = "Register a new user with email, password and Phone Number")]
+        [SwaggerResponse(StatusCodes.Status200OK, "User registered successfully")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid input data")]
         public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
         {
             if (!ModelState.IsValid)
@@ -74,6 +78,9 @@ namespace Rest.API.Controllers
         }
 
         [HttpPost("login")]
+        [SwaggerOperation(Summary = "Login a user", Description = "Login a user with email and password")]
+        [SwaggerResponse(StatusCodes.Status200OK, "User logged in successfully")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid email or password")]
         public async Task<IActionResult> Login(LoginDto loginDto)
         {
             if (!ModelState.IsValid)
@@ -105,6 +112,11 @@ namespace Rest.API.Controllers
         }
         [HttpPost("logout")]
         [Authorize]
+        [SwaggerOperation(Summary = "Logout a user", Description = "Logout a user")]
+        [SwaggerResponse(StatusCodes.Status200OK, "User logged out successfully")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid request")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "An error occurred during logout")]
         public async Task<IActionResult> Logout()
         {
             try
@@ -120,6 +132,11 @@ namespace Rest.API.Controllers
 
         [HttpGet("getUser/{userId}")]
         [Authorize]
+        [SwaggerOperation(Summary = "Get user details", Description = "Get user details by user ID")]
+        [SwaggerResponse(StatusCodes.Status200OK, "User details retrieved successfully")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "User not found")]
+        [SwaggerResponse(StatusCodes.Status403Forbidden, "Access denied")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "An error occurred while retrieving user")]
         public async Task<IActionResult> GetUser(string userId)
         {
             try

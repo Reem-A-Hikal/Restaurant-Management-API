@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Rest.API.Dtos.AccountDtos;
 using Rest.API.Models;
+using Rest.API.Services.Interfaces;
 using System.Security.Claims;
 
 namespace Rest.API.Controllers
@@ -15,15 +16,18 @@ namespace Rest.API.Controllers
         private readonly UserManager<User> userManager;
         private readonly IMapper mapper;
         private readonly SignInManager<User> signInManager;
+        private readonly IAuthService authService;
 
         public AccountController(
             UserManager<User> userManager,
             IMapper mapper,
-            SignInManager<User> signInManager )
+            SignInManager<User> signInManager,
+             IAuthService authService)
         {
             this.userManager = userManager;
             this.mapper = mapper;
             this.signInManager = signInManager;
+            this.authService = authService;
         }
 
         [HttpPost("register")]
@@ -48,9 +52,13 @@ namespace Rest.API.Controllers
                 if (result.Succeeded)
                 {
                     await userManager.AddToRoleAsync(user, "Customer");
+                    var token = await authService.GenerateJwtTokenAsync(user);
                     return Ok(new 
                     {
-                        message = "User registered successfully"
+                        message = "User registered successfully",
+                        token = token,
+                        userId = user.Id,
+                        email = user.Email
                     });
                 }
                 foreach (var error in result.Errors)
@@ -73,31 +81,30 @@ namespace Rest.API.Controllers
 
             try
             {
-                var user = await userManager.FindByEmailAsync(loginDto.Email);
+                var user = await authService.ValidateUserCredentialsAsync(loginDto.Email, loginDto.Password);
                 if (user == null)
                 {
                     return BadRequest(new { message = "Invalid email or password" });
                 }
-                var result = await signInManager.PasswordSignInAsync(
-                    loginDto.Email,
-                    loginDto.Password,
-                    isPersistent: false,
-                    lockoutOnFailure: false
-                );
+                var token = await authService.GenerateJwtTokenAsync(user);
+                var userRoles = await userManager.GetRolesAsync(user);
 
-                if (result.Succeeded)
+                return Ok(new
                 {
-                    return Ok(new { message = "Login successful", userId = user.Id });
-                }
-                return BadRequest(new { message = "Invalid email or password" });
+                    message = "Login successful",
+                    token = token,
+                    userId = user.Id,
+                    email = user.Email,
+                    roles = userRoles
+                });
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "An error occurred during login", error = ex.Message });
             }
         }
-
         [HttpPost("logout")]
+        [Authorize]
         public async Task<IActionResult> Logout()
         {
             try
@@ -132,6 +139,8 @@ namespace Rest.API.Controllers
                 {
                     return NotFound(new { message = "User not found" });
                 }
+                var roles = await userManager.GetRolesAsync(user);
+
                 return Ok(new
                 {
                     id = user.Id,
@@ -140,7 +149,8 @@ namespace Rest.API.Controllers
                     phoneNumber = user.PhoneNumber,
                     profileImageUrl = user.ProfileImageUrl,
                     joinDate = user.JoinDate,
-                    isActive = user.IsActive
+                    isActive = user.IsActive,
+                    roles = roles
                 });
             }
             catch (Exception ex)

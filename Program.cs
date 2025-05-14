@@ -1,9 +1,16 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Rest.API.Models;
 using Rest.API.Profiles;
+using Rest.API.Repositories.Implementations;
+using Rest.API.Repositories.Interfaces;
 using Rest.API.Services.Implementations;
 using Rest.API.Services.Interfaces;
+using Rest.API.UnitOfWorks.Implementations;
+using Rest.API.UnitOfWorks.Interfaces;
+using System.Text;
 
 namespace Rest.API
 {
@@ -21,6 +28,8 @@ namespace Rest.API
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
 
+            builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+            builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<IAuthService, AuthService>();
 
             string txt = "AllowAll";
@@ -48,7 +57,35 @@ namespace Rest.API
                 .AddEntityFrameworkStores<RestDbContext>()
                 .AddDefaultTokenProviders();
 
+            //JWT Configuration
+            var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+            var secretKey = jwtSettings["SecretKey"];
+            var key = Encoding.ASCII.GetBytes(secretKey);
+
+            builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+                .AddJwtBearer(options =>
+                {
+                    options.SaveToken = true;
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = new SymmetricSecurityKey(key),
+                        ValidateIssuer = true,
+                        ValidIssuer = jwtSettings["Issuer"],
+                        ValidateAudience = true,
+                        ValidAudience = jwtSettings["Audience"],
+                        ValidateLifetime = true,
+                        ClockSkew = TimeSpan.Zero, // Remove delay of token when expired
+                        RequireExpirationTime = true
+                    };
+                });
+
             builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
+
             var app = builder.Build();
 
             using (var scope = app.Services.CreateScope())
@@ -56,7 +93,7 @@ namespace Rest.API
                 var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
                 var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
                 
-                string[] roles = { "Admin", "Chef", "Delivery_Person", "Customer" };
+                string[] roles = ["Admin", "Chef", "Delivery_Person", "Customer"];
                 foreach (var role in roles)
                 {
                     if (!await roleManager.RoleExistsAsync(role))
@@ -75,13 +112,9 @@ namespace Rest.API
             }
 
             app.UseHttpsRedirection();
-
             app.UseAuthentication();
             app.UseAuthorization();
-
             app.UseCors(txt);
-
-
             app.MapControllers();
 
             app.Run();

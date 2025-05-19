@@ -7,7 +7,8 @@ namespace Rest.API.UnitOfWorks.Interfaces
     public interface IUnitOfWork
     {
         //IAuthService authService { get; }
-        IRepository<User> userRepository {get; }
+        //IRepository<User> userRepository {get; }
+        IUserRepository userRepository { get; }
         IRepository<Address> addressRepository {get; }
         IRepository<Category> categoryRepository { get; }
         IRepository<Product> productRepository { get; }

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using Rest.API.Models;
 using Rest.API.Profiles;
 using Rest.API.Repositories.Implementations;
@@ -10,6 +11,7 @@ using Rest.API.Services.Implementations;
 using Rest.API.Services.Interfaces;
 using Rest.API.UnitOfWorks.Implementations;
 using Rest.API.UnitOfWorks.Interfaces;
+using System.Reflection;
 using System.Text;
 
 namespace Rest.API
@@ -29,8 +31,10 @@ namespace Rest.API
             builder.Services.AddOpenApi();
 
             builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+            builder.Services.AddScoped<IUserRepository, UserRepository>();
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<IAuthService, AuthService>();
+            builder.Services.AddScoped<IUserService, UserService>();
 
             string txt = "AllowAll";
             builder.Services.AddCors( options =>
@@ -86,7 +90,26 @@ namespace Rest.API
 
             builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
 
-            var app = builder.Build();
+            builder.Services.AddSwaggerGen(c =>
+            {
+               
+                c.SwaggerDoc("v1", new OpenApiInfo
+                {
+                    Title = "Restaurant Management API",
+                    Version = "v1",
+                    Description = "API for managing restaurant users with role-based permissions",
+                    Contact = new OpenApiContact
+                    {
+                        Name = "Reem Heikal"
+                    }
+                });
+                c.EnableAnnotations();
+                var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+                var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+                c.IncludeXmlComments(xmlPath);
+            });
+
+                var app = builder.Build();
 
             using (var scope = app.Services.CreateScope())
             {
@@ -108,6 +131,7 @@ namespace Rest.API
             if (app.Environment.IsDevelopment())
             {
                 app.MapOpenApi();
+                app.UseSwagger();
                 app.UseSwaggerUI(op => op.SwaggerEndpoint("/openapi/v1.json", "v1"));
             }
 

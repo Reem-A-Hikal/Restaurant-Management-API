@@ -8,6 +8,35 @@ namespace Rest.API.Models
 {
     public class User : IdentityUser
     {
+
+        [Required(ErrorMessage = "Full name is required")]
+        [StringLength(100, MinimumLength = 3, ErrorMessage = "Full name must be between 3 and 100 characters")]
+        [Column(TypeName = "nvarchar(100)")]
+        public string FullName { get; set; }
+
+        [StringLength(255)]
+        public string? ProfileImageUrl { get; set; }
+
+        [Required]
+        public bool IsActive { get; set; } = true;
+
+        [Required]
+        [DataType(DataType.DateTime)]
+        public DateTime JoinDate { get; set; } = DateTime.UtcNow;
+        public string? Specialization { get; set; } // Chef
+        public string? VehicleNumber { get; set; } // DeliveryPerson
+
+        // Navigation properties
+        [InverseProperty("User")]
+        public virtual ICollection<Order> CustomerOrders { get; set; } = new List<Order>();
+
+        [InverseProperty("DeliveryPerson")]
+        public virtual ICollection<Order> DeliveryOrders { get; set; } = new List<Order>();
+        public virtual ICollection<Address> Addresses { get; set; } = new List<Address>();
+        public virtual ICollection<Delivery> Deliveries { get; set; } = new List<Delivery>();
+        public virtual ICollection<Review> Reviews { get; set; } = new List<Review>();
+
+
         //[Key]
         //[DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         //public int UserId { get; set; }
@@ -33,10 +62,7 @@ namespace Rest.API.Models
 
         //public bool EmailVerified { get; set; } = false;
 
-        [Required(ErrorMessage = "Full name is required")]
-        [StringLength(100, MinimumLength = 3, ErrorMessage = "Full name must be between 3 and 100 characters")]
-        [Column(TypeName = "nvarchar(100)")]
-        public string FullName { get; set; }
+
 
         //[Required(ErrorMessage = "Role is required")]
         //[Column(TypeName = "varchar(20)")]
@@ -47,25 +73,6 @@ namespace Rest.API.Models
         //[Phone(ErrorMessage = "Invalid phone number format")]
         //public string? Phone { get; set; }
 
-        [StringLength(255)]
-        public string? ProfileImageUrl { get; set; }
-
-        [Required]
-        public bool IsActive { get; set; } = true;
-
-        [Required]
-        [DataType(DataType.DateTime)]
-        public DateTime JoinDate { get; set; } = DateTime.UtcNow;
-
-        // Navigation properties
-        [InverseProperty("User")]
-        public virtual ICollection<Order> CustomerOrders { get; set; } = new List<Order>();
-
-        [InverseProperty("DeliveryPerson")]
-        public virtual ICollection<Order> DeliveryOrders { get; set; } = new List<Order>();
-        public virtual ICollection<Address> Addresses { get; set; } = new List<Address>();
-        public virtual ICollection<Delivery> Deliveries { get; set; } = new List<Delivery>();
-        public virtual ICollection<Review> Reviews { get; set; } = new List<Review>();
 
         //public bool IsInRole(UserRole role)
         //{

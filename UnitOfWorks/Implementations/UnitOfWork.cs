@@ -12,8 +12,8 @@ namespace Rest.API.UnitOfWorks.Implementations
     {
         private readonly RestDbContext _context;
 
-        //private IAuthService _authService;
-        private IRepository<User> _userRepository;
+        private IUserRepository _userRepository;
+        private IRepository<User> _userRepository2;
         private IRepository<Address> _addressRepository;
         private IRepository<Category> _categoryRepository;
         private IRepository<Product> _productRepository;
@@ -28,9 +28,7 @@ namespace Rest.API.UnitOfWorks.Implementations
             _context = context;
         }
 
-        //public IAuthService authService => _authService ??= new AuthService(_userManager, _roleManager, _configuration);
-
-        public IRepository<User> userRepository => _userRepository ??= new Repository<User>(_context);
+        public IUserRepository userRepository => _userRepository ??= new UserRepository(_context, _userRepository2);
 
         public IRepository<Address> addressRepository => _addressRepository ??= new Repository<Address>(_context);
 

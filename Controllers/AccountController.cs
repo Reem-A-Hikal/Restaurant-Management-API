@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Rest.API.Dtos.AccountDtos;
+using Rest.API.Dtos.UserDtos;
 using Rest.API.Models;
 using Rest.API.Services.Interfaces;
 using Swashbuckle.AspNetCore.Annotations;
@@ -108,14 +109,14 @@ namespace Rest.API.Controllers
                 }
                 var token = await authService.GenerateJwtTokenAsync(user);
                 var userRoles = await userManager.GetRolesAsync(user);
+                var userDto = mapper.Map<UserDto>(user);
+                userDto.Roles = userRoles.ToList();
 
                 return Ok(new
                 {
                     message = "Login successful",
                     token = token,
-                    userId = user.Id,
-                    email = user.Email,
-                    roles = userRoles
+                    user = userDto
                 });
             }
             catch (Exception ex)

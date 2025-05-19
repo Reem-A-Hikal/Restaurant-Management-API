@@ -112,9 +112,9 @@ namespace Rest.API
             }
 
             app.UseHttpsRedirection();
+            app.UseCors(txt);
             app.UseAuthentication();
             app.UseAuthorization();
-            app.UseCors(txt);
             app.MapControllers();
 
             app.Run();

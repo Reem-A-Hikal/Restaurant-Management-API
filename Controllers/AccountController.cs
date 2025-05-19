@@ -17,18 +17,21 @@ namespace Rest.API.Controllers
         private readonly UserManager<User> userManager;
         private readonly IMapper mapper;
         private readonly SignInManager<User> signInManager;
+        private readonly RoleManager<IdentityRole> roleManager;
         private readonly IAuthService authService;
 
         public AccountController(
             UserManager<User> userManager,
             IMapper mapper,
             SignInManager<User> signInManager,
+            RoleManager<IdentityRole> roleManager,
              IAuthService authService)
         {
             this.userManager = userManager;
             this.mapper = mapper;
             this.signInManager = signInManager;
             this.authService = authService;
+            this.roleManager = roleManager;
         }
 
         [HttpPost("register")]
@@ -55,14 +58,24 @@ namespace Rest.API.Controllers
                 var result = await userManager.CreateAsync(user, registerDto.Password);
                 if (result.Succeeded)
                 {
-                    await userManager.AddToRoleAsync(user, "Customer");
+                    string roleToAssign = "Customer";
                     var token = await authService.GenerateJwtTokenAsync(user);
-                    return Ok(new 
+                    if (User.IsInRole("Admin") && !string.IsNullOrEmpty(registerDto.Role))
+                    {
+                        var roleExists = await roleManager.RoleExistsAsync(registerDto.Role);
+                        if (roleExists)
+                        {
+                            roleToAssign = registerDto.Role;
+                        }
+                    }
+                    await userManager.AddToRoleAsync(user, roleToAssign);
+                    return Ok(new
                     {
                         message = "User registered successfully",
                         token = token,
                         userId = user.Id,
-                        email = user.Email
+                        email = user.Email,
+                        role = roleToAssign
                     });
                 }
                 foreach (var error in result.Errors)
@@ -124,7 +137,7 @@ namespace Rest.API.Controllers
                 await signInManager.SignOutAsync();
                 return Ok(new { message = "Logout successful" });
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 return StatusCode(500, new { message = "An error occurred during logout", error = ex.Message });
             }
@@ -173,6 +186,40 @@ namespace Rest.API.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "An error occurred while retrieving user", error = ex.Message });
+            }
+        }
+        [HttpGet("getCurrentUser")]
+        [Authorize]
+        [SwaggerOperation(Summary = "Get current user details", Description = "Get current user details")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Current user details retrieved successfully")]
+        [SwaggerResponse(StatusCodes.Status403Forbidden, "Access denied")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "An error occurred while retrieving current user")]
+        public async Task<IActionResult> GetCurrentUser()
+        {
+            try
+            {
+                var user = await userManager.GetUserAsync(User);
+                if (user == null)
+                {
+                    return NotFound(new { message = "User not found" });
+                }
+
+                var roles = await userManager.GetRolesAsync(user);
+                return Ok(new
+                {
+                    id = user.Id,
+                    email = user.Email,
+                    fullName = user.FullName,
+                    phoneNumber = user.PhoneNumber,
+                    profileImageUrl = user.ProfileImageUrl,
+                    joinDate = user.JoinDate,
+                    isActive = user.IsActive,
+                    roles = roles
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while retrieving current user", error = ex.Message });
             }
         }
     }

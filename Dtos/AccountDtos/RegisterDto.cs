@@ -25,5 +25,7 @@ namespace Rest.API.Dtos.AccountDtos
         [Phone(ErrorMessage = "Invalid phone number format")]
         [StringLength(11, ErrorMessage = "Phone number cannot exceed 11 characters")]
         public string? Phone { get; set; }
+
+        public string? Role { get; set; } = null;
     }
 }

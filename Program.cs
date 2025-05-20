@@ -40,13 +40,15 @@ namespace Rest.API
 
             builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
             builder.Services.AddScoped<IUserRepository, UserRepository>();
-            builder.Services.AddScoped<IProductService, ProductService>();
+            builder.Services.AddScoped<IProductRepository, ProductRepositort>();
+            builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<IUserService, UserService>();
-            builder.Services.AddScoped<IProductRepository, ProductRepositort>();
+            builder.Services.AddScoped<IProductService, ProductService>();
+            builder.Services.AddScoped<ICategoryService, CategoryService>();
 
             string txt = "AllowAll";
             builder.Services.AddCors( options =>

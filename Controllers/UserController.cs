@@ -10,22 +10,36 @@ using System.Security.Claims;
 
 namespace Rest.API.Controllers
 {
+    /// <summary>
+    /// Controller for managing user operations including retrieval, updates, and deletion
+    /// </summary>
     [Route("api/user")]
     [ApiController]
     [Authorize]
     public class UserController : ControllerBase
     {
+        /// <summary>
+        /// Controller for managing user operations including retrieval, updates, and deletion
+        /// </summary>
         private readonly IUserService _userService;
         ILogger<UserController> _logger;
 
-
+        /// <summary>
+        /// Initializes a new instance of the UserController
+        /// </summary>
+        /// <param name="userService">The user service for business logic operations</param>
+        /// <param name="logger">The logger for logging operations</param>
         public UserController(IUserService userService,
             ILogger<UserController> logger)
         {
             _userService = userService;
             _logger = logger;
         }
-
+        /// <summary>
+        /// Retrieves all users in the system (Admin only)
+        /// </summary>
+        /// <returns>A list of all users</returns>
+        /// 
         [HttpGet("all")]
         [Authorize(Roles = "Admin")]
         [SwaggerOperation(
@@ -88,10 +102,17 @@ namespace Rest.API.Controllers
         }
 
         /// <summary>
-        /// Update user profile
+        /// Updates a user's profile information
         /// </summary>
-        /// <param name="userId">The user ID to update</param>
-        /// <param name="updateDto">Profile update data</param>
+        /// <param name="userId">The ID of the user to update</param>
+        /// <param name="updateDto">The updated profile data</param>
+        /// <returns>Confirmation of successful update</returns>
+        /// <remarks>
+        /// Special fields are role-specific:
+        /// - Chef: Can update specialization
+        /// - DeliveryPerson: Can update vehicleNumber
+        /// Users can only update their own profile unless they are Admins
+        /// </remarks>
         [HttpPut("UpdateProfile/{userId}")]
         [SwaggerOperation(
             Summary = "Update user profile",

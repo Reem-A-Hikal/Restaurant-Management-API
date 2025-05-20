@@ -11,6 +11,9 @@ using System.Security.Claims;
 
 namespace Rest.API.Controllers
 {
+    /// <summary>
+    /// Controller for handling user authentication and account management operations
+    /// </summary>
     [Route("api/[controller]")]
     [ApiController]
     public class AccountController : ControllerBase
@@ -21,6 +24,14 @@ namespace Rest.API.Controllers
         private readonly RoleManager<IdentityRole> roleManager;
         private readonly IAuthService authService;
 
+        /// <summary>
+        /// Initializes a new instance of the AccountController
+        /// </summary>
+        /// <param name="userManager">Provides the APIs for managing user in a persistence store</param>
+        /// <param name="mapper">AutoMapper instance for object-object mapping</param>
+        /// <param name="signInManager">Manages user sign-in operations</param>
+        /// <param name="roleManager">Provides the APIs for managing roles in a persistence store</param>
+        /// <param name="authService">Service for authentication related operations</param>
         public AccountController(
             UserManager<User> userManager,
             IMapper mapper,
@@ -35,6 +46,24 @@ namespace Rest.API.Controllers
             this.roleManager = roleManager;
         }
 
+        /// <summary>
+        /// Registers a new user in the system
+        /// </summary>
+        /// <param name="registerDto">User registration data</param>
+        /// <returns>Registration result with token and user details</returns>
+        /// <remarks>
+        /// Sample request:
+        /// 
+        ///     POST /api/account/register
+        ///     {
+        ///         "email": "user@example.com",
+        ///         "password": "Password123!",
+        ///         "phoneNumber": "0123456789",
+        ///         "fullName": "John Doe"
+        ///     }
+        /// 
+        /// Admins can specify a role during registration
+        /// </remarks>
         [HttpPost("register")]
         [SwaggerOperation(Summary = "Register a new user", Description = "Register a new user with email, password and Phone Number")]
         [SwaggerResponse(StatusCodes.Status200OK, "User registered successfully")]
@@ -91,6 +120,20 @@ namespace Rest.API.Controllers
             }
         }
 
+        /// <summary>
+        /// Authenticates a user and returns a JWT token
+        /// </summary>
+        /// <param name="loginDto">User login credentials</param>
+        /// <returns>Authentication token and user details</returns>
+        /// <remarks>
+        /// Sample request:
+        /// 
+        ///     POST /api/account/login
+        ///     {
+        ///         "email": "user@example.com",
+        ///         "password": "Password123!"
+        ///     }
+        /// </remarks>
         [HttpPost("login")]
         [SwaggerOperation(Summary = "Login a user", Description = "Login a user with email and password")]
         [SwaggerResponse(StatusCodes.Status200OK, "User logged in successfully")]
@@ -124,6 +167,11 @@ namespace Rest.API.Controllers
                 return StatusCode(500, new { message = "An error occurred during login", error = ex.Message });
             }
         }
+
+        /// <summary>
+        /// Logs out the currently authenticated user
+        /// </summary>
+        /// <returns>Logout confirmation</returns>
         [HttpPost("logout")]
         [Authorize]
         [SwaggerOperation(Summary = "Logout a user", Description = "Logout a user")]
@@ -144,6 +192,14 @@ namespace Rest.API.Controllers
             }
         }
 
+        /// <summary>
+        /// Retrieves details for a specific user
+        /// </summary>
+        /// <param name="userId">The ID of the user to retrieve</param>
+        /// <returns>User details including roles</returns>
+        /// <remarks>
+        /// Users can only access their own profile unless they are Admins
+        /// </remarks>
         [HttpGet("getUser/{userId}")]
         [Authorize]
         [SwaggerOperation(Summary = "Get user details", Description = "Get user details by user ID")]
@@ -189,6 +245,11 @@ namespace Rest.API.Controllers
                 return StatusCode(500, new { message = "An error occurred while retrieving user", error = ex.Message });
             }
         }
+
+        /// <summary>
+        /// Retrieves details for the currently authenticated user
+        /// </summary>
+        /// <returns>Current user details including roles</returns>
         [HttpGet("getCurrentUser")]
         [Authorize]
         [SwaggerOperation(Summary = "Get current user details", Description = "Get current user details")]

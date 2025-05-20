@@ -16,8 +16,16 @@ using System.Text;
 
 namespace Rest.API
 {
+    /// <summary>
+    /// Main entry point for the application.
+    /// </summary>
     public class Program
     {
+        /// <summary>
+        /// Main method to run the application.
+        /// </summary>
+        /// <param name="args"></param>
+        /// <returns></returns>
         public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
@@ -32,9 +40,13 @@ namespace Rest.API
 
             builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
             builder.Services.AddScoped<IUserRepository, UserRepository>();
+            builder.Services.AddScoped<IProductService, ProductService>();
+
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddScoped<IProductRepository, ProductRepositort>();
 
             string txt = "AllowAll";
             builder.Services.AddCors( options =>
@@ -88,7 +100,9 @@ namespace Rest.API
                     };
                 });
 
+            // Add AutoMapper
             builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
+            builder.Services.AddAutoMapper(typeof(ProductProfile));
 
             builder.Services.AddSwaggerGen(c =>
             {

@@ -56,7 +56,16 @@ namespace Rest.API.Repositories.Implementations
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        public async Task<Category> GetByIdAsync(int id) => await categoryRepository.GetByIdAsync(id);
+        public async Task<Category> GetByIdAsync(int id)
+        {
+            var category = await context.Categories.Include(c => c.Products)
+                .FirstOrDefaultAsync(c => c.CategoryId == id);
+            if (category == null)
+            {
+                throw new KeyNotFoundException($"Category with ID {id} not found");
+            }
+                return category;
+        }
 
         /// <summary>
         /// Saves changes to the database.

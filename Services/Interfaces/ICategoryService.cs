@@ -28,6 +28,7 @@ namespace Rest.API.Services.Interfaces
         /// <summary>
         /// Updates an existing category.
         /// </summary>
+        /// <param name="id"> The ID of the category to update.</param>
         /// <param name="category">The category to update.</param>
         Task Update(int id,CategoryUpdateDto category);
         /// <summary>

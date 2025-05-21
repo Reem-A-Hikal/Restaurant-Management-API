@@ -43,6 +43,7 @@ namespace Rest.API.Repositories.Implementations
         public async Task<IEnumerable<Product>> GetByCategoryAsync(int categoryId)
         {
             var products = await context.Products
+                .Include(p => p.Category)
                 .Where(p => p.CategoryId == categoryId)
                 .ToListAsync();
 

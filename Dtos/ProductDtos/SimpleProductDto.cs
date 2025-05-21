@@ -22,5 +22,10 @@ namespace Rest.API.Dtos.ProductDtos
         /// The price of the product.
         /// </summary>
         public decimal Price { get; set; }
+
+        /// <summary>
+        /// Is the product available for sale?
+        /// </summary>
+        public bool IsAvailable { get; set; } = true;
     }
 }

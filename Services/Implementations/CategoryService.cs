@@ -11,8 +11,8 @@ namespace Rest.API.Services.Implementations
     /// </summary>
     public class CategoryService : ICategoryService
     {
-        ICategoryRepository _categoryRepository;
-        IMapper _mapper;
+        private readonly ICategoryRepository _categoryRepository;
+        private readonly IMapper _mapper;
 
         /// <summary>
         /// Constructor for the CategoryService class.
@@ -32,18 +32,30 @@ namespace Rest.API.Services.Implementations
         {
             var categoryE = _mapper.Map<Category>(category);
             await _categoryRepository.AddAsync(categoryE);
-            await _categoryRepository.SaveChangesAsync();
             return categoryE;
         }
 
         /// <summary>
-        /// Deletes a category by its ID.
+        /// Deactivates a category by setting its IsActive property to false.
         /// </summary>
-        /// <param name="id"> The ID of the category to delete</param>
+        /// <param name="id"></param>
         public async Task DeleteAsync(int id)
         {
-            await _categoryRepository.DeleteAsync(id);
-            await _categoryRepository.SaveChangesAsync();
+            var category = await _categoryRepository.GetByIdAsync(id);
+
+            if (category != null)
+            {
+                category.IsActive = false;
+
+                foreach (var product in category.Products)
+                {
+                    product.IsAvailable = false;
+                }
+            }
+            else
+            {
+                throw new KeyNotFoundException($"Category with ID {id} not found");
+            }
         }
 
         /// <summary>
@@ -92,7 +104,6 @@ namespace Rest.API.Services.Implementations
             }
             _mapper.Map(category, existingCategory);
             _categoryRepository.Update(existingCategory);
-            await _categoryRepository.SaveChangesAsync();
         }
     }
 }

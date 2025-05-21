@@ -17,7 +17,7 @@ namespace Rest.API.Models
         [StringLength(255)]
         public string Image { get; set; }
 
-        public bool IsActive { get; set; }
+        public bool IsActive { get; set; } = true;
 
         public int DisplayOrder { get; set; }
 

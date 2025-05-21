@@ -42,6 +42,7 @@ namespace Rest.API
             builder.Services.AddScoped<IUserRepository, UserRepository>();
             builder.Services.AddScoped<IProductRepository, ProductRepositort>();
             builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+            builder.Services.AddScoped<IAddressRepository, AddressRepository>();
 
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
@@ -49,6 +50,7 @@ namespace Rest.API
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IProductService, ProductService>();
             builder.Services.AddScoped<ICategoryService, CategoryService>();
+            builder.Services.AddScoped<IAddressService, AddressService>();
 
             string txt = "AllowAll";
             builder.Services.AddCors( options =>
@@ -105,6 +107,7 @@ namespace Rest.API
             // Add AutoMapper
             builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
             builder.Services.AddAutoMapper(typeof(ProductProfile));
+            builder.Services.AddAutoMapper(typeof(AddressProfile));
 
             builder.Services.AddSwaggerGen(c =>
             {

@@ -159,7 +159,8 @@ namespace Rest.API.Controllers
                 {
                     message = "Login successful",
                     token = token,
-                    user = userDto
+                    email = userDto.Email,
+                    roles = userRoles
                 });
             }
             catch (Exception ex)

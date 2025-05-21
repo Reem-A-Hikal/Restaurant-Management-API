@@ -1,18 +1,11 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using Rest.API.Models.Enums;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
-using Rest.API.Models.Enums;
 
-namespace Rest.API.Models
+namespace Rest.API.Dtos.AddressDtos
 {
-    /// <summary>
-    /// Represents an address associated with a user.
-    /// </summary>
-    public class Address
+    public class AddressDto
     {
-        /// <summary>
-        /// Gets or sets the unique identifier for the address.
-        /// </summary>
-        [Key]
         public int AddressId { get; set; }
 
         /// <summary>
@@ -67,19 +60,5 @@ namespace Rest.API.Models
         // Foreign key
         [Required]
         public string UserId { get; set; }
-
-        /// <summary>
-        /// Gets or sets User associated with this address.
-        /// </summary>
-
-        // Navigation properties
-        [ForeignKey("UserId")]
-        public virtual User User { get; set; }
-
-        /// <summary>
-        /// Gets or sets the collection of orders associated with this address.
-        /// </summary>
-
-        public virtual ICollection<Order> Orders { get; set; }
     }
 }

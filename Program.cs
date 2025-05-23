@@ -51,6 +51,7 @@ namespace Rest.API
             builder.Services.AddScoped<IProductService, ProductService>();
             builder.Services.AddScoped<ICategoryService, CategoryService>();
             builder.Services.AddScoped<IAddressService, AddressService>();
+            builder.Services.AddScoped<IOrderService, OrderService>();
 
             string txt = "AllowAll";
             builder.Services.AddCors( options =>
@@ -108,6 +109,7 @@ namespace Rest.API
             builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
             builder.Services.AddAutoMapper(typeof(ProductProfile));
             builder.Services.AddAutoMapper(typeof(AddressProfile));
+            builder.Services.AddAutoMapper(typeof(OrderProfile));
 
             builder.Services.AddSwaggerGen(c =>
             {

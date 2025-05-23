@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Rest.API;
 
@@ -11,9 +12,11 @@ using Rest.API;
 namespace Rest.API.Migrations
 {
     [DbContext(typeof(RestDbContext))]
-    partial class RestDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250522075119_Added More Details For Order table")]
+    partial class AddedMoreDetailsForOrdertable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

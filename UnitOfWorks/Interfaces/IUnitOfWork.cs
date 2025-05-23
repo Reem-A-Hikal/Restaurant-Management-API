@@ -9,10 +9,10 @@ namespace Rest.API.UnitOfWorks.Interfaces
         //IAuthService authService { get; }
         //IRepository<User> userRepository {get; }
         IUserRepository userRepository { get; }
-        IRepository<Address> addressRepository {get; }
-        IRepository<Category> categoryRepository { get; }
-        IRepository<Product> productRepository { get; }
-        IRepository<Order> orderRepository { get; }
+        IAddressRepository addressRepository {get; }
+        ICategoryRepository categoryRepository { get; }
+        IProductRepository productRepository { get; }
+        IOrderRepository orderRepository { get; }
         IRepository<OrderDetail> orderDetailRepository { get; }
         IRepository<Review> reviewRepository { get; }
         IRepository<Delivery> deliveryRepository { get; }

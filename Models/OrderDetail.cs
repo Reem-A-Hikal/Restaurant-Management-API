@@ -14,7 +14,6 @@ namespace Rest.API.Models
         public int OrderId { get; set; }
 
         [Required]
-
         public int ProductId { get; set; }
 
         [Required]
@@ -38,7 +37,7 @@ namespace Rest.API.Models
         public virtual Order? Order { get; set; }
 
         [ForeignKey("ProductId")]
-        public virtual Product? Product { get; set; }
+        public virtual Product Product { get; set; }
 
 
         public void CalculateSubtotal()

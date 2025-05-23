@@ -39,7 +39,6 @@ namespace Rest.API.Models
         [ForeignKey("ProductId")]
         public virtual Product Product { get; set; }
 
-
         public void CalculateSubtotal()
         {
             Subtotal = Quantity * UnitPrice;

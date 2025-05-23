@@ -39,10 +39,13 @@ namespace Rest.API
             builder.Services.AddOpenApi();
 
             builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+
             builder.Services.AddScoped<IUserRepository, UserRepository>();
             builder.Services.AddScoped<IProductRepository, ProductRepositort>();
             builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
             builder.Services.AddScoped<IAddressRepository, AddressRepository>();
+            builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
+            builder.Services.AddScoped<IOrderDetailRepository, OrderDetailRepository>();
 
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
@@ -52,6 +55,10 @@ namespace Rest.API
             builder.Services.AddScoped<ICategoryService, CategoryService>();
             builder.Services.AddScoped<IAddressService, AddressService>();
             builder.Services.AddScoped<IOrderService, OrderService>();
+            builder.Services.AddScoped<IRepository<Delivery>, Repository<Delivery>>();
+            builder.Services.AddScoped<IDeliveryService, DeliveryService>();
+            builder.Services.AddScoped<IOrderDetailService, OrderDetailService>();
+            builder.Services.AddScoped<IReviewService, ReviewService>();
 
             string txt = "AllowAll";
             builder.Services.AddCors( options =>

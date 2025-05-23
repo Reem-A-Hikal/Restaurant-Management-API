@@ -131,13 +131,16 @@ namespace Rest.API.Controllers
             {
                 if (!ModelState.IsValid)
                 {
-                    return BadRequest(ModelState);
+                    return BadRequest(new
+                    {
+                        Message = "Invalid request data",
+                        Errors = ModelState.Values.SelectMany(v => v.Errors)
+                    });
                 }
 
                 var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
                 var isAdmin = User.IsInRole("Admin");
                 var currentUserRoles = User.FindFirstValue(ClaimTypes.Role)?.Split(",") ?? Array.Empty<string>();
-
 
                 if (currentUserId != userId && !isAdmin)
                 {
@@ -156,7 +159,7 @@ namespace Rest.API.Controllers
                 }
 
                 await _userService.UpdateUserProfileAsync(userId, updateDto);
-                return Ok("profile updated successfully");
+                return Ok(new { Message = "Profile updated successfully" });
             }
             catch (KeyNotFoundException ex)
             {

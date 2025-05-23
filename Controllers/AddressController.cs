@@ -16,24 +16,26 @@ namespace Rest.API.Controllers
     {
         private readonly IAddressService _addressService;
         private readonly ILogger<AddressController> _logger;
+        private readonly IUserService _userService;
 
         /// <summary>
         /// Constructor for AddressController.
         /// </summary>
         /// <param name="address"></param>
         /// <param name="mapper"></param>
-        public AddressController(IAddressService address, ILogger<AddressController> logger)
+        public AddressController(IAddressService address, ILogger<AddressController> logger, IUserService userService)
         {
             _addressService = address;
             _logger = logger;
+            _userService = userService;
         }
 
         /// <summary>
         /// Creates a new address for the user.
         /// </summary>
         /// <returns> The created address.</returns>
-        [HttpGet("UserAddresses")]
-        public async Task<IActionResult> GetUserAddresses()
+        [HttpGet("UserAddressesSelf")]
+        public async Task<IActionResult> GetUserAddressesforhimSelf()
         {
             try
             {
@@ -51,12 +53,31 @@ namespace Rest.API.Controllers
                 return StatusCode(500, "An error occurred while retrieving user addresses." + ex);
             }
         }
+
+        [HttpGet("UserAddressesAdmin/{userid}")]
+        public async Task<IActionResult> GetUserAddressesAdmin(string userid)
+        {
+            try
+            {
+                var addresses = await _addressService.GetUserAddresses(userid);
+                if (addresses == null || !addresses.Any())
+                {
+                    return NotFound("No addresses found for the user.");
+                }
+                return Ok(addresses);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while retrieving user addresses.");
+                return StatusCode(500, "An error occurred while retrieving user addresses." + ex);
+            }
+        }
         /// <summary>
         /// Get a specific address by ID
         /// </summary>
         /// <param name="id">Address ID</param>
         /// <returns>Address details</returns>
-        [HttpGet("UserAddresses/{id}")]
+        [HttpGet("UserAddress/{id}")]
         public async Task<IActionResult> GetUserAddress(int id)
         {
             try

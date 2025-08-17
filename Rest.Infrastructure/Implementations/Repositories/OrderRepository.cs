@@ -1,7 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Rest.Domain.Entities;
 using Rest.Domain.Entities.Enums;
-using Rest.Domain.Interfaces.Repositories;
+using Rest.Domain.Interfaces.IRepositories;
+using Rest.Infrastructure.Data;
+
 namespace Rest.Infrastructure.Repositories
 {
     public class OrderRepository : IOrderRepository

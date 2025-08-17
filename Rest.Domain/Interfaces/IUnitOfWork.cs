@@ -1,7 +1,7 @@
 ﻿
 
 using Rest.Domain.Entities;
-using Rest.Domain.Interfaces.Repositories;
+using Rest.Domain.Interfaces.IRepositories;
 
 namespace Rest.Domain.Interfaces
 {

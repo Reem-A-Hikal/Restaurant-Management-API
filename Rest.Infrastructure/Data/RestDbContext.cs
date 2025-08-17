@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Rest.Domain.Entities;
 
-namespace Rest.Infrastructure
+namespace Rest.Infrastructure.Data
 {
     public class RestDbContext : IdentityDbContext<User>
     {

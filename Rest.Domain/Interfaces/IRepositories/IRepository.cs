@@ -1,4 +1,4 @@
-﻿namespace Rest.Domain.Interfaces.Repositories
+﻿namespace Rest.Domain.Interfaces.IRepositories
 {
     public interface IRepository<TEntity> where TEntity : class
     {

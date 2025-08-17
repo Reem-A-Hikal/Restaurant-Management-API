@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Identity;
-using Rest.Domain.Entities;
+﻿using Rest.Domain.Entities;
 using Rest.Domain.Interfaces;
-using Rest.Domain.Interfaces.Repositories;
+using Rest.Domain.Interfaces.IRepositories;
+using Rest.Infrastructure.Data;
 using Rest.Infrastructure.Repositories;
 
 namespace Rest.Infrastructure.Implementations

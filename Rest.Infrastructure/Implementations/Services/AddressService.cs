@@ -2,7 +2,7 @@
 using Rest.Application.Dtos.AddressDtos;
 using Rest.Application.Interfaces.IServices;
 using Rest.Domain.Entities;
-using Rest.Domain.Interfaces.Repositories;
+using Rest.Domain.Interfaces.IRepositories;
 
 namespace Rest.Infrastructure.Implementations.Services
 {

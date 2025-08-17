@@ -7,8 +7,8 @@ using Rest.Application.Interfaces.IServices;
 using Rest.Application.Profiles;
 using Rest.Domain.Entities;
 using Rest.Domain.Interfaces;
-using Rest.Domain.Interfaces.Repositories;
-using Rest.Infrastructure;
+using Rest.Domain.Interfaces.IRepositories;
+using Rest.Infrastructure.Data;
 using Rest.Infrastructure.Implementations;
 using Rest.Infrastructure.Implementations.Services;
 using Rest.Infrastructure.Repositories;
@@ -138,7 +138,7 @@ namespace Rest.API
                 c.IncludeXmlComments(xmlPath);
             });
 
-                var app = builder.Build();
+            var app = builder.Build();
 
             using (var scope = app.Services.CreateScope())
             {

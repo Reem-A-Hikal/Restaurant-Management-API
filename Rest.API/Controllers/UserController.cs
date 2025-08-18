@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Rest.Application.Dtos.UserDtos;
 using Rest.Application.Interfaces.IServices;
 using Swashbuckle.AspNetCore.Annotations;
-using System.Security.Claims;
 
 namespace Rest.API.Controllers
 {
@@ -19,7 +18,7 @@ namespace Rest.API.Controllers
         /// Controller for managing user operations including retrieval, updates, and deletion
         /// </summary>
         private readonly IUserService _userService;
-        ILogger<UserController> _logger;
+        private ILogger<UserController> _logger;
 
         /// <summary>
         /// Initializes a new instance of the UserController
@@ -36,8 +35,7 @@ namespace Rest.API.Controllers
         /// Retrieves all users in the system (Admin only)
         /// </summary>
         /// <returns>A list of all users</returns>
-        /// 
-        [HttpGet("all")]
+        [HttpGet("GetAll")]
         [Authorize(Roles = "Admin")]
         [SwaggerOperation(
             Summary = "Get all users",
@@ -64,6 +62,7 @@ namespace Rest.API.Controllers
         /// Get user by ID
         /// </summary>
         /// <param name="userId">The user ID to retrieve</param>
+        [Authorize(Policy = "SelfOrAdmin")]
         [HttpGet("GetUserById/{userId}")]
         [SwaggerOperation(
             Summary = "Get user by ID",
@@ -77,12 +76,10 @@ namespace Rest.API.Controllers
         {
             try
             {
-                var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                var isAdmin = User.IsInRole("Admin");
-                if (currentUserId != userId && !isAdmin)
-                {
-                    return Forbid("You are not authorized to access this resource");
-                }
+                //if (!IsAuthorizedUser(userId))
+                //{
+                //    return Forbid("You are not authorized to access this resource");
+                //}
                 var user = await _userService.GetUserByIdAsync(userId);
                 return Ok(user);
             }
@@ -110,6 +107,7 @@ namespace Rest.API.Controllers
         /// - DeliveryPerson: Can update vehicleNumber
         /// Users can only update their own profile unless they are Admins
         /// </remarks>
+        [Authorize(Policy = "SelfOrAdmin")]
         [HttpPut("UpdateProfile/{userId}")]
         [SwaggerOperation(
             Summary = "Update user profile",
@@ -124,37 +122,16 @@ namespace Rest.API.Controllers
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal server error")]
         public async Task<IActionResult> UpdateProfile(string userId, [FromBody] UpdateProfileDto updateDto)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new
+                {
+                    Message = "Invalid request data",
+                    Errors = ModelState.Values.SelectMany(v => v.Errors)
+                });
+            }
             try
             {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(new
-                    {
-                        Message = "Invalid request data",
-                        Errors = ModelState.Values.SelectMany(v => v.Errors)
-                    });
-                }
-
-                var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                var isAdmin = User.IsInRole("Admin");
-                var currentUserRoles = User.FindFirstValue(ClaimTypes.Role)?.Split(",") ?? Array.Empty<string>();
-
-                if (currentUserId != userId && !isAdmin)
-                {
-                    _logger.LogWarning($"Unauthorized update attempt by {currentUserId} for user {userId}");
-                    return Forbid("You don't have permission to update this user profile");
-                }
-
-                if (!currentUserRoles.Contains("Chef"))
-                {
-                    updateDto.Specialization = null;
-                }
-
-                if (!currentUserRoles.Contains("DeliveryPerson"))
-                {
-                    updateDto.VehicleNumber = null;
-                }
-
                 await _userService.UpdateUserProfileAsync(userId, updateDto);
                 return Ok(new { Message = "Profile updated successfully" });
             }
@@ -180,7 +157,6 @@ namespace Rest.API.Controllers
         /// </summary>
         /// <param name="userId">The user ID to delete</param>
         [HttpDelete("DeleteUser/{userId}")]
-
         [Authorize(Roles = "Admin")]
         [SwaggerOperation(
             Summary = "Delete user",
@@ -208,5 +184,17 @@ namespace Rest.API.Controllers
                 return StatusCode(500, new { Message = "An error occurred while deleting the user" });
             }
         }
+
+        //private string? GetCurrentUserId()
+        //{
+        //    return User.FindFirstValue(ClaimTypes.NameIdentifier);
+        //}
+
+        //private bool IsAuthorizedUser(string userId)
+        //{
+        //    var currentUserId = GetCurrentUserId();
+        //    var isAdmin = User.IsInRole("Admin");
+        //    return currentUserId == userId || isAdmin;
+        //}
     }
 }

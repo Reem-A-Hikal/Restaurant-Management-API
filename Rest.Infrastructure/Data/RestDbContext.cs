@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Rest.Domain.Entities;
 
@@ -9,6 +10,8 @@ namespace Rest.Infrastructure.Data
         public RestDbContext(DbContextOptions<RestDbContext> options) : base(options)
         {}
 
+        public DbSet<Chef> Chefs { get; set; }
+        public DbSet<DeliveryPerson> DeliveryPeople { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<Product> Products { get; set; }
         public DbSet<Address> Addresses { get; set; }
@@ -19,6 +22,9 @@ namespace Rest.Infrastructure.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Chef>().ToTable("Chefs");
+            modelBuilder.Entity<DeliveryPerson>().ToTable("DeliveryPersons");
 
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Email)

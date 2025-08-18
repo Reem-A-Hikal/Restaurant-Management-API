@@ -11,14 +11,14 @@ namespace Rest.Infrastructure.Implementations.Services
     {
 
         private readonly UserManager<User> _userManager;
-        private readonly RoleManager<IdentityRole> _roleManager;
+        //private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IUserRepository _userRepository;
+        //private readonly IAuthService _authService;
         private readonly IMapper _mapper;
 
-        public UserService(UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IUserRepository userRepository, IMapper mapper)
+        public UserService(UserManager<User> userManager, IUserRepository userRepository, IMapper mapper)
         {
             _userManager = userManager;
-            _roleManager = roleManager;
             _userRepository = userRepository;
             _mapper = mapper;
 
@@ -40,7 +40,6 @@ namespace Rest.Infrastructure.Implementations.Services
             return userDtos;
         }
 
-
         public async Task<UserDto> GetUserByIdAsync(string userId)
         {
             var user = await _userRepository.GetByIdAsync(userId);
@@ -49,30 +48,35 @@ namespace Rest.Infrastructure.Implementations.Services
                 throw new KeyNotFoundException("User not found");
             }
             var userDto = _mapper.Map<UserDto>(user);
-            userDto.Roles = (await _userManager.GetRolesAsync(user)).ToList();
+            userDto.Roles = [.. (await _userManager.GetRolesAsync(user))];
             return userDto;
         }
 
+        
+
         public async Task UpdateUserProfileAsync(string userId, UpdateProfileDto dto)
         {
-            var user = await _userRepository.GetByIdAsync(userId);
-            if (user == null)
-            {
-                throw new Exception("User not found");
-            }
+            var user = await _userRepository.GetByIdAsync(userId) ?? throw new Exception("User not found");
+
             user.FullName = dto.FullName;
             user.PhoneNumber = dto.PhoneNumber;
             user.ProfileImageUrl = dto.ProfileImageUrl;
 
-            if (dto.Specialization != null)
+            switch (user)
             {
-                user.Specialization = dto.Specialization;
-            }
-            if (dto.VehicleNumber != null)
-            {
-                user.VehicleNumber = dto.VehicleNumber;
+                case Chef chef:
+                    chef.Specialization = dto.Specialization;
+                    break;
+
+                case DeliveryPerson deliveryPerson:
+                    deliveryPerson.VehicleNumber = dto.VehicleNumber;
+                    break;
+
+                default:
+                    break;
             }
             var result = await _userManager.UpdateAsync(user);
+            
             if (!result.Succeeded)
             {
                 throw new ApplicationException(string.Join(", ", result.Errors.Select(e => e.Description)));
@@ -92,5 +96,6 @@ namespace Rest.Infrastructure.Implementations.Services
                 throw new ApplicationException(string.Join(", ", result.Errors.Select(e => e.Description)));
             }
         }
+
     }
 }

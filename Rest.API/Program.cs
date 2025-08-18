@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Rest.Application.Interfaces.IServices;
+using Rest.Application.IServices;
 using Rest.Application.Profiles;
 using Rest.Domain.Entities;
 using Rest.Domain.Interfaces;
@@ -13,6 +14,7 @@ using Rest.Infrastructure.Implementations;
 using Rest.Infrastructure.Implementations.Services;
 using Rest.Infrastructure.Repositories;
 using System.Reflection;
+using System.Security.Claims;
 using System.Text;
 
 namespace Rest.API
@@ -51,6 +53,7 @@ namespace Rest.API
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
             builder.Services.AddScoped<IAuthService, AuthService>();
+            builder.Services.AddScoped<IAccountService, AccountService>();
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IProductService, ProductService>();
             builder.Services.AddScoped<ICategoryService, CategoryService>();
@@ -95,29 +98,42 @@ namespace Rest.API
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            })
-                .AddJwtBearer(options =>
+            }).AddJwtBearer(options =>
+            {
+                options.SaveToken = true;
+                options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    options.SaveToken = true;
-                    options.TokenValidationParameters = new TokenValidationParameters
-                    {
-                        ValidateIssuerSigningKey = true,
-                        IssuerSigningKey = new SymmetricSecurityKey(key),
-                        ValidateIssuer = true,
-                        ValidIssuer = jwtSettings["Issuer"],
-                        ValidateAudience = true,
-                        ValidAudience = jwtSettings["Audience"],
-                        ValidateLifetime = true,
-                        ClockSkew = TimeSpan.Zero, // Remove delay of token when expired
-                        RequireExpirationTime = true
-                    };
-                });
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateIssuer = true,
+                    ValidIssuer = jwtSettings["Issuer"],
+                    ValidateAudience = true,
+                    ValidAudience = jwtSettings["Audience"],
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.Zero, // Remove delay of token when expired
+                    RequireExpirationTime = true
+                };
+            });
 
-            // Add AutoMapper
+            builder.Services.AddAuthorizationBuilder()
+            .AddPolicy("SelfOrAdmin", policy =>
+                policy.RequireAssertion(context =>
+                {
+                    var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                    var routeUserId = context.Resource is HttpContext httpContext
+                    ? httpContext.Request.RouteValues["userId"]?.ToString()
+                    : null;
+
+                    return userIdClaim == routeUserId || context.User.IsInRole("Admin");
+                })
+            );
+            
+
             builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
             builder.Services.AddAutoMapper(typeof(ProductProfile));
             builder.Services.AddAutoMapper(typeof(AddressProfile));
             builder.Services.AddAutoMapper(typeof(OrderProfile));
+
 
             builder.Services.AddSwaggerGen(c =>
             {

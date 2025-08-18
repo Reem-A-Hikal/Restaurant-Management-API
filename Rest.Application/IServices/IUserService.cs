@@ -1,5 +1,4 @@
-﻿
-using Rest.Application.Dtos.UserDtos;
+﻿using Rest.Application.Dtos.UserDtos;
 
 namespace Rest.Application.Interfaces.IServices
 {

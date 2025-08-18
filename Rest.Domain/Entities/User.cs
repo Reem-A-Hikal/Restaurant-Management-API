@@ -14,25 +14,18 @@ namespace Rest.Domain.Entities
 
         [StringLength(255)]
         public string? ProfileImageUrl { get; set; }
-
-        [Required]
         public bool IsActive { get; set; } = true;
-
-        [Required]
-        [DataType(DataType.DateTime)]
         public DateTime JoinDate { get; set; } = DateTime.UtcNow;
-        public string? Specialization { get; set; } // Chef
-        public string? VehicleNumber { get; set; } // DeliveryPerson
 
         // Navigation properties
         [InverseProperty("User")]
-        public virtual ICollection<Order> CustomerOrders { get; set; } = new List<Order>();
+        public virtual ICollection<Order> CustomerOrders { get; set; } = [];
 
         [InverseProperty("DeliveryPerson")]
-        public virtual ICollection<Order> DeliveryOrders { get; set; } = new List<Order>();
-        public virtual ICollection<Address> Addresses { get; set; } = new List<Address>();
-        public virtual ICollection<Delivery> Deliveries { get; set; } = new List<Delivery>();
-        public virtual ICollection<Review> Reviews { get; set; } = new List<Review>();
+        public virtual ICollection<Order> DeliveryOrders { get; set; } = [];
+        public virtual ICollection<Address> Addresses { get; set; } = [];
+        public virtual ICollection<Delivery> Deliveries { get; set; } = [];
+        public virtual ICollection<Review> Reviews { get; set; } = [];
 
 
         //[Key]
@@ -58,23 +51,5 @@ namespace Rest.Domain.Entities
         //[Column(TypeName = "varchar(100)")]
         //public string Email { get; set; }
 
-        //public bool EmailVerified { get; set; } = false;
-
-
-
-        //[Required(ErrorMessage = "Role is required")]
-        //[Column(TypeName = "varchar(20)")]
-        //public UserRole Role { get; set; } // Admin, Chef, DeliveryPerson, Customer
-
-        //[StringLength(11, ErrorMessage = "Phone number cannot exceed 11 characters")]
-        //[Column(TypeName = "varchar(15)")]
-        //[Phone(ErrorMessage = "Invalid phone number format")]
-        //public string? Phone { get; set; }
-
-
-        //public bool IsInRole(UserRole role)
-        //{
-        //    return Role == role;
-        //}
     }
 }

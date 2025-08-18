@@ -17,12 +17,7 @@ namespace Rest.Application.Profiles
                 .ForMember(dest => dest.JoinDate, opt => opt.MapFrom(_ => DateTime.UtcNow));
 
             CreateMap<User, UserDto>()
-                .ForMember(dest => dest.Roles, opt => opt.Ignore())
-                .AfterMap((src, dest) =>
-                {
-                    dest.SetSpecialization(src.Specialization);
-                    dest.SetVehicleNumber(src.VehicleNumber);
-                });
+                .ForMember(dest => dest.Roles, opt => opt.Ignore());
 
             CreateMap<LoginDto, User>()
                 .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.Email))
@@ -43,19 +38,7 @@ namespace Rest.Application.Profiles
                 {
                     opt.MapFrom(src => src.ProfileImageUrl);
                     opt.Condition(src => !string.IsNullOrEmpty(src.ProfileImageUrl));
-                })
-                .ForMember(dest => dest.Specialization, opt =>
-                {
-                    opt.MapFrom(src => src.Specialization);
-                    opt.Condition(src => !string.IsNullOrEmpty(src.Specialization));
-                })
-                .ForMember(dest => dest.VehicleNumber, opt =>
-                {
-                    opt.MapFrom(src => src.VehicleNumber);
-                    opt.Condition(src => !string.IsNullOrEmpty(src.VehicleNumber));
                 });
-
-            
         }
     }
 }

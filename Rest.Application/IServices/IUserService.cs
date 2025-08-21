@@ -6,6 +6,7 @@ namespace Rest.Application.Interfaces.IServices
     {
         Task<IEnumerable<UserDto>> GetAllUsersAsync();
         Task<UserDto> GetUserByIdAsync(string userId);
+        Task<string> AddUser(CreateUserDto userDto);
         Task UpdateUserProfileAsync(string userId, UpdateProfileDto dto);
         Task DeleteUser(string userId);
     }

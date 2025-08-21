@@ -161,7 +161,7 @@ namespace Rest.API
                 var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
                 var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
                 
-                string[] roles = ["Admin", "Chef", "Delivery_Person", "Customer"];
+                string[] roles = ["Admin", "Chef", "DeliveryPerson", "Customer"];
                 foreach (var role in roles)
                 {
                     if (!await roleManager.RoleExistsAsync(role))

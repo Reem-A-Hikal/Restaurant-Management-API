@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+﻿using Rest.Application.Dtos.AddressDtos;
 
 namespace Rest.Application.Dtos.UserDtos
 {
@@ -8,34 +8,12 @@ namespace Rest.Application.Dtos.UserDtos
         public string Email { get; set; }
         public string FullName { get; set; }
         public string PhoneNumber { get; set; }
-        public string ProfileImageUrl { get; set; }
+        public string? ProfileImageUrl { get; set; }
         public DateTime JoinDate { get; set; }
         public bool IsActive { get; set; }
-        public IList<string> Roles { get; set; } = new List<string>();
+        public IList<string> Roles { get; set; } = [];
 
-        [JsonIgnore]
-        public string? Specialization { get; set; } // Chef
+        public List<AddressDto> Addresses { get; set; } = [];
 
-        [JsonIgnore]
-        public string? VehicleNumber { get; set; } // Driver
-
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public object? AdditionalInfo => GetAdditionalData();
-
-        private object? GetAdditionalData()
-        {
-            if (Roles.Contains("Chef"))
-            {
-                return new { Specialization };
-            }
-            if (Roles.Contains("DeliveryPerson"))
-            {
-                return new { VehicleNumber };
-            }
-            return null;
-        }
-
-        public void SetSpecialization(string? value) => Specialization = value;
-        public void SetVehicleNumber(string? value) => VehicleNumber = value;
     }
 }

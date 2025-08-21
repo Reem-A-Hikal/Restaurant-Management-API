@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Rest.Application.Dtos.UserDtos;
 using Rest.Application.Interfaces.IServices;
+using Rest.Domain.Entities.Enums;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace Rest.API.Controllers
@@ -95,6 +96,34 @@ namespace Rest.API.Controllers
             }
         }
 
+        [HttpPost]
+        public async Task<IActionResult> CreateUser(CreateUserDto model, UserRole role)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new
+                {
+                    Message = "Invalid request data",
+                    Errors = ModelState.Values.SelectMany(v => v.Errors)
+                });
+            }
+            try
+            {
+                var id = await _userService.AddUser(model);
+                return CreatedAtAction(nameof(GetUserById), new { userId = id }, new { Message = "User created successfully", UserId = id });
+            }
+            catch (ApplicationException ex)
+            {
+                _logger.LogWarning(ex, "Validation error while creating user");
+                return BadRequest(new { Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating user");
+                return StatusCode(500, new { Message = $"An error occurred while creating the user{ex.Message}" });
+            }
+        }
+
         /// <summary>
         /// Updates a user's profile information
         /// </summary>
@@ -171,17 +200,22 @@ namespace Rest.API.Controllers
             try
             {
                 await _userService.DeleteUser(userId);
-                return NoContent();
+                return Ok(new { message = "User deleted successfully", userId });
             }
             catch (KeyNotFoundException ex)
             {
                 _logger.LogWarning(ex, "User not found with ID: {UserId}", userId);
-                return NotFound(new { Message = ex.Message });
+                return NotFound(new { message = ex.Message });
+            }
+            catch (ApplicationException ex)
+            {
+                _logger.LogWarning(ex, "Validation error for user ID: {UserId}", userId);
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error deleting user with ID: {UserId}", userId);
-                return StatusCode(500, new { Message = "An error occurred while deleting the user" });
+                return StatusCode(500, new { message = "An error occurred while deleting the user" });
             }
         }
 

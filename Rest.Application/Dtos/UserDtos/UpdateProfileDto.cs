@@ -8,12 +8,18 @@ namespace Rest.Application.Dtos.UserDtos
     /// </summary>
     public class UpdateProfileDto
     {
+        ///// <summary>
+        ///// Unique identifier for the user
+        /////</summary>
+        /////
+        //[Required]
+        //public string Id { get; set; } = string.Empty;
+
         /// <summary>
         /// User's full name
         /// </summary>
         /// <example>John Doe</example>
         /// 
-        [Required(ErrorMessage = "Name is required")]
         [StringLength(100, MinimumLength = 3, ErrorMessage = "Name must be between 3 and 100 characters")]
         public string? FullName { get; set; }
 
@@ -46,5 +52,10 @@ namespace Rest.Application.Dtos.UserDtos
         [StringLength(20, ErrorMessage = "Vehicle number cannot exceed 20 characters")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? VehicleNumber { get; set; } // Driver
+        /// <summary>
+        /// Indicates if the delivery person is currently available (visible only for DeliveryPerson role)
+        /// </summary>
+        public bool? IsAvailable { get; set; }
+
     }
 }

@@ -1,8 +1,10 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Identity;
+using Rest.Application.Dtos.AccountDtos;
 using Rest.Application.Dtos.UserDtos;
 using Rest.Application.Interfaces.IServices;
 using Rest.Domain.Entities;
+using Rest.Domain.Entities.Enums;
 using Rest.Domain.Interfaces.IRepositories;
 
 namespace Rest.Infrastructure.Implementations.Services
@@ -52,35 +54,84 @@ namespace Rest.Infrastructure.Implementations.Services
             return userDto;
         }
 
+        public async Task<string> AddUser(CreateUserDto userDto)
+        {
+            var existingUser = await _userManager.FindByEmailAsync(userDto.Email);
+            if (existingUser != null)
+            {
+                throw new ApplicationException("User with this email already exists");
+            }
+      
+            User user = userDto.UserRole switch
+            {
+                UserRole.Chef => _mapper.Map<Chef>(userDto),
+                UserRole.DeliveryPerson => _mapper.Map<DeliveryPerson>(userDto),
+                _ => _mapper.Map<User>(userDto)
+            };
+
+            var result = await _userManager.CreateAsync(user, userDto.Password);
+            if (!result.Succeeded)
+                throw new ApplicationException(string.Join(", ", result.Errors.Select(e => e.Description)));
+
+            var roleResult = await _userManager.AddToRoleAsync(user, userDto.UserRole.ToString());
+
+            if (!roleResult.Succeeded)
+            {
+                await _userManager.DeleteAsync(user);
+                throw new ApplicationException(string.Join(", ", roleResult.Errors.Select(e => e.Description)));
+            }
+            return user.Id;
+        }
+
         
 
         public async Task UpdateUserProfileAsync(string userId, UpdateProfileDto dto)
         {
             var user = await _userRepository.GetByIdAsync(userId) ?? throw new Exception("User not found");
+            var roles = await _userManager.GetRolesAsync(user);
 
-            user.FullName = dto.FullName;
-            user.PhoneNumber = dto.PhoneNumber;
-            user.ProfileImageUrl = dto.ProfileImageUrl;
+            user.FullName = dto.FullName ?? user.FullName;
+            user.PhoneNumber = dto.PhoneNumber ?? user.PhoneNumber;
+            user.ProfileImageUrl = dto.ProfileImageUrl ?? user.ProfileImageUrl;
 
-            switch (user)
+            //switch (user)
+            //{
+            //    case Chef chef:
+            //        if (roles.Contains("Chef") && !string.IsNullOrEmpty(dto.Specialization))
+            //            chef.Specialization = dto.Specialization;
+            //        break;
+
+            //    case DeliveryPerson deliveryPerson:
+            //        if (roles.Contains("DeliveryPerson") && !string.IsNullOrEmpty(dto.VehicleNumber))
+            //            deliveryPerson.VehicleNumber = dto.VehicleNumber;
+
+            //        if (roles.Contains("DeliveryPerson") && dto.IsAvailable.HasValue)
+            //            deliveryPerson.IsAvailable = dto.IsAvailable.Value;
+            //        break;
+
+            //    default:
+            //        break;
+            //}
+            if ( roles.Contains("Chef"))
             {
-                case Chef chef:
+                var chef = await _userRepository.GetChefByIdAsync(userId);
+                if (chef != null && !string.IsNullOrEmpty(dto.Specialization))
                     chef.Specialization = dto.Specialization;
-                    break;
-
-                case DeliveryPerson deliveryPerson:
-                    deliveryPerson.VehicleNumber = dto.VehicleNumber;
-                    break;
-
-                default:
-                    break;
             }
-            var result = await _userManager.UpdateAsync(user);
-            
-            if (!result.Succeeded)
+            else if ( roles.Contains("DeliveryPerson"))
             {
-                throw new ApplicationException(string.Join(", ", result.Errors.Select(e => e.Description)));
+                var deliveryPerson = await _userRepository.GetDeliveryPersonByIdAsync(userId);
+                if (deliveryPerson != null)
+                {
+                    if (!string.IsNullOrEmpty(dto.VehicleNumber))
+                        deliveryPerson.VehicleNumber = dto.VehicleNumber;
+
+                    if (dto.IsAvailable.HasValue)
+                        deliveryPerson.IsAvailable = dto.IsAvailable.Value;
+                }
             }
+
+            await _userRepository.SaveChangesAsync();
         }
 
         public async Task DeleteUser(string userId)

@@ -23,6 +23,15 @@ namespace Rest.Application.Profiles
                 .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.Email))
                 .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Email));
 
+            CreateMap<CreateUserDto, User>();
+
+            CreateMap<CreateUserDto, Chef>()
+                .ForMember(dest => dest.Specialization, opt => opt.MapFrom(src => src.Specialization));
+
+            CreateMap<CreateUserDto, DeliveryPerson>()
+                .ForMember(dest => dest.VehicleNumber, opt => opt.MapFrom(src => src.VehicleNumber))
+                .ForMember(dest => dest.IsAvailable, opt => opt.MapFrom(src => src.IsAvailable));
+
             CreateMap<UpdateProfileDto, User>()
                 .ForMember(dest => dest.FullName, opt =>
                 {

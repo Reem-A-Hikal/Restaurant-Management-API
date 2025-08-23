@@ -20,7 +20,8 @@ namespace Rest.API.Controllers
         /// Constructor for AddressController.
         /// </summary>
         /// <param name="address"></param>
-        /// <param name="mapper"></param>
+        /// <param name="logger"></param>
+        /// <param name="userService"></param>
         public AddressController(IAddressService address, ILogger<AddressController> logger, IUserService userService)
         {
             _addressService = address;

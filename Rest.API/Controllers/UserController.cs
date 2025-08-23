@@ -35,6 +35,8 @@ namespace Rest.API.Controllers
         /// <summary>
         /// Retrieves all users in the system (Admin only)
         /// </summary>
+        /// <param name="pageIndex">the index of current Page</param>
+        /// <param name="pageSize">the count of users to display in the page</param>
         /// <returns>A list of all users</returns>
         [HttpGet("GetAll")]
         [Authorize(Roles = "Admin")]
@@ -45,11 +47,11 @@ namespace Rest.API.Controllers
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access")]
         [SwaggerResponse(StatusCodes.Status403Forbidden, "Forbidden - Admin role required")]
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal server error")]
-        public async Task<IActionResult> GetAllUsers()
+        public async Task<IActionResult> GetAllUsers ( [FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 6 )
         {
             try
             {
-                var users = await _userService.GetAllUsersAsync();
+                var users = await _userService.GetPaginatedUsersAsync( pageIndex, pageSize );
                 return Ok(users);
             }
             catch (Exception ex)
@@ -95,9 +97,13 @@ namespace Rest.API.Controllers
                 return StatusCode(500, new { Message = "An error occurred while retrieving the user" });
             }
         }
-
+        /// <summary>
+        /// Create User with specefic role
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns>Confirmation of successful creation</returns>
         [HttpPost]
-        public async Task<IActionResult> CreateUser(CreateUserDto model, UserRole role)
+        public async Task<IActionResult> CreateUser(CreateUserDto model)
         {
             if (!ModelState.IsValid)
             {
@@ -218,17 +224,5 @@ namespace Rest.API.Controllers
                 return StatusCode(500, new { message = "An error occurred while deleting the user" });
             }
         }
-
-        //private string? GetCurrentUserId()
-        //{
-        //    return User.FindFirstValue(ClaimTypes.NameIdentifier);
-        //}
-
-        //private bool IsAuthorizedUser(string userId)
-        //{
-        //    var currentUserId = GetCurrentUserId();
-        //    var isAdmin = User.IsInRole("Admin");
-        //    return currentUserId == userId || isAdmin;
-        //}
     }
 }

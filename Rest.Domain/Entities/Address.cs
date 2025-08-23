@@ -20,7 +20,7 @@ namespace Rest.Domain.Entities
         /// </summary>
         [Required]
         [StringLength(255)]
-        public string AddressLine1 { get; set; }
+        public required string AddressLine1 { get; set; }
 
         /// <summary>
         /// Gets or sets the second line of the address (optional).
@@ -34,7 +34,7 @@ namespace Rest.Domain.Entities
         /// </summary>
         [Required]
         [StringLength(100)]
-        public string City { get; set; }
+        public required string City { get; set; }
 
         /// <summary>
         /// Gets or sets latitude of the address.
@@ -66,7 +66,7 @@ namespace Rest.Domain.Entities
         /// </summary>
         // Foreign key
         [Required]
-        public string UserId { get; set; }
+        public required string UserId { get; set; }
 
         /// <summary>
         /// Gets or sets User associated with this address.
@@ -74,12 +74,12 @@ namespace Rest.Domain.Entities
 
         // Navigation properties
         [ForeignKey("UserId")]
-        public virtual User User { get; set; }
+        public virtual required User User { get; set; }
 
         /// <summary>
         /// Gets or sets the collection of orders associated with this address.
         /// </summary>
 
-        public virtual ICollection<Order> Orders { get; set; }
+        public virtual required ICollection<Order> Orders { get; set; }
     }
 }

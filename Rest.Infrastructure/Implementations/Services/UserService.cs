@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Rest.Application.Dtos.AccountDtos;
 using Rest.Application.Dtos.UserDtos;
 using Rest.Application.Interfaces.IServices;
+using Rest.Application.Utilities;
 using Rest.Domain.Entities;
 using Rest.Domain.Entities.Enums;
 using Rest.Domain.Interfaces.IRepositories;
@@ -13,9 +14,7 @@ namespace Rest.Infrastructure.Implementations.Services
     {
 
         private readonly UserManager<User> _userManager;
-        //private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IUserRepository _userRepository;
-        //private readonly IAuthService _authService;
         private readonly IMapper _mapper;
 
         public UserService(UserManager<User> userManager, IUserRepository userRepository, IMapper mapper)
@@ -36,10 +35,34 @@ namespace Rest.Infrastructure.Implementations.Services
                 if (user != null)
                 {
                     var roles = await _userManager.GetRolesAsync(user);
-                    userDto.Roles = roles.ToList();
+                    userDto.Roles = [.. roles];
                 }
             }
             return userDtos;
+        }
+
+        public async Task<PaginatedList<UserDto>> GetPaginatedUsersAsync(int pageIndex, int pageSize)
+        {
+            try
+            {
+                var query = _userRepository.GetAllQueryable().OrderBy(u => u.JoinDate);
+                var paginatedUsers = await PaginatedList<User>.CreateAsync(query, pageIndex, pageSize);
+                var mappedItems = _mapper.Map<List<UserDto>>(paginatedUsers.Items);
+                foreach (var item in mappedItems)
+                {
+                    var user = await _userManager.FindByIdAsync(item.Id);
+                    if (user != null)
+                    {
+                        var roles = await _userManager.GetRolesAsync(user);
+                        item.Roles = [.. roles];
+                    }
+                }
+                return new PaginatedList<UserDto>(mappedItems,paginatedUsers.TotalItems, pageIndex, pageSize);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("Could not retrieve paginated Users records.", ex);
+            }
         }
 
         public async Task<UserDto> GetUserByIdAsync(string userId)

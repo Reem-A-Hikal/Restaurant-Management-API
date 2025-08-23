@@ -324,7 +324,7 @@ namespace Rest.API.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, "Internal server error occurred");
+                return StatusCode(500, $"Internal server error occurred: ${ex.Message}");
             }
         }
 

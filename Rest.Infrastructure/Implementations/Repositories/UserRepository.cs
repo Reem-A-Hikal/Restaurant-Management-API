@@ -17,6 +17,9 @@ namespace Rest.Infrastructure.Repositories
             _repository = repository;
         }
 
+        public IQueryable<User> GetAllQueryable() =>
+            _context.Users.AsQueryable();
+
         public async Task<User> GetByIdAsync(string id)
         {
             var user = await _context.Users
@@ -50,8 +53,7 @@ namespace Rest.Infrastructure.Repositories
 
         public Task<User> GetByIdAsync(int id) => _repository.GetByIdAsync(id);
 
-        public Task SaveChangesAsync() => _repository.SaveChangesAsync();
-
         public void Update(User entity) => _repository.Update(entity);
+        public Task SaveChangesAsync() => _repository.SaveChangesAsync();
     }
 }

@@ -1,3 +1,4 @@
+using AutoMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -5,13 +6,17 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Rest.Application.Interfaces.IServices;
 using Rest.Application.IServices;
+using Rest.Application.IServices.StrategyFactory;
 using Rest.Application.Profiles;
+using Rest.Application.Utilities;
 using Rest.Domain.Entities;
 using Rest.Domain.Interfaces;
 using Rest.Domain.Interfaces.IRepositories;
 using Rest.Infrastructure.Data;
 using Rest.Infrastructure.Implementations;
+using Rest.Infrastructure.Implementations.Repositories;
 using Rest.Infrastructure.Implementations.Services;
+using Rest.Infrastructure.Implementations.Services.StrategyFactory;
 using Rest.Infrastructure.Repositories;
 using System.Reflection;
 using System.Security.Claims;
@@ -49,6 +54,9 @@ namespace Rest.API
             builder.Services.AddScoped<IAddressRepository, AddressRepository>();
             builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
             builder.Services.AddScoped<IOrderDetailRepository, OrderDetailRepository>();
+            builder.Services.AddScoped<IChefRepository, ChefRepository>();
+            builder.Services.AddScoped<IDeliveryPersonRepository, DeliveryPersonRepository>();
+
 
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
@@ -63,6 +71,16 @@ namespace Rest.API
             builder.Services.AddScoped<IDeliveryService, DeliveryService>();
             builder.Services.AddScoped<IOrderDetailService, OrderDetailService>();
             builder.Services.AddScoped<IReviewService, ReviewService>();
+
+            builder.Services.AddScoped<IRoleStrategy, ChefStrategy>();
+            builder.Services.AddScoped<IRoleStrategy, DeliveryPersonStrategy>();
+            builder.Services.AddScoped<IRoleStrategy>(sp => new DefaultUserStrategy(
+                    sp.GetRequiredService<IMapper>(), AppRoles.Admin ));
+
+            builder.Services.AddScoped<IRoleStrategy>(sp => new DefaultUserStrategy(
+                    sp.GetRequiredService<IMapper>(), AppRoles.Customer));
+
+            builder.Services.AddScoped<IRoleStrategyResolver, RoleStrategyResolver>();
 
             string txt = "AllowAll";
             builder.Services.AddCors( options =>

@@ -102,7 +102,11 @@ namespace Rest.Infrastructure.Implementations.Services
             {
                 throw new KeyNotFoundException($"Category with ID {id} not found.");
             }
-            _mapper.Map(category, existingCategory);
+            existingCategory.Name = category.Name ?? existingCategory.Name;
+            existingCategory.Description = category.Description ?? existingCategory.Description;
+            existingCategory.IsActive = category.IsActive ?? existingCategory.IsActive;
+            existingCategory.CategoryId = id;
+
             _categoryRepository.Update(existingCategory);
         }
     }

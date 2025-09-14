@@ -14,9 +14,6 @@ namespace Rest.Domain.Entities
         [StringLength(500)]
         public string Description { get; set; }
 
-        [StringLength(255)]
-        public string Image { get; set; }
-
         public bool IsActive { get; set; } = true;
 
         public int DisplayOrder { get; set; }

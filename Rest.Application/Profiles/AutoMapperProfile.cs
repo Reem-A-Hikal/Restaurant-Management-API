@@ -16,12 +16,12 @@ namespace Rest.Application.Profiles
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(_ => true))
                 .ForMember(dest => dest.JoinDate, opt => opt.MapFrom(_ => DateTime.UtcNow));
 
-            CreateMap<User, UserDto>()
-                .ForMember(dest => dest.Roles, opt => opt.Ignore());
+            CreateMap<User, UserDto>();
 
             CreateMap<LoginDto, User>()
                 .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.Email))
                 .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Email));
+
 
             CreateMap<CreateUserDto, User>();
 

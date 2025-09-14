@@ -25,11 +25,6 @@ namespace Rest.Application.Dtos.CategoryDtos
         public string Description { get; set; }
 
         /// <summary>
-        /// The URL of the image representing the category.
-        /// </summary>
-        public string Image { get; set; }
-
-        /// <summary>
         /// Indicates whether the category is active or not.
         /// </summary>
         public bool IsActive { get; set; }

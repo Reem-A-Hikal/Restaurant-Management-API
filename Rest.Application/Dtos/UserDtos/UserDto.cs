@@ -1,4 +1,5 @@
 ﻿using Rest.Application.Dtos.AddressDtos;
+using System.Text.Json.Serialization;
 
 namespace Rest.Application.Dtos.UserDtos
 {
@@ -12,6 +13,12 @@ namespace Rest.Application.Dtos.UserDtos
         public DateTime JoinDate { get; set; }
         public bool IsActive { get; set; }
         public IList<string> Roles { get; set; } = [];
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? Specialization { get; set; } // For Chef role
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? VehicleNumber { get; set; } // For DeliveryPerson role
+        public bool? IsAvailable { get; set; } = true; // For DeliveryPerson role
 
         public List<AddressDto> Addresses { get; set; } = [];
 

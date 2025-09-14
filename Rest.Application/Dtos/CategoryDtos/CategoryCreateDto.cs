@@ -22,11 +22,6 @@ namespace Rest.Application.Dtos.CategoryDtos
         public string Description { get; set; }
 
         /// <summary>
-        /// Category Image
-        /// </summary>
-        public string Image { get; set; }
-
-        /// <summary>
         /// Is the category active?
         /// </summary>
         public bool IsActive { get; set; }

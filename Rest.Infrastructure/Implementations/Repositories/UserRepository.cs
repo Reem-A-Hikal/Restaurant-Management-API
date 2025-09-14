@@ -20,21 +20,32 @@ namespace Rest.Infrastructure.Repositories
         public IQueryable<User> GetAllQueryable() =>
             _context.Users.AsQueryable();
 
+        public IQueryable<User> GetFilteredUsers(string? searchTerm, string? selectedRole = "All")
+        {
+            var query = GetAllQueryable();
+            if (!string.IsNullOrEmpty(selectedRole) && selectedRole != "All")
+            {
+                query = from u in query
+                        join ur in _context.UserRoles on u.Id equals ur.UserId
+                        join r in _context.Roles on ur.RoleId equals r.Id
+                        where r.Name == selectedRole
+                        select u;
+
+                query = query.OrderByDescending(u => u.JoinDate);
+            }
+            if(!string.IsNullOrEmpty(searchTerm))
+            {
+                query = query.Where(u => u.FullName.Contains(searchTerm)).OrderByDescending(u => u.JoinDate);
+            }
+            return query.OrderByDescending(u => u.JoinDate);
+        }
         public async Task<User> GetByIdAsync(string id)
         {
             var user = await _context.Users
                 .FirstOrDefaultAsync(u => u.Id == id);
             return user ?? throw new KeyNotFoundException("User not found");
         }
-        public async Task<Chef?> GetChefByIdAsync(string userId)
-        {
-            return await _context.Chefs.FirstOrDefaultAsync(c => c.Id == userId);
-        }
-
-        public async Task<DeliveryPerson?> GetDeliveryPersonByIdAsync(string userId)
-        {
-            return await _context.DeliveryPeople.FirstOrDefaultAsync(d => d.Id == userId);
-        }
+        
         public async Task<User> GetByEmailAsync(string email)
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);

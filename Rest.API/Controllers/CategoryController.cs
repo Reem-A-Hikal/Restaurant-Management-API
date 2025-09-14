@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Rest.Application.Dtos.CategoryDtos;
 using Rest.Application.Interfaces.IServices;
@@ -24,7 +23,7 @@ namespace Rest.API.Controllers
         /// <param name="logger"></param>
         public CategoryController(ICategoryService categoryService, ILogger<CategoryController> logger)
         {
-            this._categoryService = categoryService;
+            _categoryService = categoryService;
             this.logger = logger;
         }
 

@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Rest.Application.Dtos.UserDtos;
 using Rest.Application.Interfaces.IServices;
-using Rest.Domain.Entities.Enums;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace Rest.API.Controllers
@@ -35,8 +34,6 @@ namespace Rest.API.Controllers
         /// <summary>
         /// Retrieves all users in the system (Admin only)
         /// </summary>
-        /// <param name="pageIndex">the index of current Page</param>
-        /// <param name="pageSize">the count of users to display in the page</param>
         /// <returns>A list of all users</returns>
         [HttpGet("GetAll")]
         [Authorize(Roles = "Admin")]
@@ -47,11 +44,42 @@ namespace Rest.API.Controllers
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access")]
         [SwaggerResponse(StatusCodes.Status403Forbidden, "Forbidden - Admin role required")]
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal server error")]
-        public async Task<IActionResult> GetAllUsers ( [FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 6 )
+        public async Task<IActionResult> GetAllUsers()
         {
             try
             {
-                var users = await _userService.GetPaginatedUsersAsync( pageIndex, pageSize );
+                var users = await _userService.GetAllUsersAsync();
+                return Ok(users);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting all users");
+                return StatusCode(500, new { Message = "An error occurred while retrieving users" });
+            }
+        }
+
+        /// <summary>
+        /// Retrieves all users in the system (Admin only)
+        /// </summary>
+        /// <param name="pageIndex">the index of current Page</param>
+        /// <param name="pageSize">the count of users to display in the page</param>
+        /// <param name="searchTerm"></param>
+        /// <param name="selectedRole"></param>
+        /// <returns>A list of all users</returns>
+        [HttpGet("GetAllPaginated")]
+        [Authorize(Roles = "Admin")]
+        [SwaggerOperation(
+            Summary = "Get all users",
+            Description = "Retrieves a list of all users in the system. Requires Admin role.")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Returns list of users")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access")]
+        [SwaggerResponse(StatusCodes.Status403Forbidden, "Forbidden - Admin role required")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal server error")]
+        public async Task<IActionResult> GetAllUsers ( [FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 6, [FromQuery] string? searchTerm = "", [FromQuery] string? selectedRole = "")
+        {
+            try
+            {
+                var users = await _userService.GetPaginatedUsersWithFilterAsync( pageIndex, pageSize, searchTerm, selectedRole );
                 return Ok(users);
             }
             catch (Exception ex)
@@ -79,10 +107,6 @@ namespace Rest.API.Controllers
         {
             try
             {
-                //if (!IsAuthorizedUser(userId))
-                //{
-                //    return Forbid("You are not authorized to access this resource");
-                //}
                 var user = await _userService.GetUserByIdAsync(userId);
                 return Ok(user);
             }
@@ -103,6 +127,7 @@ namespace Rest.API.Controllers
         /// <param name="model"></param>
         /// <returns>Confirmation of successful creation</returns>
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CreateUser(CreateUserDto model)
         {
             if (!ModelState.IsValid)

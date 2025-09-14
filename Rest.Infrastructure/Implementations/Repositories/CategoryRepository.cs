@@ -29,7 +29,7 @@ namespace Rest.Infrastructure.Repositories
         /// <returns></returns>
         public async Task<IEnumerable<Category>> GetAllWithProductsAsync()
         {
-            return await context.Categories.Include(c => c.Products).ToListAsync();
+            return await context.Categories.Include(c => c.Products).OrderBy(c => c.DisplayOrder).ToListAsync();
         }
 
         /// <summary>

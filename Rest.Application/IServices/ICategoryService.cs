@@ -1,4 +1,5 @@
 ﻿using Rest.Application.Dtos.CategoryDtos;
+using Rest.Application.Utilities;
 using Rest.Domain.Entities;
 
 namespace Rest.Application.Interfaces.IServices
@@ -12,19 +13,21 @@ namespace Rest.Application.Interfaces.IServices
         /// Retrieves all categories asynchronously.
         /// </summary>
         /// <returns>A task that represents the asynchronous operation. The task result contains a collection of categories.</returns>
-        Task<IEnumerable<FullCategoryDto>> GetAllAsync();
+        Task<IEnumerable<CategoryWithProductsDto>> GetAllAsync();
+
+        Task<PaginatedList<CategoryUpdateDto>> GetPaginatedCatsWithFilterAsync(int pageIndex, int pageSize, string? searchTerm, string? selectedFilter);
         /// <summary>
         /// Retrieves a category by its ID asynchronously.
         /// </summary>
         /// <param name="id">The ID of the category to retrieve.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains the category with the specified ID.</returns>
-        Task<FullCategoryDto> GetByIdAsync(int id);
+        Task<CategoryWithProductsDto> GetByIdAsync(int id);
         /// <summary>
         /// Adds a new category asynchronously.
         /// </summary>
         /// <param name="category">The category to add.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task<Category> AddAsync(CategoryCreateDto category);
+        Task<CategoryCreateDto> AddAsync(CategoryCreateDto category);
         /// <summary>
         /// Updates an existing category.
         /// </summary>

@@ -3,7 +3,7 @@
     /// <summary>
     /// Data Transfer Object for a category
     /// </summary>
-    public class CategoryDto
+    public class SimpleCategoryDto
     {
         /// <summary>
         /// The unique identifier for the category

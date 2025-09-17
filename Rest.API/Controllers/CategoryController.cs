@@ -11,7 +11,7 @@ namespace Rest.API.Controllers
     [Route("api/category")]
     [ApiController]
     [Authorize(Roles = "Admin")]
-    public class CategoryController : ControllerBase
+    public class CategoryController : BaseController
     {
         private readonly ICategoryService _categoryService;
         private readonly ILogger<CategoryController> logger;
@@ -38,12 +38,35 @@ namespace Rest.API.Controllers
             try
             {
                 var categories = await _categoryService.GetAllAsync();
-                return Ok(categories);
+                return SuccessResponse(categories, "Categories retrieved successfully");
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error occurred while getting all categories");
-                return StatusCode(StatusCodes.Status500InternalServerError, "Internal server error");
+                return InternalErrorResponse(ex);
+            }
+        }
+        /// <summary>
+        /// get all categories with pagination and filter
+        /// </summary>
+        /// <param name="pageIndex"></param>
+        /// <param name="pageSize"></param>
+        /// <param name="searchTerm"></param>
+        /// <param name="selectedFilter"></param>
+        /// <returns></returns>
+
+        [HttpGet("GetAllPaginated")]
+        public async Task<IActionResult> GetAll([FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 10, [FromQuery] string? searchTerm = "", [FromQuery] string? selectedFilter = "")
+        {
+            try
+            {
+                var paginatedCategories = await _categoryService.GetPaginatedCatsWithFilterAsync(pageIndex, pageSize, searchTerm, selectedFilter);
+                return SuccessResponse(paginatedCategories, "Categories retrieved successfully");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error occurred while getting paginated categories");
+                return InternalErrorResponse(ex);
             }
         }
         /// <summary>
@@ -57,16 +80,17 @@ namespace Rest.API.Controllers
             try
             {
                 var category = await _categoryService.GetByIdAsync(id);
-                if (category == null)
-                {
-                    return NotFound();
-                }
-                return Ok(category);
+                return SuccessResponse(category, "Category retrieved successfully");
+            }
+            catch (KeyNotFoundException ex)
+            {
+                logger.LogWarning(ex, "Category not found");
+                return ValidationErrorResponse(["Category not found."]);
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error occurred while getting category with ID {id}", id);
-                return StatusCode(StatusCodes.Status500InternalServerError, "Internal server error");
+                return InternalErrorResponse(ex);
             }
         }
 
@@ -78,24 +102,32 @@ namespace Rest.API.Controllers
         [HttpPost("add")]
         public async Task<IActionResult> Add([FromBody] CategoryCreateDto category)
         {
+            if (category == null)
+            {
+                return ValidationErrorResponse(["Category data is required."]);
+            }
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage);
+
+                return ValidationErrorResponse(errors);
             }
             try
             {
-                if (category == null)
-                {
-                    return BadRequest("Category cannot be null");
-                }
                 var createdCategory = await _categoryService.AddAsync(category);
-                await _categoryService.SaveChangesAsync();
-                return CreatedAtAction(nameof(GetById), new { id = createdCategory.CategoryId }, createdCategory);
+                return SuccessResponse(createdCategory, "Category created successfully");
+            }
+            catch (ArgumentNullException ex)
+            {
+                logger.LogError(ex, "Invalid argument provided");
+                return ErrorResponse([ex.Message ], "Invalid argument");
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error occurred while adding a new category");
-                return StatusCode(500, "Internal server error");
+                return InternalErrorResponse(ex);
             }
         }
         /// <summary>
@@ -108,28 +140,37 @@ namespace Rest.API.Controllers
         [HttpPut("update/{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] CategoryUpdateDto category)
         {
+            if (category == null)
+            {
+                return ValidationErrorResponse(["Category data is required."]);
+            }
+
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage);
+
+                return ValidationErrorResponse(errors);
             }
             try
             {
-                if (category == null)
-                {
-                    return BadRequest("Category cannot be null");
-                }
                 await _categoryService.Update(id, category);
-                await _categoryService.SaveChangesAsync();
-                return NoContent();
+                return SuccessResponse<string>(null, "Category updated successfully");
+            }
+            catch (KeyNotFoundException)
+            {
+                logger.LogWarning("Category not found with ID {id}", id);
+                return ValidationErrorResponse(["Category not found."]);
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error occurred while updating category with ID {id}", id);
-                return StatusCode(StatusCodes.Status500InternalServerError, "Internal server error");
+                return InternalErrorResponse(ex);
             }
         }
         /// <summary>
-        /// DeActivate a category by ID
+        /// Delete a category by ID (soft delete / deactivate).
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
@@ -140,30 +181,17 @@ namespace Rest.API.Controllers
             {
                 await _categoryService.DeleteAsync(id);
                 await _categoryService.SaveChangesAsync();
-                return Ok("DeActivate a category successfully");
+                return SuccessResponse<string>(null, "Category deactivated successfully");
             }
-            catch (KeyNotFoundException ex)
+            catch (KeyNotFoundException)
             {
-                logger.LogWarning(ex, "Category not found");
-                return NotFound(new
-                {
-                    Message = "Category not found",
-                    Details = ex.Message
-                });
-            }
-            catch (NullReferenceException ex)
-            {
-                logger.LogError(ex, "Null reference encountered");
-                return StatusCode(500, new
-                {
-                    Message = "Internal server error - null reference",
-                    Details = ex.Message
-                });
+                logger.LogWarning("Category not found with ID {id}", id);
+                return ValidationErrorResponse(["Category not found."]);
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error occurred while deleting category with ID {id}", id);
-                return StatusCode(StatusCodes.Status500InternalServerError, "Internal server error: " + ex.Message);
+                return InternalErrorResponse(ex);
             }
         }
     }

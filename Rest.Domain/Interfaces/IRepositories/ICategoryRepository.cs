@@ -12,5 +12,7 @@ namespace Rest.Domain.Interfaces.IRepositories
         /// </summary>
         /// <returns></returns>
         Task<IEnumerable<Category>> GetAllWithProductsAsync();
+        IQueryable<Category> GetAllQueryable();
+        IQueryable<Category> GetFilteredCats(string? searchTerm, string? selectedFilter = "All");
     }
 }

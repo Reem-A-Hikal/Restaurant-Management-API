@@ -15,7 +15,7 @@ namespace Rest.Application.Profiles
         /// </summary>
         public CategoryProfile()
         {
-            CreateMap<Category, FullCategoryDto>();
+            CreateMap<Category, CategoryWithProductsDto>();
 
             CreateMap<CategoryCreateDto, Category>()
                 .ForMember(dest => dest.Products, opt => opt.Ignore())

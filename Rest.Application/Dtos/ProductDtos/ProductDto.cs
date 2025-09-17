@@ -69,6 +69,6 @@ namespace Rest.Application.Dtos.ProductDtos
         /// <summary>
         /// The category to which the product belongs
         /// </summary>
-        public CategoryDto? Category { get; set; }
+        public SimpleCategoryDto? Category { get; set; }
     }
 }

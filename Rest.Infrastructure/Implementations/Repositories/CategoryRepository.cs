@@ -10,7 +10,7 @@ namespace Rest.Infrastructure.Repositories
     /// </summary>
     public class CategoryRepository : ICategoryRepository
     {
-        private readonly RestDbContext context;
+        private readonly RestDbContext _context;
         private readonly IRepository<Category> categoryRepository;
 
         /// <summary>
@@ -18,10 +18,36 @@ namespace Rest.Infrastructure.Repositories
         /// </summary>
         /// <param name="repository"></param>
         /// <param name="restDb"></param>
-        public CategoryRepository(IRepository<Category> repository, RestDbContext restDb)
+        public CategoryRepository(IRepository<Category> repository, RestDbContext context)
         {
-            context = restDb;
+            _context = context;
             categoryRepository = repository;
+        }
+
+        public IQueryable<Category> GetAllQueryable() =>
+            _context.Categories.AsQueryable();
+
+
+        public IQueryable<Category> GetFilteredCats(string? searchTerm, string? selectedFilter = "All")
+        {
+            var query = GetAllQueryable();
+            if (!string.IsNullOrEmpty(selectedFilter) && selectedFilter != "All")
+            {
+                if (selectedFilter == "Active")
+                {
+                    query = query.Where(c => c.IsActive);
+                }
+                else if (selectedFilter == "Inactive")
+                {
+                    query = query.Where(c => !c.IsActive);
+                }
+                query = query.OrderByDescending(c => c.DisplayOrder);
+            }
+            if (!string.IsNullOrEmpty(searchTerm))
+            {
+                query = query.Where(c => c.Name.Contains(searchTerm)).OrderByDescending(c => c.DisplayOrder);
+            }
+            return query.OrderByDescending(c => c.DisplayOrder);
         }
         /// <summary>
         /// Gets all categories with their products
@@ -29,7 +55,7 @@ namespace Rest.Infrastructure.Repositories
         /// <returns></returns>
         public async Task<IEnumerable<Category>> GetAllWithProductsAsync()
         {
-            return await context.Categories.Include(c => c.Products).OrderBy(c => c.DisplayOrder).ToListAsync();
+            return await _context.Categories.Include(c => c.Products).OrderBy(c => c.DisplayOrder).ToListAsync();
         }
 
         /// <summary>
@@ -59,7 +85,7 @@ namespace Rest.Infrastructure.Repositories
         /// <returns></returns>
         public async Task<Category> GetByIdAsync(int id)
         {
-            var category = await context.Categories.Include(c => c.Products)
+            var category = await _context.Categories.Include(c => c.Products)
                 .FirstOrDefaultAsync(c => c.CategoryId == id);
             if (category == null)
             {

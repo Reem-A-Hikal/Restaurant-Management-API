@@ -7,7 +7,7 @@ namespace Rest.Application.Dtos.CategoryDtos
     /// <summary>
     /// DTO for category information.
     /// </summary>
-    public class FullCategoryDto
+    public class CategoryWithProductsDto
     {
         /// <summary>
         /// The unique identifier for the category.

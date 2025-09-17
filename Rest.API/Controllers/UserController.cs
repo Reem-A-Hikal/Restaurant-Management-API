@@ -18,7 +18,7 @@ namespace Rest.API.Controllers
         /// Controller for managing user operations including retrieval, updates, and deletion
         /// </summary>
         private readonly IUserService _userService;
-        private ILogger<UserController> _logger;
+        private readonly ILogger<UserController> _logger;
 
         /// <summary>
         /// Initializes a new instance of the UserController
@@ -54,7 +54,7 @@ namespace Rest.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting all users");
-                return StatusCode(500, new { Message = "An error occurred while retrieving users" });
+                return StatusCode(500, new { Message = $"An error occurred while retrieving users ${ex.Message}" });
             }
         }
 
@@ -85,7 +85,7 @@ namespace Rest.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting all users");
-                return StatusCode(500, new { Message = "An error occurred while retrieving users" });
+                return StatusCode(500, new { Message = $"An error occurred while retrieving users${ex.Message}" });
             }
         }
 
@@ -113,12 +113,12 @@ namespace Rest.API.Controllers
             catch (KeyNotFoundException ex)
             {
                 _logger.LogWarning(ex, "User not found");
-                return NotFound(ex.Message);
+                return NotFound(new { ex.Message });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting user with ID: {UserId}", userId);
-                return StatusCode(500, new { Message = "An error occurred while retrieving the user" });
+                return StatusCode(500, new { Message = $"An error occurred while retrieving the user ${ex.Message}" });
             }
         }
         /// <summary>
@@ -146,7 +146,7 @@ namespace Rest.API.Controllers
             catch (ApplicationException ex)
             {
                 _logger.LogWarning(ex, "Validation error while creating user");
-                return BadRequest(new { Message = ex.Message });
+                return BadRequest(new { ex.Message });
             }
             catch (Exception ex)
             {
@@ -208,7 +208,7 @@ namespace Rest.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating profile for user ID: {UserId}", userId);
-                return StatusCode(500, new { Message = "An error occurred while updating the profile" });
+                return StatusCode(500, new { Message = $"An error occurred while updating the profile ${ex.Message}" });
             }
         }
 
@@ -231,22 +231,22 @@ namespace Rest.API.Controllers
             try
             {
                 await _userService.DeleteUser(userId);
-                return Ok(new { message = "User deleted successfully", userId });
+                return Ok(new { Message = "User deleted successfully", userId });
             }
             catch (KeyNotFoundException ex)
             {
                 _logger.LogWarning(ex, "User not found with ID: {UserId}", userId);
-                return NotFound(new { message = ex.Message });
+                return NotFound(new { Message = ex.Message });
             }
             catch (ApplicationException ex)
             {
                 _logger.LogWarning(ex, "Validation error for user ID: {UserId}", userId);
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { Message = ex.Message });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error deleting user with ID: {UserId}", userId);
-                return StatusCode(500, new { message = "An error occurred while deleting the user" });
+                return StatusCode(500, new { Message = $"An error occurred while deleting the user ${ex.Message}" });
             }
         }
     }

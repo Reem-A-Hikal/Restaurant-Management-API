@@ -7,11 +7,6 @@ namespace Rest.Application.Dtos.CategoryDtos
     public class CategoryCreateDto
     {
         /// <summary>
-        /// Category ID
-        /// </summary>
-        public int CategoryId { get; set; }
-
-        /// <summary>
         /// Category Name
         /// </summary>
         public string Name { get; set; }

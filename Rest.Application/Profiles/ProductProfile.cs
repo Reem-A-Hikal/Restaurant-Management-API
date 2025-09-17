@@ -29,7 +29,7 @@ namespace Rest.Application.Profiles
                 .ForMember(dest => dest.Category, opt => opt.Ignore())
                 .ReverseMap();
 
-            CreateMap<Category, CategoryDto>();
+            CreateMap<Category, SimpleCategoryDto>();
         }
     }
 }

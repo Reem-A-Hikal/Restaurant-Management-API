@@ -103,7 +103,6 @@ namespace Rest.Infrastructure.Implementations.Services
             return categoryDto;
         }
 
-
         /// <summary>
         /// Updates an existing category.
         /// </summary>
@@ -112,11 +111,8 @@ namespace Rest.Infrastructure.Implementations.Services
         /// <returns> Task representing the asynchronous operation</returns>
         public async Task Update(int id, CategoryUpdateDto category)
         {
-            var existingCategory = await _categoryRepository.GetByIdAsync(id);
-            if (existingCategory == null)
-            {
-                throw new KeyNotFoundException($"Category with ID {id} not found.");
-            }
+            var existingCategory = await _categoryRepository.GetByIdAsync(id) ?? throw new KeyNotFoundException($"Category with ID {id} not found.");
+
             existingCategory.Name = category.Name ?? existingCategory.Name;
             existingCategory.Description = category.Description ?? existingCategory.Description;
             existingCategory.IsActive = category.IsActive ?? existingCategory.IsActive;
@@ -126,7 +122,7 @@ namespace Rest.Infrastructure.Implementations.Services
             await _categoryRepository.SaveChangesAsync();
         }
 
-        /// <summary>s
+        /// <summary>
         /// Saves changes to the database.
         /// </summary>
         public async Task SaveChangesAsync()

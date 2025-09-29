@@ -25,7 +25,7 @@ namespace Rest.Infrastructure.Repositories
         }
 
         public IQueryable<Category> GetAllQueryable() =>
-            _context.Categories.AsQueryable();
+            _context.Categories.AsNoTracking().AsQueryable();
 
 
         public IQueryable<Category> GetFilteredCats(string? searchTerm, string? selectedFilter = "All")
@@ -33,19 +33,16 @@ namespace Rest.Infrastructure.Repositories
             var query = GetAllQueryable();
             if (!string.IsNullOrEmpty(selectedFilter) && selectedFilter != "All")
             {
-                if (selectedFilter == "Active")
+                query = selectedFilter switch
                 {
-                    query = query.Where(c => c.IsActive);
-                }
-                else if (selectedFilter == "Inactive")
-                {
-                    query = query.Where(c => !c.IsActive);
-                }
-                query = query.OrderByDescending(c => c.DisplayOrder);
+                    "Active" => query.Where(c => c.IsActive),
+                    "Inactive" => query.Where(c => !c.IsActive),
+                    _ => query
+                };
             }
             if (!string.IsNullOrEmpty(searchTerm))
             {
-                query = query.Where(c => c.Name.Contains(searchTerm)).OrderByDescending(c => c.DisplayOrder);
+                query = query.Where(c => c.Name.Contains(searchTerm));
             }
             return query.OrderByDescending(c => c.DisplayOrder);
         }

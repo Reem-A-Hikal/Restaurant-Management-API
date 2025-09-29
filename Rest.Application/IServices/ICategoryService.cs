@@ -1,6 +1,5 @@
 ﻿using Rest.Application.Dtos.CategoryDtos;
 using Rest.Application.Utilities;
-using Rest.Domain.Entities;
 
 namespace Rest.Application.Interfaces.IServices
 {

@@ -1,7 +1,7 @@
 ﻿
 using Rest.Domain.Entities;
 
-namespace Rest.Application.Interfaces.IServices
+namespace Rest.Application.IServices
 {
     public interface IOrderDetailService
     {

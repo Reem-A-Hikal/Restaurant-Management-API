@@ -23,17 +23,30 @@ namespace Rest.Infrastructure.Repositories
             this.context = context;
             this.repository = repository;
         }
-
-        /// <summary>
-        /// Gets available products
-        /// </summary>
-        /// <returns> List of available products</returns>
-        public async Task<IEnumerable<Product>> GetAvailableProductsAsync()
+        public IQueryable<Product> GetAllQueryable()
         {
-            return await context.Products
-                .Where(p => p.IsAvailable)
-                .ToListAsync();
+            return context.Products.AsNoTracking().AsQueryable();
         }
+
+        public IQueryable<Product> GetFilteredProducts(string? searchTerm, string? selectedFilter = "All")
+        {
+            var query = GetAllQueryable();
+            if(!string.IsNullOrEmpty(selectedFilter) && selectedFilter != "All")
+            {
+                query = selectedFilter switch
+                {
+                    "Available" => query = query.Where(p => p.IsAvailable),
+                    "Unavailable" => query = query.Where(p => !p.IsAvailable),
+                    _ => query
+                };
+            }
+            if(!string.IsNullOrEmpty(searchTerm))
+            {
+                query = query.Where(p => p.Name.Contains(searchTerm));
+            }
+            return query.OrderByDescending(p => p.ProductId);
+        }
+
 
         /// <summary>
         /// Gets products by category
@@ -60,17 +73,6 @@ namespace Rest.Infrastructure.Repositories
         {
             return await context.Products
                 .Where(p => p.Price >= minPrice && p.Price <= maxPrice)
-                .ToListAsync();
-        }
-        /// <summary>
-        /// Searches products by name
-        /// </summary>
-        /// <param name="searchTerm"> Search term to look for in product names</param>
-        /// <returns> List of matching products</returns>
-        public async Task<IEnumerable<Product>> SearchProductsAsync(string searchTerm)
-        {
-            return await context.Products
-                .Where(p => p.Name.Contains(searchTerm))
                 .ToListAsync();
         }
 
@@ -124,5 +126,29 @@ namespace Rest.Infrastructure.Repositories
         /// <returns> List of all products</returns>
         public async Task<IEnumerable<Product>> GetAllAsync() => await repository.GetAllAsync();
 
+        #region old methods
+        ///// <summary>
+        ///// Searches products by name
+        ///// </summary>
+        ///// <param name="searchTerm"> Search term to look for in product names</param>
+        ///// <returns> List of matching products</returns>
+        //public async Task<IEnumerable<Product>> SearchProductsAsync(string searchTerm)
+        //{
+        //    return await context.Products
+        //        .Where(p => p.Name.Contains(searchTerm))
+        //        .ToListAsync();
+        //}
+
+        ///// <summary>
+        ///// Gets available products
+        ///// </summary>
+        ///// <returns> List of available products</returns>
+        //public async Task<IEnumerable<Product>> GetAvailableProductsAsync()
+        //{
+        //    return await context.Products
+        //        .Where(p => p.IsAvailable)
+        //        .ToListAsync();
+        //}
+        #endregion
     }
 }

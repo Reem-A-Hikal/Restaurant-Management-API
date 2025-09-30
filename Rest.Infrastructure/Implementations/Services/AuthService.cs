@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using Rest.Application.Interfaces.IServices;
+using Rest.Application.IServices;
 using Rest.Domain.Entities;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;

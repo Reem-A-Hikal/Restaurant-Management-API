@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 using Rest.Application.Dtos.CategoryDtos;
-using Rest.Application.Interfaces.IServices;
+using Rest.Application.IServices;
 using Rest.Application.Utilities;
 using Rest.Domain.Entities;
 using Rest.Domain.Interfaces.IRepositories;

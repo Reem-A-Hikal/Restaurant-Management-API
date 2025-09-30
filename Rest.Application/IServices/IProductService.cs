@@ -1,7 +1,8 @@
 ﻿using Rest.Application.Dtos.ProductDtos;
+using Rest.Application.Utilities;
 using Rest.Domain.Entities;
 
-namespace Rest.Application.Interfaces.IServices
+namespace Rest.Application.IServices
 {
     /// <summary>
     /// Service interface for product operations
@@ -13,6 +14,8 @@ namespace Rest.Application.Interfaces.IServices
         /// </summary>
         /// <returns> A collection of products</returns>
         Task<IEnumerable<ProductDto>> GetAllProductsAsync();
+
+        Task<PaginatedList<ProductDto>> GetPaginatedProductsWithFilterAsync(int pageIndex, int pageSize, string? searchTerm, string? selectedFilter);
 
         /// <summary>
         /// Retrieves a product by its ID
@@ -29,24 +32,11 @@ namespace Rest.Application.Interfaces.IServices
         Task<IEnumerable<ProductDto>> GetProductsByCategoryAsync(int categoryId);
 
         /// <summary>
-        /// Retrieves Available Products 
-        /// </summary>
-        /// <returns> A collection of Available Products </returns>
-        Task<IEnumerable<ProductDto>> GetAvailableProductsAsync();
-
-        /// <summary>
-        /// Search for products by name
-        /// </summary>
-        /// <param name="searchTerm"> The search term to look for in product names</param>
-        /// <returns> A collection of products that match the search term</returns>
-        Task<IEnumerable<ProductDto>> SearchProductsAsync(string searchTerm);
-
-        /// <summary>
         /// Creates a new product
         /// </summary>
         /// <param name="productDto"> The product data transfer object containing the product details</param>
         /// <returns> The created product</returns>
-        Task<Product> CreateProductAsync(ProductCreateDto productDto);
+        Task<int> CreateProductAsync(ProductCreateDto productDto);
 
         /// <summary>
         /// Updates an existing product
@@ -54,7 +44,7 @@ namespace Rest.Application.Interfaces.IServices
         /// <param name="id"> The ID of the product to update</param>
         /// <param name="productDto"> The product data transfer object containing the updated product details</param>
         /// <returns> The updated product</returns>
-        Task UpdateProductAsync(int id, ProductUpdateDto productDto);
+        Task UpdateProductAsync(int id, ProductDto productDto);
 
         /// <summary>
         /// Deletes a product by its ID
@@ -62,5 +52,21 @@ namespace Rest.Application.Interfaces.IServices
         /// <param name="id"> The ID of the product to delete</param>
         /// <returns> Task representing the asynchronous operation</returns>
         Task DeleteProductAsync(int id);
+
+        #region old methods
+
+        ///// <summary>
+        ///// Retrieves Available Products 
+        ///// </summary>
+        ///// <returns> A collection of Available Products </returns>
+        //Task<IEnumerable<ProductDto>> GetAvailableProductsAsync();
+
+        ///// <summary>
+        ///// Search for products by name
+        ///// </summary>
+        ///// <param name="searchTerm"> The search term to look for in product names</param>
+        ///// <returns> A collection of products that match the search term</returns>
+        //Task<IEnumerable<ProductDto>> SearchProductsAsync(string searchTerm);
+        #endregion
     }
 }

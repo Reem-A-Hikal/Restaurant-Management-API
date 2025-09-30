@@ -1,7 +1,7 @@
 ﻿using Rest.Application.Dtos.CategoryDtos;
 using Rest.Application.Utilities;
 
-namespace Rest.Application.Interfaces.IServices
+namespace Rest.Application.IServices
 {
     /// <summary>
     /// Service interface for managing categories.

@@ -23,12 +23,6 @@ namespace Rest.Application.Profiles
                 .ForMember(dest => dest.Category, opt => opt.Ignore())
                 .ReverseMap();
 
-            CreateMap<ProductUpdateDto, Product>()
-                .ForMember(dest => dest.OrderDetails, opt => opt.Ignore())
-                .ForMember(dest => dest.Reviews, opt => opt.Ignore())
-                .ForMember(dest => dest.Category, opt => opt.Ignore())
-                .ReverseMap();
-
             CreateMap<Category, SimpleCategoryDto>();
         }
     }

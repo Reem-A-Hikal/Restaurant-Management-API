@@ -5,9 +5,9 @@ using Rest.Domain.Entities;
 
 namespace Rest.Application.Profiles
 {
-    public class AutoMapperProfile : Profile
+    public class UserProfile : Profile
     {
-        public AutoMapperProfile()
+        public UserProfile()
         {
             CreateMap<RegisterDto, User>()
                 .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.Email))

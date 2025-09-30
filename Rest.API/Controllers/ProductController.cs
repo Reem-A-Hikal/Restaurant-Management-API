@@ -1,8 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Rest.Application.Dtos.ProductDtos;
-using Rest.Application.Interfaces.IServices;
+using Rest.Application.IServices;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace Rest.API.Controllers
@@ -12,7 +11,7 @@ namespace Rest.API.Controllers
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
-    public class ProductController : ControllerBase
+    public class ProductController : BaseController
     {
         private readonly IProductService productService;
         private readonly ILogger<ProductController> logger;
@@ -42,14 +41,44 @@ namespace Rest.API.Controllers
             try
             {
                 var products = await productService.GetAllProductsAsync();
-                return Ok(products);
+                return SuccessResponse(products, "Products retrieved successfully");
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error getting all products");
-                return StatusCode(500, "An error occurred while retrieving products");
+                return InternalErrorResponse(ex, "An error occurred while retrieving products");
             }
         }
+
+        /// <summary>
+        /// Gets paginated products with optional filtering
+        /// </summary>
+        /// <param name="pageIndex">Page index (default is 1)</param>
+        /// <param name="pageSize">Page size (default is 6)</param>
+        /// <param name="searchTerm">Search term for filtering by product name (optional)</param>
+        /// <param name="selectedFilter">Selected filter (default is "All")</param>
+        /// <returns>Paginated list of products</returns>
+        [HttpGet("paginated")]
+        [SwaggerOperation(Summary = "Get paginated products with optional filtering")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Returns paginated list of products")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal server error")]
+        public async Task<IActionResult> GetPaginatedProductsWithFilter(
+            int pageIndex = 1, int pageSize = 8,
+            string? searchTerm = null,
+            string? selectedFilter = "All")
+        {
+            try
+            {
+                var products = await productService.GetPaginatedProductsWithFilterAsync(pageIndex, pageSize, searchTerm, selectedFilter);
+                return SuccessResponse(products, "Products retrieved successfully");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error getting paginated products with filter");
+                return InternalErrorResponse(ex, "An error occurred while retrieving paginated products");
+            }
+        }
+
         /// <summary>
         /// Gets a product by ID
         /// </summary>
@@ -64,12 +93,18 @@ namespace Rest.API.Controllers
             try
             {
                 var product = await productService.GetProductByIdAsync(id);
-                return Ok(product);
+                return SuccessResponse(product, "Product retrieved successfully");
 
-            }catch (Exception ex)
+            }
+            catch (KeyNotFoundException ex)
+            {
+                logger.LogWarning(ex, "Product not found with ID: {ProductId}", id);
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
             {
                 logger.LogError(ex, "Error getting product with ID: {ProductId}", id);
-                return StatusCode(500, "An error occurred while retrieving the product");
+                return InternalErrorResponse(ex, "An error occurred while retrieving the product");
             }
         }
 
@@ -86,60 +121,17 @@ namespace Rest.API.Controllers
             try
             {
                 var products = await productService.GetProductsByCategoryAsync(categoryId);
-                return Ok(products);
+                return SuccessResponse(products, "Products retrieved successfully");
+            }
+            catch (KeyNotFoundException ex)
+            {
+                logger.LogWarning(ex, "Category not found with ID: {CategoryId}", categoryId);
+                return NotFound(ex.Message);
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error getting products for category ID: {CategoryId}", categoryId);
-                return StatusCode(500, "An error occurred while retrieving products by category");
-            }
-        }
-
-        /// <summary>
-        /// Gets available products
-        /// </summary>
-        [HttpGet("available")]
-        [SwaggerOperation(Summary = "Get available products")]
-        [SwaggerResponse(StatusCodes.Status200OK, "Returns list of available products")]
-        [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal server error")]
-        public async Task<IActionResult> GetAvailableProducts()
-        {
-            try
-            {
-                var products = await productService.GetAvailableProductsAsync();
-                return Ok(products);
-            }
-            catch (Exception ex)
-            {
-                 logger.LogError(ex, "Error getting available products");
-                return StatusCode(500, "An error occurred while retrieving available products");
-            }
-        }
-
-        /// <summary>
-        /// Searches products by name
-        /// </summary>
-        /// <param name="searchTerm">Search term</param>
-        [HttpGet("search")]
-        [SwaggerOperation(Summary = "Search products by name")]
-        [SwaggerResponse(StatusCodes.Status200OK, "Returns list of matching products")]
-        [SwaggerResponse(StatusCodes.Status400BadRequest, "Search term is required")]
-        [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal server error")]
-        public async Task<IActionResult> SearchProducts([FromQuery] string searchTerm)
-        {
-            if (string.IsNullOrWhiteSpace(searchTerm))
-            {
-                return BadRequest();
-            }
-            try
-            {
-                var products = await productService.SearchProductsAsync(searchTerm);
-                return Ok(products);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error searching products with term: {SearchTerm}", searchTerm);
-                return StatusCode(500, "An error occurred while searching products");
+                return InternalErrorResponse(ex, "An error occurred while retrieving products by category");
             }
         }
 
@@ -159,19 +151,20 @@ namespace Rest.API.Controllers
         {
             if(!ModelState.IsValid)
             {
-                return BadRequest();
+                return ErrorResponse(ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage), "Invalid product data");
             }
             try
             {
-                var product = await productService.CreateProductAsync(productDto);
-                return CreatedAtAction(nameof(GetProductById),
-                    new { id = product.ProductId },
-                    new { message = "Product created successfully", productId = product.ProductId });
+                var productId = await productService.CreateProductAsync(productDto);
+                //return CreatedAtAction(nameof(GetProductById),
+                //    new { id = product.ProductId },
+                //    new { message = "Product created successfully", productId = product.ProductId });
+                return CreatedResponse(nameof(GetProductById), new { id = productId },productDto, "Product created successfully");
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error creating product");
-                return StatusCode(500, new { message = "An error occurred while creating the product", error = ex.Message });
+                return InternalErrorResponse(ex, "An error occurred while creating the product");
             }
         }
 
@@ -179,7 +172,7 @@ namespace Rest.API.Controllers
         /// Updates an existing product
         /// </summary>
         /// <param name="id">Product ID</param>
-        /// <param name="productDto">Updated product data</param>
+        /// <param name="productDto">ProductDto</param>
         [HttpPut("EditProduct/{id}")]
         [Authorize(Roles = "Admin")]
         [SwaggerOperation(Summary = "Update an existing product")]
@@ -189,16 +182,16 @@ namespace Rest.API.Controllers
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized")]
         [SwaggerResponse(StatusCodes.Status403Forbidden, "Forbidden - Admin role required")]
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal server error")]
-        public async Task<IActionResult> UpdateProduct(int id, [FromBody] ProductUpdateDto productDto)
+        public async Task<IActionResult> UpdateProduct(int id, ProductDto productDto)
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest();
+                return ErrorResponse(ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage), "Invalid product data");
             }
             try
             {
                 await productService.UpdateProductAsync(id, productDto);
-                return NoContent();
+                return SuccessResponse(id, "Product updated successfully");
             }
             catch (KeyNotFoundException ex)
             {
@@ -208,7 +201,7 @@ namespace Rest.API.Controllers
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error updating product with ID: {ProductId}", id);
-                return StatusCode(500, new { message = new { message = "An error occurred while creating the product", error = ex.Message }, error = ex.Message });
+                return InternalErrorResponse(ex, "An error occurred while updating the product");
             }
         }
 
@@ -229,7 +222,7 @@ namespace Rest.API.Controllers
             try
             {
                 await productService.DeleteProductAsync(id);
-                return NoContent();
+                return SuccessResponse(id, "Product deleted successfully");
             }
             catch (KeyNotFoundException ex)
             {
@@ -239,8 +232,58 @@ namespace Rest.API.Controllers
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error deleting product with ID: {ProductId}", id);
-                return StatusCode(500, "An error occurred while deleting the product");
+                return InternalErrorResponse(ex, "An error occurred while deleting the product");
             }
         }
+
+        #region Old
+        ///// <summary>
+        ///// Gets available products
+        ///// </summary>
+        //[HttpGet("available")]
+        //[SwaggerOperation(Summary = "Get available products")]
+        //[SwaggerResponse(StatusCodes.Status200OK, "Returns list of available products")]
+        //[SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal server error")]
+        //public async Task<IActionResult> GetAvailableProducts()
+        //{
+        //    try
+        //    {
+        //        var products = await productService.GetAvailableProductsAsync();
+        //        return Ok(products);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //         logger.LogError(ex, "Error getting available products");
+        //        return StatusCode(500, "An error occurred while retrieving available products");
+        //    }
+        //}
+
+        ///// <summary>
+        ///// Searches products by name
+        ///// </summary>
+        ///// <param name="searchTerm">Search term</param>
+        //[HttpGet("search")]
+        //[SwaggerOperation(Summary = "Search products by name")]
+        //[SwaggerResponse(StatusCodes.Status200OK, "Returns list of matching products")]
+        //[SwaggerResponse(StatusCodes.Status400BadRequest, "Search term is required")]
+        //[SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal server error")]
+        //public async Task<IActionResult> SearchProducts([FromQuery] string searchTerm)
+        //{
+        //    if (string.IsNullOrWhiteSpace(searchTerm))
+        //    {
+        //        return BadRequest();
+        //    }
+        //    try
+        //    {
+        //        var products = await productService.SearchProductsAsync(searchTerm);
+        //        return Ok(products);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        logger.LogError(ex, "Error searching products with term: {SearchTerm}", searchTerm);
+        //        return StatusCode(500, "An error occurred while searching products");
+        //    }
+        //}
+        #endregion
     }
 }

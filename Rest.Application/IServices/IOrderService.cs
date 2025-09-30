@@ -1,7 +1,7 @@
 ﻿using Rest.Application.Dtos.OrderDtos;
 using Rest.Domain.Entities.Enums;
 
-namespace Rest.Application.Interfaces.IServices
+namespace Rest.Application.IServices
 {
     public interface IOrderService
     {

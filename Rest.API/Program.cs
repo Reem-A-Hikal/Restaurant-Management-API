@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Rest.Application.Interfaces.IServices;
 using Rest.Application.IServices;
 using Rest.Application.IServices.StrategyFactory;
 using Rest.Application.Profiles;
@@ -147,7 +146,7 @@ namespace Rest.API
             );
             
 
-            builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
+            builder.Services.AddAutoMapper(typeof(UserProfile));
             builder.Services.AddAutoMapper(typeof(ProductProfile));
             builder.Services.AddAutoMapper(typeof(AddressProfile));
             builder.Services.AddAutoMapper(typeof(OrderProfile));

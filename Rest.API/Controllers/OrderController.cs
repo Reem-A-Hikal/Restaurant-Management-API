@@ -1,8 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Rest.Application.Dtos.OrderDtos;
-using Rest.Application.Interfaces.IServices;
+using Rest.Application.IServices;
 using Rest.Domain.Entities.Enums;
 using System.Security.Claims;
 

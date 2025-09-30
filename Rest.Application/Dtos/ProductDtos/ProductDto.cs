@@ -1,6 +1,4 @@
-﻿using Rest.Application.Dtos.CategoryDtos;
-
-namespace Rest.Application.Dtos.ProductDtos
+﻿namespace Rest.Application.Dtos.ProductDtos
 {
     /// <summary>
     /// Data Transfer Object for a product
@@ -65,10 +63,11 @@ namespace Rest.Application.Dtos.ProductDtos
         /// The ID of the category to which the product belongs
         /// </summary>
         public int CategoryId { get; set; }
-
-        /// <summary>
-        /// The category to which the product belongs
-        /// </summary>
-        public SimpleCategoryDto? Category { get; set; }
+        //#region category Details
+        ///// <summary>
+        ///// The category to which the product belongs
+        ///// </summary>
+        ////public SimpleCategoryDto? Category { get; set; }
+        //#endregion
     }
 }

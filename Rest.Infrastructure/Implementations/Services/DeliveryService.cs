@@ -1,4 +1,4 @@
-﻿using Rest.Application.Interfaces.IServices;
+﻿using Rest.Application.IServices;
 using Rest.Domain.Entities;
 using Rest.Domain.Interfaces.IRepositories;
 

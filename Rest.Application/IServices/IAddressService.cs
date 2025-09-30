@@ -1,7 +1,7 @@
 ﻿
 using Rest.Application.Dtos.AddressDtos;
 
-namespace Rest.Application.Interfaces.IServices
+namespace Rest.Application.IServices
 {
     public interface IAddressService
     {

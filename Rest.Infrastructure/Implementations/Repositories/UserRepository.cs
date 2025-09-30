@@ -2,7 +2,6 @@
 using Rest.Domain.Entities;
 using Rest.Domain.Interfaces.IRepositories;
 using Rest.Infrastructure.Data;
-using System.Threading.Tasks;
 
 namespace Rest.Infrastructure.Repositories
 {

@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Rest.Application.Dtos.AddressDtos;
-using Rest.Application.Interfaces.IServices;
+using Rest.Application.IServices;
 using System.Security.Claims;
 
 namespace Rest.API.Controllers

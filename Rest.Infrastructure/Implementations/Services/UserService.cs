@@ -1,7 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Identity;
 using Rest.Application.Dtos.UserDtos;
-using Rest.Application.Interfaces.IServices;
+using Rest.Application.IServices;
 using Rest.Application.IServices.StrategyFactory;
 using Rest.Application.Utilities;
 using Rest.Domain.Entities;

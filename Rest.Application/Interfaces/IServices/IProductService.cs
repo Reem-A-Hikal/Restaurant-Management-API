@@ -2,7 +2,7 @@
 using Rest.Application.Utilities;
 using Rest.Domain.Entities;
 
-namespace Rest.Application.IServices
+namespace Rest.Application.Interfaces.IServices
 {
     /// <summary>
     /// Service interface for product operations

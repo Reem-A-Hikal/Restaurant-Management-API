@@ -1,7 +1,7 @@
 ﻿using Rest.Application.Dtos.UserDtos;
 using Rest.Application.Utilities;
 
-namespace Rest.Application.IServices
+namespace Rest.Application.Interfaces.IServices
 {
     public interface IUserService
     {

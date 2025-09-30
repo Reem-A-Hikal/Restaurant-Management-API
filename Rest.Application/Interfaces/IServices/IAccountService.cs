@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Rest.Application.IServices
+namespace Rest.Application.Interfaces.IServices
 {
     public interface IAccountService
     {

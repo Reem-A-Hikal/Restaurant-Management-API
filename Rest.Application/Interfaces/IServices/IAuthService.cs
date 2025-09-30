@@ -1,6 +1,6 @@
 ﻿using Rest.Domain.Entities;
 
-namespace Rest.Application.IServices
+namespace Rest.Application.Interfaces.IServices
 {
     public interface IAuthService
     {

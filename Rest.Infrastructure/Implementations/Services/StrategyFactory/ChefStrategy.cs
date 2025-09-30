@@ -1,9 +1,9 @@
 ﻿using AutoMapper;
 using Rest.Application.Dtos.UserDtos;
-using Rest.Application.IServices.StrategyFactory;
+using Rest.Application.Interfaces.IRepositories;
+using Rest.Application.Interfaces.IServices.StrategyFactory;
 using Rest.Application.Utilities;
 using Rest.Domain.Entities;
-using Rest.Domain.Interfaces.IRepositories;
 
 namespace Rest.Infrastructure.Implementations.Services.StrategyFactory
 {

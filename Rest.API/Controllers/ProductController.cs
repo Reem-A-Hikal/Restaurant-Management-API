@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Rest.Application.Dtos.ProductDtos;
-using Rest.Application.IServices;
+using Rest.Application.Interfaces.IServices;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace Rest.API.Controllers

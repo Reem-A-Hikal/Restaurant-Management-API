@@ -1,6 +1,6 @@
-﻿using Rest.Application.IServices;
+﻿using Rest.Application.Interfaces.IRepositories;
+using Rest.Application.Interfaces.IServices;
 using Rest.Domain.Entities;
-using Rest.Domain.Interfaces.IRepositories;
 
 namespace Rest.Infrastructure.Implementations.Services
 {

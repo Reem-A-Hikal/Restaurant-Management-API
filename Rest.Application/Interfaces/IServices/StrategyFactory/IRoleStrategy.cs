@@ -1,7 +1,7 @@
 ﻿using Rest.Application.Dtos.UserDtos;
 using Rest.Domain.Entities;
 
-namespace Rest.Application.IServices.StrategyFactory
+namespace Rest.Application.Interfaces.IServices.StrategyFactory
 {
     public interface IRoleStrategy
     {

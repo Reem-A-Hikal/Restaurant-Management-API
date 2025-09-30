@@ -1,6 +1,6 @@
 ﻿using Rest.Domain.Entities;
 
-namespace Rest.Domain.Interfaces.IRepositories
+namespace Rest.Application.Interfaces.IRepositories
 {
     public interface IDeliveryPersonRepository
     {

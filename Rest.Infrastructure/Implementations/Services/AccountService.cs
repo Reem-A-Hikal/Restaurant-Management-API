@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Identity;
 using Rest.Application.Dtos.AccountDtos;
 using Rest.Application.Dtos.UserDtos;
-using Rest.Application.IServices;
+using Rest.Application.Interfaces.IServices;
 using Rest.Domain.Entities;
 
 namespace Rest.Infrastructure.Implementations.Services

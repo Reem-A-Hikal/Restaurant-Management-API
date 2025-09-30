@@ -1,4 +1,4 @@
-﻿using Rest.Application.IServices.StrategyFactory;
+﻿using Rest.Application.Interfaces.IServices.StrategyFactory;
 
 namespace Rest.Infrastructure.Implementations.Services.StrategyFactory
 {

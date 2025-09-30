@@ -1,9 +1,9 @@
 ﻿using AutoMapper;
 using Rest.Application.Dtos.OrderDtos;
-using Rest.Application.IServices;
+using Rest.Application.Interfaces;
+using Rest.Application.Interfaces.IServices;
 using Rest.Domain.Entities;
 using Rest.Domain.Entities.Enums;
-using Rest.Domain.Interfaces;
 
 namespace Rest.Infrastructure.Implementations.Services
 {

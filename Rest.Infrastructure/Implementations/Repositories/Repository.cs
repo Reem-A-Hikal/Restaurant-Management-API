@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Rest.Domain.Interfaces.IRepositories;
+using Rest.Application.Interfaces.IRepositories;
 using Rest.Infrastructure.Data;
 
 namespace Rest.Infrastructure.Repositories

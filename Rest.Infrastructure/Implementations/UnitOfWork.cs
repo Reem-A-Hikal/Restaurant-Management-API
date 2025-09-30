@@ -1,6 +1,6 @@
-﻿using Rest.Domain.Entities;
-using Rest.Domain.Interfaces;
-using Rest.Domain.Interfaces.IRepositories;
+﻿using Rest.Application.Interfaces;
+using Rest.Application.Interfaces.IRepositories;
+using Rest.Domain.Entities;
 using Rest.Infrastructure.Data;
 using Rest.Infrastructure.Repositories;
 

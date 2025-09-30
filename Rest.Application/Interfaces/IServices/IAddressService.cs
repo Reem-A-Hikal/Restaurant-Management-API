@@ -1,7 +1,6 @@
-﻿
-using Rest.Application.Dtos.AddressDtos;
+﻿using Rest.Application.Dtos.AddressDtos;
 
-namespace Rest.Application.IServices
+namespace Rest.Application.Interfaces.IServices
 {
     public interface IAddressService
     {

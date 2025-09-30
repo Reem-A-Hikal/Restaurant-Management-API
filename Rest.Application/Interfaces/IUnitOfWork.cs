@@ -1,9 +1,7 @@
-﻿
-
+﻿using Rest.Application.Interfaces.IRepositories;
 using Rest.Domain.Entities;
-using Rest.Domain.Interfaces.IRepositories;
 
-namespace Rest.Domain.Interfaces
+namespace Rest.Application.Interfaces
 {
     public interface IUnitOfWork
     {

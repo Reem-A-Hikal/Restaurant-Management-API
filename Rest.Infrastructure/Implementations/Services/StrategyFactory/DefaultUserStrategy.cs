@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 using Rest.Application.Dtos.UserDtos;
-using Rest.Application.IServices.StrategyFactory;
+using Rest.Application.Interfaces.IServices.StrategyFactory;
 using Rest.Domain.Entities;
 
 namespace Rest.Infrastructure.Implementations.Services.StrategyFactory

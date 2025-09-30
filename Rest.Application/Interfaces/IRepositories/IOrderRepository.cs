@@ -1,7 +1,7 @@
 ﻿using Rest.Domain.Entities;
 using Rest.Domain.Entities.Enums;
 
-namespace Rest.Domain.Interfaces.IRepositories
+namespace Rest.Application.Interfaces.IRepositories
 {
     public interface IOrderRepository :IRepository<Order>
     {

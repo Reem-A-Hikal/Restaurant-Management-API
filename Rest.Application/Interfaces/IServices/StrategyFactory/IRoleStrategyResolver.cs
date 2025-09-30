@@ -1,6 +1,4 @@
-﻿
-
-namespace Rest.Application.IServices.StrategyFactory
+﻿namespace Rest.Application.Interfaces.IServices.StrategyFactory
 {
     public interface IRoleStrategyResolver
     {

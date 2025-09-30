@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Rest.Application.Dtos.CategoryDtos;
-using Rest.Application.IServices;
+using Rest.Application.Interfaces.IServices;
 
 namespace Rest.API.Controllers
 {

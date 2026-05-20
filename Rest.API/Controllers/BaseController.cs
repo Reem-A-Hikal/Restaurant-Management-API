@@ -15,6 +15,11 @@ namespace Rest.API.Controllers
         {
             return CreatedAtAction(actionName, routeValues, ApiResponse<T>.SuccessResponse(data, message));
         }
+        protected IActionResult NotFoundResponse(string message = "Not found")
+        {
+            return NotFound(ApiResponse<string>.FailResponse(
+                new List<string> { message }, message));
+        }
 
         protected IActionResult ValidationErrorResponse(IEnumerable<string> errors, string message = "Validation Error")
         {
@@ -31,5 +36,12 @@ namespace Rest.API.Controllers
             return StatusCode(StatusCodes.Status500InternalServerError,
                 ApiResponse<string>.FailResponse(new List<string> { ex.Message }, message));
         }
+
+        protected IActionResult ForbiddenResponse(string message = "Access denied")
+        {
+            return StatusCode(StatusCodes.Status403Forbidden,
+                ApiResponse<string>.FailResponse(new List<string> { message }, message));
+        }
+
     }
 }

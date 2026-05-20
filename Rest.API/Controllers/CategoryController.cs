@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Rest.Application.Dtos.CategoryDtos;
 using Rest.Application.Interfaces.IServices;
@@ -14,7 +15,7 @@ namespace Rest.API.Controllers
     public class CategoryController : BaseController
     {
         private readonly ICategoryService _categoryService;
-        private readonly ILogger<CategoryController> logger;
+        private readonly ILogger<CategoryController> _logger;
 
         /// <summary>
         /// Constructor for CategoryController.
@@ -24,7 +25,7 @@ namespace Rest.API.Controllers
         public CategoryController(ICategoryService categoryService, ILogger<CategoryController> logger)
         {
             _categoryService = categoryService;
-            this.logger = logger;
+            _logger = logger;
         }
 
         /// <summary>
@@ -42,7 +43,7 @@ namespace Rest.API.Controllers
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error occurred while getting all categories");
+                _logger.LogError(ex, "Error occurred while getting all categories");
                 return InternalErrorResponse(ex);
             }
         }
@@ -56,16 +57,21 @@ namespace Rest.API.Controllers
         /// <returns></returns>
 
         [HttpGet("GetAllPaginated")]
-        public async Task<IActionResult> GetAll([FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 10, [FromQuery] string? searchTerm = "", [FromQuery] string? selectedFilter = "")
+        public async Task<IActionResult> GetPaginated(
+            [FromQuery] int pageIndex = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? searchTerm = "",
+            [FromQuery] string? selectedFilter = "All")
         {
             try
             {
-                var paginatedCategories = await _categoryService.GetPaginatedCatsWithFilterAsync(pageIndex, pageSize, searchTerm, selectedFilter);
-                return SuccessResponse(paginatedCategories, "Categories retrieved successfully");
+                var categories = await _categoryService.GetPaginatedCatsWithFilterAsync(
+                    pageIndex, pageSize, searchTerm, selectedFilter);
+                return SuccessResponse(categories, "Categories retrieved successfully");
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error occurred while getting paginated categories");
+                _logger.LogError(ex, "Error occurred while getting paginated categories");
                 return InternalErrorResponse(ex);
             }
         }
@@ -84,12 +90,12 @@ namespace Rest.API.Controllers
             }
             catch (KeyNotFoundException ex)
             {
-                logger.LogWarning(ex, "Category not found");
+                _logger.LogWarning(ex, "Category not found");
                 return ValidationErrorResponse(["Category not found."]);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error occurred while getting category with ID {id}", id);
+                _logger.LogError(ex, "Error occurred while getting category with ID {id}", id);
                 return InternalErrorResponse(ex);
             }
         }
@@ -100,33 +106,24 @@ namespace Rest.API.Controllers
         /// <param name="category"></param>
         /// <returns></returns>
         [HttpPost("add")]
-        public async Task<IActionResult> Add([FromBody] CategoryCreateDto category)
+        public async Task<IActionResult> Add([FromBody] CategoryCreateDto dto)
         {
-            if (category == null)
-            {
-                return ValidationErrorResponse(["Category data is required."]);
-            }
             if (!ModelState.IsValid)
-            {
-                var errors = ModelState.Values
-                    .SelectMany(v => v.Errors)
-                    .Select(e => e.ErrorMessage);
+                return ValidationErrorResponse(
+                    ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)));
 
-                return ValidationErrorResponse(errors);
-            }
             try
             {
-                var createdCategory = await _categoryService.AddAsync(category);
-                return SuccessResponse(createdCategory, "Category created successfully");
-            }
-            catch (ArgumentNullException ex)
-            {
-                logger.LogError(ex, "Invalid argument provided");
-                return ErrorResponse([ex.Message ], "Invalid argument");
+                var createdCategory = await _categoryService.AddAsync(dto);
+                return CreatedResponse(
+                    nameof(GetById),
+                    new { id = createdCategory.CategoryId },
+                    createdCategory,
+                    "Category created successfully");
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error occurred while adding a new category");
+                _logger.LogError(ex, "Error occurred while adding a new category");
                 return InternalErrorResponse(ex);
             }
         }
@@ -134,38 +131,28 @@ namespace Rest.API.Controllers
         /// Update a category by ID
         /// </summary>
         /// <param name="id"></param>
-        /// <param name="category"></param>
+        /// <param name="request"></param>
         /// <returns></returns>
 
         [HttpPut("update/{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] CategoryUpdateDto category)
+        public async Task<IActionResult> Update(int id, [FromBody] CategoryUpdateDto request)
         {
-            if (category == null)
-            {
-                return ValidationErrorResponse(["Category data is required."]);
-            }
-
             if (!ModelState.IsValid)
-            {
-                var errors = ModelState.Values
-                    .SelectMany(v => v.Errors)
-                    .Select(e => e.ErrorMessage);
-
-                return ValidationErrorResponse(errors);
-            }
+                return ValidationErrorResponse(
+                    ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)));
             try
             {
-                await _categoryService.Update(id, category);
+                await _categoryService.UpdateAsync(id, request);
                 return SuccessResponse<string>(null, "Category updated successfully");
             }
-            catch (KeyNotFoundException)
+            catch (KeyNotFoundException ex)
             {
-                logger.LogWarning("Category not found with ID {id}", id);
-                return ValidationErrorResponse(["Category not found."]);
+                _logger.LogWarning("Category not found with ID {id}", id);
+                return NotFoundResponse(ex.Message);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error occurred while updating category with ID {id}", id);
+                _logger.LogError(ex, "Error occurred while updating category with ID {id}", id);
                 return InternalErrorResponse(ex);
             }
         }
@@ -174,23 +161,22 @@ namespace Rest.API.Controllers
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        [HttpDelete("delete/{id}")]
-        public async Task<IActionResult> Delete(int id)
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Archive(int id)
         {
             try
             {
-                await _categoryService.DeleteAsync(id);
-                await _categoryService.SaveChangesAsync();
-                return SuccessResponse<string>(null, "Category deactivated successfully");
+                await _categoryService.ArchiveAsync(id);
+                return SuccessResponse<string>(null, "Category archived successfully");
             }
-            catch (KeyNotFoundException)
+            catch (KeyNotFoundException ex)
             {
-                logger.LogWarning("Category not found with ID {id}", id);
-                return ValidationErrorResponse(["Category not found."]);
+                _logger.LogWarning("Category not found with ID {id}", id);
+                return NotFoundResponse(ex.Message);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error occurred while deleting category with ID {id}", id);
+                _logger.LogError(ex, "Error archiving category: {Id}", id);
                 return InternalErrorResponse(ex);
             }
         }

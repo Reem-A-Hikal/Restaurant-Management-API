@@ -10,17 +10,19 @@ namespace Rest.API.Controllers
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
-    public class AccountController : ControllerBase
+    public class AccountController : BaseController
     {
         private readonly IAccountService _accountService;
+        private readonly ILogger<AccountController> _logger;
 
         /// <summary>
         /// Initializes a new instance of the AccountController
         /// </summary>
         /// <param name="accountService">Service for account related operations</param>
-        public AccountController( IAccountService accountService )
+        public AccountController( IAccountService accountService, ILogger<AccountController> logger)
         {
             _accountService = accountService;
+            _logger = logger;
         }
 
         /// <summary>
@@ -31,24 +33,27 @@ namespace Rest.API.Controllers
         [SwaggerOperation(Summary = "Register a new user", Description = "Register a new user with email, password and Phone Number")]
         [SwaggerResponse(StatusCodes.Status200OK, "User registered successfully")]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid input data")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal server error")]
         public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
         {
             if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+                return ValidationErrorResponse(
+                    ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)));
+
             try
             {
                 await _accountService.RegisterAsync(registerDto);
-                return Ok(new { message = "Registration successful" });
+                return SuccessResponse<string>(null, "Registration successful");
             }
             catch (ApplicationException ex)
             {
-                return BadRequest(new { message = ex.Message });
+                _logger.LogWarning(ex, "Registration failed for email: {Email}", registerDto.Email);
+                return ErrorResponse(new[] { ex.Message }, "Registration failed");
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = $"An error occurred during registration: {ex.Message}" });
+                _logger.LogError(ex, "Unexpected error during registration");
+                return InternalErrorResponse(ex, "An error occurred during registration");
             }
         }
 
@@ -67,29 +72,32 @@ namespace Rest.API.Controllers
         ///     }
         /// </remarks>
         [HttpPost("login")]
-        [SwaggerOperation(Summary = "Login a user", Description = "Login a user with email and password")]
+        [SwaggerOperation(
+            Summary = "Login a user",
+            Description = "Login with email and password, returns JWT token")]
         [SwaggerResponse(StatusCodes.Status200OK, "User logged in successfully")]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid email or password")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal server error")]
         public async Task<IActionResult> Login(LoginDto loginDto)
         {
             if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+                return ValidationErrorResponse(
+                    ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)));
+
             try
             {
                 var response = await _accountService.LoginAsync(loginDto);
-                if (response == null)
-                    return BadRequest("Invalid email or password");
-
-                return Ok(response);
+                return SuccessResponse(response, "Login successful");
             }
             catch (ApplicationException ex)
             {
-                return BadRequest(new { message = ex.Message });
+                _logger.LogWarning(ex, "Login failed for email: {Email}", loginDto.Email);
+                return ErrorResponse(new[] { ex.Message }, "Login failed");
             }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError,
-                    new { Message = "An error occurred while logging in", Details = ex.Message });
+                _logger.LogError(ex, "Unexpected error during login");
+                return InternalErrorResponse(ex, "An error occurred during login");
             }
         }
         ///// <summary>

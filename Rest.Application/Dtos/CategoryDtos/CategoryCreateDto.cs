@@ -1,4 +1,6 @@
 ﻿
+using Rest.Domain.Entities.Enums;
+
 namespace Rest.Application.Dtos.CategoryDtos
 {
     /// <summary>
@@ -12,14 +14,9 @@ namespace Rest.Application.Dtos.CategoryDtos
         public string Name { get; set; }
 
         /// <summary>
-        /// Category Description
-        /// </summary>
-        public string Description { get; set; }
-
-        /// <summary>
         /// Is the category active?
         /// </summary>
-        public bool IsActive { get; set; }
+        public CategoryStatus Status { get; set; } = CategoryStatus.Active;
 
         /// <summary>
         /// Display order of the category

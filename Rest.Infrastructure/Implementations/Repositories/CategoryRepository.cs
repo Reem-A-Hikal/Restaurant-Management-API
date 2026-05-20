@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Rest.Application.Interfaces.IRepositories;
 using Rest.Domain.Entities;
+using Rest.Domain.Entities.Enums;
 using Rest.Infrastructure.Data;
 
 namespace Rest.Infrastructure.Repositories
@@ -11,7 +12,7 @@ namespace Rest.Infrastructure.Repositories
     public class CategoryRepository : ICategoryRepository
     {
         private readonly RestDbContext _context;
-        private readonly IRepository<Category> categoryRepository;
+        private readonly IRepository<Category> _repository;
 
         /// <summary>
         /// Constructor for the CategoryRepository class.
@@ -21,7 +22,7 @@ namespace Rest.Infrastructure.Repositories
         public CategoryRepository(IRepository<Category> repository, RestDbContext context)
         {
             _context = context;
-            categoryRepository = repository;
+            _repository = repository;
         }
 
         public IQueryable<Category> GetAllQueryable() =>
@@ -30,20 +31,17 @@ namespace Rest.Infrastructure.Repositories
 
         public IQueryable<Category> GetFilteredCats(string? searchTerm, string? selectedFilter = "All")
         {
-            var query = GetAllQueryable();
+            IQueryable<Category> query = GetAllQueryable().Include(c => c.Products);
+
             if (!string.IsNullOrEmpty(selectedFilter) && selectedFilter != "All")
             {
-                query = selectedFilter switch
-                {
-                    "Active" => query.Where(c => c.IsActive),
-                    "Inactive" => query.Where(c => !c.IsActive),
-                    _ => query
-                };
+                if (Enum.TryParse<CategoryStatus>(selectedFilter, out var status))
+                    query = query.Where(c => c.Status == status);
             }
+
             if (!string.IsNullOrEmpty(searchTerm))
-            {
                 query = query.Where(c => c.Name.Contains(searchTerm));
-            }
+
             return query.OrderByDescending(c => c.DisplayOrder);
         }
         /// <summary>
@@ -52,7 +50,10 @@ namespace Rest.Infrastructure.Repositories
         /// <returns></returns>
         public async Task<IEnumerable<Category>> GetAllWithProductsAsync()
         {
-            return await _context.Categories.Include(c => c.Products).OrderBy(c => c.DisplayOrder).ToListAsync();
+            return await _context.Categories
+                .Include(c => c.Products)
+                .OrderBy(c => c.DisplayOrder)
+                .ToListAsync();
         }
 
         /// <summary>
@@ -60,20 +61,20 @@ namespace Rest.Infrastructure.Repositories
         /// </summary>
         /// <param name="entity"></param>
         /// <returns></returns>
-        public async Task AddAsync(Category entity) => await categoryRepository.AddAsync(entity);
+        public async Task AddAsync(Category entity) => await _repository.AddAsync(entity);
 
         /// <summary>
         /// Deletes a category by its ID.
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        public async Task DeleteAsync(int id) => await categoryRepository.DeleteAsync(id);
+        public async Task DeleteAsync(int id) => await _repository.DeleteAsync(id);
 
         /// <summary>
         /// Gets all categories from the database.
         /// </summary>
         /// <returns></returns>
-        public async Task<IEnumerable<Category>> GetAllAsync() => await categoryRepository.GetAllAsync();
+        public async Task<IEnumerable<Category>> GetAllAsync() => await _repository.GetAllAsync();
 
         /// <summary>
         /// Gets a category by its ID.
@@ -82,25 +83,23 @@ namespace Rest.Infrastructure.Repositories
         /// <returns></returns>
         public async Task<Category> GetByIdAsync(int id)
         {
-            var category = await _context.Categories.Include(c => c.Products)
-                .FirstOrDefaultAsync(c => c.CategoryId == id);
-            if (category == null)
-            {
-                throw new KeyNotFoundException($"Category with ID {id} not found");
-            }
-                return category;
+            return await _context.Categories
+                .Include(c => c.Products)
+                .FirstOrDefaultAsync(c => c.CategoryId == id)
+                ?? throw new KeyNotFoundException($"Category with ID {id} not found");
+
         }
 
         /// <summary>
         /// Saves changes to the database.
         /// </summary>
         /// <returns></returns>
-        public async Task SaveChangesAsync() => await categoryRepository.SaveChangesAsync();
+        public async Task SaveChangesAsync() => await _repository.SaveChangesAsync();
 
         /// <summary>
         /// Updates an existing category in the database.
         /// </summary>
         /// <param name="entity"></param>
-        public void Update(Category entity) => categoryRepository.Update(entity);
+        public void Update(Category entity) => _repository.Update(entity);
     }
 }

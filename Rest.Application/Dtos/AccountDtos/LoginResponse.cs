@@ -9,9 +9,10 @@ namespace Rest.Application.Dtos.AccountDtos
     public class LoginResponse
     {
         public string Token { get; set; }
+        public string UserId { get; set; }
         public string FullName { get; set; }
         public string Email { get; set; }
-        public IList<string> Roles { get; set; }
+        public string Role { get; set; }
 
     }
 }

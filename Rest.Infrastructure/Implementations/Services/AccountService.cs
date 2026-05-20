@@ -1,7 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Identity;
 using Rest.Application.Dtos.AccountDtos;
-using Rest.Application.Dtos.UserDtos;
 using Rest.Application.Interfaces.IServices;
 using Rest.Domain.Entities;
 
@@ -21,60 +20,42 @@ namespace Rest.Infrastructure.Implementations.Services
         }
         public async Task RegisterAsync(RegisterDto registerDto)
         {
-            try
-            {
-                var existingUser = await _userManager.FindByEmailAsync(registerDto.Email);
-                if (existingUser != null)
-                {
-                    throw new ApplicationException("User with this email already exists");
-                }
-                var user = _mapper.Map<User>(registerDto);
-                var result = await _userManager.CreateAsync(user, registerDto.Password);
+            
+            var existingUser = await _userManager.FindByEmailAsync(registerDto.Email);
+            if (existingUser != null)
+                throw new ApplicationException("User with this email already exists");
+            
+            var user = _mapper.Map<User>(registerDto);
+            var result = await _userManager.CreateAsync(user, registerDto.Password);
 
-                if (result.Succeeded)
-                {
-                    await _userManager.AddToRoleAsync(user, "Customer");
-                    return;
-                }
-                else
-                {
-                    throw new ApplicationException(
-                        string.Join(", ", result.Errors.Select(e => e.Description))
-                    );
-                }
-            }
-            catch (Exception ex)
+            if (!result.Succeeded)
             {
-                throw new ApplicationException($"An error occurred while registering the user: {ex.Message}");
+                throw new ApplicationException(
+                    string.Join(", ", result.Errors.Select(e => e.Description))
+                );
             }
+            await _userManager.AddToRoleAsync(user, "Customer");
         }
         public async Task<LoginResponse> LoginAsync(LoginDto loginDto)
         {
-            try
-            {
-                var user = await _authService.ValidateUserCredentialsAsync(loginDto.Email, loginDto.Password);
-                if (user == null)
-                {
-                    throw new ApplicationException("Invalid email or password");
-                }
+            
+            var user = await _authService.ValidateUserCredentialsAsync(loginDto.Email, loginDto.Password);
+            if (user == null)
+                throw new ApplicationException("Invalid email or password");
 
-                var token = await _authService.GenerateJwtTokenAsync(user);
-                var userRoles = await _userManager.GetRolesAsync(user);
-                var userDto = _mapper.Map<UserDto>(user);
-                userDto.Roles = [.. userRoles];
+            var token = await _authService.GenerateJwtTokenAsync(user);
+            var userRoles = await _userManager.GetRolesAsync(user);
 
-                return new LoginResponse()
-                {
-                    Email = loginDto.Email,
-                    FullName = userDto.FullName,
-                    Token = token,
-                    Roles = userDto.Roles
-                };
-            }
-            catch (Exception ex)
+            return new LoginResponse()
             {
-                throw new ApplicationException($"An error occurred during login: {ex.Message}");
-            }
+                UserId = user.Id,
+                Email = user.Email,
+                FullName = user.FullName,
+                Token = token,
+                Role = userRoles[0],
+
+            };
+            
         }
     }
 }

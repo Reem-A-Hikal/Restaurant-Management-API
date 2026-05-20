@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Rest.Application.Dtos.UserDtos;
 using Rest.Application.Interfaces.IServices;
 using Swashbuckle.AspNetCore.Annotations;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Rest.API.Controllers
 {
@@ -12,7 +13,7 @@ namespace Rest.API.Controllers
     [Route("api/user")]
     [ApiController]
     [Authorize]
-    public class UserController : ControllerBase
+    public class UserController : BaseController
     {
         /// <summary>
         /// Controller for managing user operations including retrieval, updates, and deletion
@@ -32,34 +33,31 @@ namespace Rest.API.Controllers
             _logger = logger;
         }
         /// <summary>
-        /// Retrieves all users in the system (Admin only)
+        /// Retrieves all users without pagination (Admin only)
         /// </summary>
-        /// <returns>A list of all users</returns>
         [HttpGet("GetAll")]
         [Authorize(Roles = "Admin")]
-        [SwaggerOperation(
-            Summary = "Get all users",
-            Description = "Retrieves a list of all users in the system. Requires Admin role.")]
+        [SwaggerOperation(Summary = "Get all users", Description = "Requires Admin role.")]
         [SwaggerResponse(StatusCodes.Status200OK, "Returns list of users")]
-        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access")]
-        [SwaggerResponse(StatusCodes.Status403Forbidden, "Forbidden - Admin role required")]
-        [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal server error")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized)]
+        [SwaggerResponse(StatusCodes.Status403Forbidden)]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetAllUsers()
         {
             try
             {
                 var users = await _userService.GetAllUsersAsync();
-                return Ok(users);
+                return SuccessResponse(users, "Users retrieved successfully");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting all users");
-                return StatusCode(500, new { Message = $"An error occurred while retrieving users ${ex.Message}" });
+                return InternalErrorResponse(ex, "An error occurred while retrieving users");
             }
         }
 
         /// <summary>
-        /// Retrieves all users in the system (Admin only)
+        /// Retrieves paginated users with optional filtering (Admin only)
         /// </summary>
         /// <param name="pageIndex">the index of current Page</param>
         /// <param name="pageSize">the count of users to display in the page</param>
@@ -68,24 +66,27 @@ namespace Rest.API.Controllers
         /// <returns>A list of all users</returns>
         [HttpGet("GetAllPaginated")]
         [Authorize(Roles = "Admin")]
-        [SwaggerOperation(
-            Summary = "Get all users",
-            Description = "Retrieves a list of all users in the system. Requires Admin role.")]
-        [SwaggerResponse(StatusCodes.Status200OK, "Returns list of users")]
-        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access")]
-        [SwaggerResponse(StatusCodes.Status403Forbidden, "Forbidden - Admin role required")]
-        [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal server error")]
-        public async Task<IActionResult> GetAllUsers ( [FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 6, [FromQuery] string? searchTerm = "", [FromQuery] string? selectedRole = "")
+        [SwaggerOperation(Summary = "Get paginated users")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Returns paginated list of users")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized)]
+        [SwaggerResponse(StatusCodes.Status403Forbidden)]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetAllUsers ( 
+            [FromQuery] int pageIndex = 1,
+            [FromQuery] int pageSize = 6,
+            [FromQuery] string? searchTerm = "",
+            [FromQuery] string? selectedRole = "")
         {
             try
             {
-                var users = await _userService.GetPaginatedUsersWithFilterAsync( pageIndex, pageSize, searchTerm, selectedRole );
-                return Ok(users);
+                var users = await _userService.GetPaginatedUsersWithFilterAsync( 
+                    pageIndex, pageSize, searchTerm, selectedRole );
+                return SuccessResponse(users, "Users retrieved successfully");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting all users");
-                return StatusCode(500, new { Message = $"An error occurred while retrieving users${ex.Message}" });
+                _logger.LogError(ex, "Error getting paginated users");
+                return InternalErrorResponse(ex, "An error occurred while retrieving users");
             }
         }
 
@@ -99,8 +100,8 @@ namespace Rest.API.Controllers
             Summary = "Get user by ID",
             Description = "Retrieves user details by ID. Users can only access their own profile unless they are Admins.")]
         [SwaggerResponse(StatusCodes.Status200OK, "Returns user details")]
-        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access")]
-        [SwaggerResponse(StatusCodes.Status403Forbidden, "Forbidden - Cannot access other users' data")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized)]
+        [SwaggerResponse(StatusCodes.Status403Forbidden)]
         [SwaggerResponse(StatusCodes.Status404NotFound, "User not found")]
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal server error")]
         public async Task<IActionResult> GetUserById(string userId)
@@ -108,17 +109,17 @@ namespace Rest.API.Controllers
             try
             {
                 var user = await _userService.GetUserByIdAsync(userId);
-                return Ok(user);
+                return SuccessResponse(user, "User retrieved successfully");
             }
             catch (KeyNotFoundException ex)
             {
-                _logger.LogWarning(ex, "User not found");
-                return NotFound(new { ex.Message });
+                _logger.LogWarning(ex, "User not found: {UserId}", userId);
+                return NotFoundResponse(ex.Message);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting user with ID: {UserId}", userId);
-                return StatusCode(500, new { Message = $"An error occurred while retrieving the user ${ex.Message}" });
+                _logger.LogError(ex, "Error getting user: {UserId}", userId);
+                return InternalErrorResponse(ex, "An error occurred while retrieving the user");
             }
         }
         /// <summary>
@@ -128,30 +129,71 @@ namespace Rest.API.Controllers
         /// <returns>Confirmation of successful creation</returns>
         [HttpPost]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> CreateUser(CreateUserDto model)
+        [SwaggerOperation(Summary = "Create user")]
+        [SwaggerResponse(StatusCodes.Status201Created, "User created successfully")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid data")]
+        public async Task<IActionResult> CreateUser([FromBody] CreateUserDto model)
         {
             if (!ModelState.IsValid)
-            {
-                return BadRequest(new
-                {
-                    Message = "Invalid request data",
-                    Errors = ModelState.Values.SelectMany(v => v.Errors)
-                });
-            }
+            
+                return ValidationErrorResponse(
+                    ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)));
+
             try
             {
                 var id = await _userService.AddUser(model);
-                return CreatedAtAction(nameof(GetUserById), new { userId = id }, new { Message = "User created successfully", UserId = id });
+                return CreatedResponse(
+                    nameof(GetUserById),
+                    new { userId = id },
+                    "User created successfully");
             }
             catch (ApplicationException ex)
             {
                 _logger.LogWarning(ex, "Validation error while creating user");
-                return BadRequest(new { ex.Message });
+                return ErrorResponse(new[] { ex.Message }, "Failed to create user");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating user");
-                return StatusCode(500, new { Message = $"An error occurred while creating the user{ex.Message}" });
+                return InternalErrorResponse(ex, "An error occurred while creating the user");
+            }
+        }
+
+        /// <summary>
+        /// Admin update - IsActive, Role, Chef specialization, DeliveryPerson vehicle
+        /// </summary>
+        [HttpPut("AdminUpdate/{userId}")]
+        [Authorize(Roles = "Admin")]
+        [SwaggerOperation(
+            Summary = "Admin update user",
+            Description = "Admin can update: IsActive, Role, Specialization (Chef), VehicleNumber & IsAvailable (DeliveryPerson)")]
+        [SwaggerResponse(StatusCodes.Status200OK, "User updated successfully")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "User not found")]
+        public async Task<IActionResult> AdminUpdateUser(string userId, [FromBody] AdminUpdateUserDto dto)
+        {
+            if (!ModelState.IsValid)
+                return ValidationErrorResponse(
+                    ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)));
+
+            try
+            {
+                await _userService.AdminUpdateUserAsync(userId, dto);
+                return SuccessResponse<string>(null, "User updated successfully");
+            }
+            catch (KeyNotFoundException ex)
+            {
+                _logger.LogWarning(ex, "User not found: {UserId}", userId);
+                return NotFoundResponse(ex.Message);
+            }
+            catch (ApplicationException ex)
+            {
+                _logger.LogWarning(ex, "Error updating user: {UserId}", userId);
+                return ErrorResponse(new[] { ex.Message }, "Failed to update user");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating user: {UserId}", userId);
+                return InternalErrorResponse(ex, "An error occurred while updating the user");
             }
         }
 
@@ -183,32 +225,28 @@ namespace Rest.API.Controllers
         public async Task<IActionResult> UpdateProfile(string userId, [FromBody] UpdateProfileDto updateDto)
         {
             if (!ModelState.IsValid)
-            {
-                return BadRequest(new
-                {
-                    Message = "Invalid request data",
-                    Errors = ModelState.Values.SelectMany(v => v.Errors)
-                });
-            }
+                return ValidationErrorResponse(
+                    ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)));
+        
             try
             {
                 await _userService.UpdateUserProfileAsync(userId, updateDto);
-                return Ok(new { Message = "Profile updated successfully" });
+                return SuccessResponse<string>(null, "Profile updated successfully");
             }
             catch (KeyNotFoundException ex)
             {
-                _logger.LogWarning(ex, "User not found with ID: {UserId}", userId);
-                return NotFound(new { Message = ex.Message });
+                _logger.LogWarning(ex, "User not found: {UserId}", userId);
+                return NotFoundResponse(ex.Message);
             }
             catch (ApplicationException ex)
             {
-                _logger.LogWarning(ex, "Validation error for user ID: {UserId}", userId);
-                return BadRequest(new { Message = ex.Message });
+                _logger.LogWarning(ex, "Validation error updating user: {UserId}", userId);
+                return ErrorResponse(new[] { ex.Message }, "Failed to update profile");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating profile for user ID: {UserId}", userId);
-                return StatusCode(500, new { Message = $"An error occurred while updating the profile ${ex.Message}" });
+                _logger.LogError(ex, "Error updating profile: {UserId}", userId);
+                return InternalErrorResponse(ex, "An error occurred while updating the profile");
             }
         }
 
@@ -231,7 +269,7 @@ namespace Rest.API.Controllers
             try
             {
                 await _userService.DeleteUser(userId);
-                return Ok(new { Message = "User deleted successfully", userId });
+                return SuccessResponse(userId, "User deleted successfully");
             }
             catch (KeyNotFoundException ex)
             {

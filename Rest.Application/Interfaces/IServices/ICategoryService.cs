@@ -14,7 +14,7 @@ namespace Rest.Application.Interfaces.IServices
         /// <returns>A task that represents the asynchronous operation. The task result contains a collection of categories.</returns>
         Task<IEnumerable<CategoryWithProductsDto>> GetAllAsync();
 
-        Task<PaginatedList<CategoryUpdateDto>> GetPaginatedCatsWithFilterAsync(int pageIndex, int pageSize, string? searchTerm, string? selectedFilter);
+        Task<PaginatedList<CategoryWithProductsDto>> GetPaginatedCatsWithFilterAsync(int pageIndex, int pageSize, string? searchTerm, string? selectedStatus);
         /// <summary>
         /// Retrieves a category by its ID asynchronously.
         /// </summary>
@@ -26,19 +26,19 @@ namespace Rest.Application.Interfaces.IServices
         /// </summary>
         /// <param name="category">The category to add.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task<CategoryCreateDto> AddAsync(CategoryCreateDto category);
+        Task<CategoryWithProductsDto> AddAsync(CategoryCreateDto category);
         /// <summary>
         /// Updates an existing category.
         /// </summary>
         /// <param name="id"> The ID of the category to update.</param>
         /// <param name="category">The category to update.</param>
-        Task Update(int id,CategoryUpdateDto category);
+        Task UpdateAsync(int id,CategoryUpdateDto category);
         /// <summary>
-        /// Deletes a category by its ID asynchronously.
+        /// Archive a category by its ID asynchronously.
         /// </summary>
-        /// <param name="id">The ID of the category to delete.</param>
+        /// <param name="id">The ID of the category to archive.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        Task DeleteAsync(int id);
+        Task ArchiveAsync(int id);
         /// <summary>
         /// Saves changes asynchronously.
         /// </summary>

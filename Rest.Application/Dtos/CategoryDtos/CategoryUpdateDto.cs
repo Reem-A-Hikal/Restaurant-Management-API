@@ -1,4 +1,6 @@
-﻿namespace Rest.Application.Dtos.CategoryDtos
+﻿using Rest.Domain.Entities.Enums;
+
+namespace Rest.Application.Dtos.CategoryDtos
 {
     /// <summary>
     /// Data Transfer Object for updating a category
@@ -16,14 +18,9 @@
         public string? Name { get; set; }
 
         /// <summary>
-        /// Category Description
-        /// </summary>
-        public string? Description { get; set; }
-
-        /// <summary>
         /// Is the category active?
         /// </summary>
-        public bool? IsActive { get; set; }
+        public CategoryStatus? Status { get; set; }
 
         /// <summary>
         /// Display order of the category

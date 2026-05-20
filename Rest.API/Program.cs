@@ -147,7 +147,7 @@ namespace Rest.API
             
 
             builder.Services.AddAutoMapper(typeof(UserProfile));
-            builder.Services.AddAutoMapper(typeof(ProductProfile));
+            IServiceCollection serviceCollection = builder.Services.AddAutoMapper(typeof(ProductProfile));
             builder.Services.AddAutoMapper(typeof(AddressProfile));
             builder.Services.AddAutoMapper(typeof(OrderProfile));
 

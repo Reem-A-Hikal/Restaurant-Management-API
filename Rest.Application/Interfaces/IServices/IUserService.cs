@@ -9,6 +9,7 @@ namespace Rest.Application.Interfaces.IServices
         Task<PaginatedList<UserDto>> GetPaginatedUsersWithFilterAsync(int pageIndex, int pageSize, string? searchTerm, string? selectedRole);
         Task<UserDto> GetUserByIdAsync(string userId);
         Task<string> AddUser(CreateUserDto userDto);
+        Task AdminUpdateUserAsync(string userId, AdminUpdateUserDto dto);
         Task UpdateUserProfileAsync(string userId, UpdateProfileDto dto);
         Task DeleteUser(string userId);
     }

@@ -1,6 +1,7 @@
 ﻿
 
 using Rest.Application.Dtos.ProductDtos;
+using Rest.Domain.Entities.Enums;
 
 namespace Rest.Application.Dtos.CategoryDtos
 {
@@ -20,14 +21,11 @@ namespace Rest.Application.Dtos.CategoryDtos
         public string Name { get; set; }
 
         /// <summary>
-        /// The unique identifier for the category.
-        /// </summary>
-        public string Description { get; set; }
-
-        /// <summary>
         /// Indicates whether the category is active or not.
         /// </summary>
-        public bool IsActive { get; set; }
+        public CategoryStatus Status { get; set; }
+
+        public int TotalItems { get; set; }
 
         /// <summary>
         /// The display order of the category in the list.

@@ -11,6 +11,7 @@ namespace Rest.Application.Utilities
         public int TotalPages => (int)Math.Ceiling(TotalItems / (double)PageSize);
         public bool HasPreviousPage => PageIndex > 1;
         public bool HasNextPage => PageIndex < TotalPages;
+
         public PaginatedList(List<T> items, int totalItems, int pageIndex, int pageSize)
         {
             Items = items;

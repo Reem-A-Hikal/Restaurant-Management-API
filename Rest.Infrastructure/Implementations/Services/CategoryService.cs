@@ -4,6 +4,7 @@ using Rest.Application.Interfaces.IRepositories;
 using Rest.Application.Interfaces.IServices;
 using Rest.Application.Utilities;
 using Rest.Domain.Entities;
+using Rest.Domain.Entities.Enums;
 
 namespace Rest.Infrastructure.Implementations.Services
 {
@@ -29,39 +30,33 @@ namespace Rest.Infrastructure.Implementations.Services
         /// </summary>
         /// <param name="category"> The category to add</param>
         /// <returns> The newly created category</returns>
-        public async Task<CategoryCreateDto> AddAsync(CategoryCreateDto category)
+        public async Task<CategoryWithProductsDto> AddAsync(CategoryCreateDto dto)
         {
-            if (category == null)
-            {
-                throw new ArgumentNullException(nameof(category), "Category cannot be null");
-            }
-            var categoryE = _mapper.Map<Category>(category);
-            await _categoryRepository.AddAsync(categoryE);
+            if (dto == null)
+                throw new ArgumentNullException(nameof(dto));
+
+            var category = _mapper.Map<Category>(dto);
+            await _categoryRepository.AddAsync(category);
             await _categoryRepository.SaveChangesAsync();
-            return category;
+
+            return _mapper.Map<CategoryWithProductsDto>(category);
         }
 
         /// <summary>
         /// Deactivates a category by setting its IsActive property to false.
         /// </summary>
         /// <param name="id"></param>
-        public async Task DeleteAsync(int id)
+        public async Task ArchiveAsync(int id)
         {
             var category = await _categoryRepository.GetByIdAsync(id);
 
-            if (category != null)
-            {
-                category.IsActive = false;
+            category.Status = CategoryStatus.Archived;
 
-                foreach (var product in category.Products)
-                {
-                    product.IsAvailable = false;
-                }
-            }
-            else
-            {
-                throw new KeyNotFoundException($"Category with ID {id} not found");
-            }
+            foreach (var product in category.Products)
+                product.IsAvailable = false;
+
+            _categoryRepository.Update(category);
+            await _categoryRepository.SaveChangesAsync();
         }
 
         /// <summary>
@@ -71,24 +66,16 @@ namespace Rest.Infrastructure.Implementations.Services
         public async Task<IEnumerable<CategoryWithProductsDto>> GetAllAsync()
         {
             var categories = await _categoryRepository.GetAllWithProductsAsync();
-            var categoriesDto = _mapper.Map<IEnumerable<CategoryWithProductsDto>>(categories);
-            return categoriesDto;
+            return _mapper.Map<IEnumerable<CategoryWithProductsDto>>(categories);
         }
 
-        public async Task<PaginatedList<CategoryUpdateDto>> GetPaginatedCatsWithFilterAsync(int pageIndex, int pageSize, string? searchTerm, string? selectedFilter)
+        public async Task<PaginatedList<CategoryWithProductsDto>> GetPaginatedCatsWithFilterAsync(int pageIndex, int pageSize, string? searchTerm, string? selectedStatus)
         {
-            try
-            {
-                var query = _categoryRepository.GetFilteredCats(searchTerm, selectedFilter);
+            var query = _categoryRepository.GetFilteredCats(searchTerm, selectedStatus);
 
-                var paginatedCategories = await PaginatedList<Category>.CreateAsync(query, pageIndex, pageSize);
-                var categoriesDto = _mapper.Map<List<CategoryUpdateDto>>(paginatedCategories.Items);
-                return new PaginatedList<CategoryUpdateDto>(categoriesDto, paginatedCategories.TotalItems, pageIndex, pageSize);
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException("Could not retrieve paginated Users records.", ex);
-            }
+            var paginatedCategories = await PaginatedList<Category>.CreateAsync(query, pageIndex, pageSize);
+            var categoriesDto = _mapper.Map<List<CategoryWithProductsDto>>(paginatedCategories.Items);
+            return new PaginatedList<CategoryWithProductsDto>(categoriesDto, paginatedCategories.TotalItems, pageIndex, pageSize);
         }
 
         /// <summary>
@@ -98,25 +85,28 @@ namespace Rest.Infrastructure.Implementations.Services
         /// <returns> The category with the specified ID</returns>
         public async Task<CategoryWithProductsDto> GetByIdAsync(int id)
         {
-            var category = await _categoryRepository.GetByIdAsync(id) ?? throw new KeyNotFoundException($"Category with ID {id} not found.");
-            var categoryDto = _mapper.Map<CategoryWithProductsDto>(category);
-            return categoryDto;
+            var category = await _categoryRepository.GetByIdAsync(id);
+            return _mapper.Map<CategoryWithProductsDto>(category);
         }
 
         /// <summary>
         /// Updates an existing category.
         /// </summary>
         /// <param name="id"> The ID of the category to update</param>
-        /// <param name="category"> The updated category data transfer object</param>
+        /// <param name="dto"> The updated category data transfer object</param>
         /// <returns> Task representing the asynchronous operation</returns>
-        public async Task Update(int id, CategoryUpdateDto category)
+        public async Task UpdateAsync(int id, CategoryUpdateDto dto)
         {
-            var existingCategory = await _categoryRepository.GetByIdAsync(id) ?? throw new KeyNotFoundException($"Category with ID {id} not found.");
+            var existingCategory = await _categoryRepository.GetByIdAsync(id);
 
-            existingCategory.Name = category.Name ?? existingCategory.Name;
-            existingCategory.Description = category.Description ?? existingCategory.Description;
-            existingCategory.IsActive = category.IsActive ?? existingCategory.IsActive;
-            existingCategory.CategoryId = id;
+            if (!string.IsNullOrWhiteSpace(dto.Name))
+                existingCategory.Name = dto.Name;
+
+            if (dto.Status.HasValue)
+                existingCategory.Status = dto.Status.Value;
+
+            if (dto.DisplayOrder.HasValue)
+                existingCategory.DisplayOrder = dto.DisplayOrder.Value;
 
             _categoryRepository.Update(existingCategory);
             await _categoryRepository.SaveChangesAsync();

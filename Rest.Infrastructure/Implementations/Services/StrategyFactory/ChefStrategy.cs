@@ -29,11 +29,14 @@ namespace Rest.Infrastructure.Implementations.Services.StrategyFactory
 
         public async Task UpdateRoleDataAsync(string userId, UpdateProfileDto dto)
         {
-            var chef = await _chefRepo.GetChefByIdAsync(userId);
-            if (chef != null && !string.IsNullOrWhiteSpace(dto.Specialization))
+            if (!string.IsNullOrWhiteSpace(dto.Specialization))
             {
-                chef.Specialization = dto.Specialization;
-                await _chefRepo.SaveChangesAsync();
+                var chef = await _chefRepo.GetChefByIdAsync(userId);
+                if (chef != null)
+                {
+                    chef.Specialization = dto.Specialization;
+                    await _chefRepo.SaveChangesAsync();
+                }
             }
         }
     }

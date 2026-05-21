@@ -21,7 +21,7 @@ namespace Rest.Domain.Entities
         /// </summary>
         [Required]
         [StringLength(20)]
-        public string OrderNumber { get; set; } // Auto-generated
+        public required string OrderNumber { get; set; } // Auto-generated
 
         /// <summary>
         /// Gets or sets the date and time when the order was placed.
@@ -32,7 +32,6 @@ namespace Rest.Domain.Entities
         /// Gets or sets the date and time when the order is required.
         /// </summary>
         public DateTime? RequiredTime { get; set; }
-
         public DateTime? ConfirmationTime { get; set; }
         public DateTime? PreparationStartTime { get; set; }
         public DateTime? DeliveryStartTime { get; set; }
@@ -48,7 +47,7 @@ namespace Rest.Domain.Entities
         /// <summary>
         /// Staff ID who confirmed the order
         /// </summary>
-        public string? ConfirmedBy { get; set; } // Staff ID who confirmed the order
+        public string? ConfirmedById { get; set; }
 
         /// <summary>
         /// Items total before fees/discounts
@@ -83,21 +82,14 @@ namespace Rest.Domain.Entities
         /// Gets or sets the estimated delivery time in minutes.
         /// </summary>
         [Range(0, int.MaxValue, ErrorMessage = "Estimated delivery time must be positive")]
-        public int? EstimatedDeliveryTime { get; set; } // In minutes
-
-        /// <summary>
-        /// Gets or sets the payment method used for the order.
-        /// </summary>
-        public PaymentMethod? PaymentMethod { get; set; } // Stripe, Cash
+        public int? EstimatedDeliveryTime { get; set; }
 
         /// <summary>
         /// Gets or sets the payment status of the order.
         /// </summary>
         [StringLength(20)]
-        public string PaymentStatus { get; set; } = "Pending"; // Pending, Completed, Failed
+        public PaymentStatus PaymentStatus { get; set; } = PaymentStatus.Pending;
 
-        [StringLength(50)]
-        public string? TransactionId { get; set; }
         /// <summary>
         /// Gets or sets the special instructions or notes for the order.
         /// </summary>
@@ -107,14 +99,14 @@ namespace Rest.Domain.Entities
         /// <summary>
         /// Gets or sets the source of the order.
         /// </summary>
-        public OrderSource Source { get; set; } // Website, Phone, ThirdParty
+        public OrderSource Source { get; set; } = OrderSource.Website;
 
         /// <summary>
         /// UserId of the customer who placed the order.
         /// </summary>
         // Foreign keys
         [Required]
-        public string UserId { get; set; }
+        public required string UserId { get; set; }
 
         /// <summary>
         /// Gets or sets the delivery address for the order.
@@ -134,13 +126,13 @@ namespace Rest.Domain.Entities
         /// </summary>
         [ForeignKey("UserId")]
         [InverseProperty("CustomerOrders")]
-        public virtual User User { get; set; }
+        public virtual required User User { get; set; }
 
         /// <summary>
         /// Gets or sets the delivery address for the order.
         /// </summary>
         [ForeignKey("DeliveryAddressId")]
-        public virtual Address DeliveryAddress { get; set; }
+        public virtual required Address DeliveryAddress { get; set; }
 
         /// <summary>
         /// Gets or sets the delivery person assigned to the order.
@@ -149,10 +141,16 @@ namespace Rest.Domain.Entities
         [InverseProperty("DeliveryOrders")]
         public virtual User? DeliveryPerson { get; set; }
 
+        [ForeignKey("ConfirmedById")]
+        public virtual User? ConfirmedBy { get; set; }
+
         /// <summary>
         /// Gets or sets the collection of order details associated with the order.
         /// </summary>
         public virtual ICollection<OrderDetail> OrderDetails { get; set; } = new List<OrderDetail>();
+
+        // Payment history
+        public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
 
         /// <summary>
         /// Gets or sets the delivery information for the order.

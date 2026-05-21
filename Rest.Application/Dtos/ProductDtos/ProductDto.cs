@@ -1,4 +1,6 @@
-﻿namespace Rest.Application.Dtos.ProductDtos
+﻿using Rest.Domain.Entities.Enums;
+
+namespace Rest.Application.Dtos.ProductDtos
 {
     /// <summary>
     /// Data Transfer Object for a product
@@ -42,7 +44,7 @@
         /// <summary>
         ///  Indicates if the product is available
         /// </summary>
-        public bool IsAvailable { get; set; }
+        public ProductStatus Status { get; set; }
 
         /// <summary>
         /// Indicates if the product is promoted

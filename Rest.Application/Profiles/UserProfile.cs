@@ -2,6 +2,7 @@
 using Rest.Application.Dtos.AccountDtos;
 using Rest.Application.Dtos.UserDtos;
 using Rest.Domain.Entities;
+using Rest.Domain.Entities.Enums;
 
 namespace Rest.Application.Profiles
 {
@@ -12,8 +13,8 @@ namespace Rest.Application.Profiles
             CreateMap<RegisterDto, User>()
                 .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.Email))
                 .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Email))
-                .ForMember(dest => dest.PhoneNumber, opt => opt.MapFrom(src => src.Phone))
-                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(_ => true))
+                .ForMember(dest => dest.PhoneNumber, opt => opt.MapFrom(src => src.PhoneNumber))
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(_ => UserStatus.Active))
                 .ForMember(dest => dest.JoinDate, opt => opt.MapFrom(_ => DateTime.UtcNow));
 
             CreateMap<User, UserDto>();

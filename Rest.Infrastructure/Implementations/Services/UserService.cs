@@ -126,7 +126,7 @@ namespace Rest.Infrastructure.Implementations.Services
             var user = await _userManager.FindByIdAsync(userId)
                 ?? throw new NotFoundException("User", userId);
 
-            if (dto.IsActive.HasValue) user.IsActive = dto.IsActive.Value;
+            user.Status = dto.Status;
 
             var result = await _userManager.UpdateAsync(user);
             if (!result.Succeeded)

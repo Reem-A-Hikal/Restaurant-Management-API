@@ -21,7 +21,7 @@ namespace Rest.Application.Interfaces.IServices
         Task<OrderDto> MarkAsDeliveredAsync(int orderId);
 
 
-        Task<OrderDto> UpdatePaymentStatusAsync(int orderId, string newStatus);
+        Task<OrderDto> UpdatePaymentStatusAsync(int orderId, PaymentStatus newStatus);
         Task ProcessPaymentAsync(int orderId, PaymentMethod paymentMethod);
 
 

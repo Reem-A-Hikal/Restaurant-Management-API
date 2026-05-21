@@ -33,7 +33,7 @@ namespace Rest.Infrastructure.Implementations.Services
                 Quantity = itemDto.Quantity,
                 UnitPrice = itemDto.UnitPrice,
             };
-            orderDetail.CalculateSubtotal(); // Assuming this method calculates the subtotal based on quantity and unit price
+            //orderDetail.CalculateSubtotal(); // Assuming this method calculates the subtotal based on quantity and unit price
 
             order.OrderDetails.Add(orderDetail);
             order.SubTotal = order.OrderDetails.Sum(od => od.Subtotal); // Recalculate subtotal from order details
@@ -162,7 +162,7 @@ namespace Rest.Infrastructure.Implementations.Services
         {
             
             var order = await unitOfWork.orderRepository.UpdateOrderStatusAsync(orderId, OrderStatus.Confirmed);
-            order.ConfirmedBy = confirmedBy;
+            //order.ConfirmedBy = confirmedBy;
             order.ConfirmationTime = DateTime.UtcNow;
 
             if (confirmDto.RequiredTime != null)
@@ -251,16 +251,16 @@ namespace Rest.Infrastructure.Implementations.Services
             if (order == null)
                 throw new KeyNotFoundException($"Order with ID {orderId} not found.");
 
-            order.PaymentMethod = paymentMethod;
+            //order.PaymentMethod = paymentMethod;
 
             if (paymentMethod == PaymentMethod.Cash)
             {
-                order.PaymentStatus = "Pending"; // Cash payment is pending until delivery
+                order.PaymentStatus = PaymentStatus.Pending; // Cash payment is pending until delivery
             }
             else
             {
-                order.PaymentStatus = "Completed";
-                order.TransactionId = Guid.NewGuid().ToString();
+                order.PaymentStatus = PaymentStatus.Completed;
+                //order.TransactionId = Guid.NewGuid().ToString();
             }
 
             unitOfWork.orderRepository.Update(order);
@@ -280,8 +280,7 @@ namespace Rest.Infrastructure.Implementations.Services
             if (orderDto.Status.HasValue)
                 existingOrder.Status = orderDto.Status.Value;
 
-            if (!string.IsNullOrEmpty(orderDto.PaymentStatus))
-                existingOrder.PaymentStatus = orderDto.PaymentStatus;
+            existingOrder.PaymentStatus = orderDto.PaymentStatus;
 
             if (!string.IsNullOrEmpty(orderDto.DeliveryPersonId))
                 existingOrder.DeliveryPersonId = orderDto.DeliveryPersonId;
@@ -302,7 +301,7 @@ namespace Rest.Infrastructure.Implementations.Services
             return _mapper.Map<OrderDto>(updatedOrder);
         }
 
-        public async Task<OrderDto> UpdatePaymentStatusAsync(int orderId, string newStatus)
+        public async Task<OrderDto> UpdatePaymentStatusAsync(int orderId, PaymentStatus newStatus)
         {
             var order = await unitOfWork.orderRepository.GetByIdAsync(orderId);
             if (order == null)

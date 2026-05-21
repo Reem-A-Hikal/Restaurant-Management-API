@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
+using Rest.Domain.Entities.Enums;
 
 namespace Rest.Domain.Entities
 {
@@ -9,10 +10,10 @@ namespace Rest.Domain.Entities
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int ProductId { get; set; }
 
-        [Required(ErrorMessage = "Product name is required")]
-        [StringLength(100, ErrorMessage = "Product name cannot exceed 100 characters")]
+        [Required]
+        [StringLength(100)]
         [Column(TypeName = "nvarchar(100)")]
-        public string Name { get; set; }
+        public required string Name { get; set; }
 
         [Required(ErrorMessage = "Price is required")]
         [Range(0.01, double.MaxValue, ErrorMessage = "Price must be greater than zero")]
@@ -25,7 +26,7 @@ namespace Rest.Domain.Entities
 
         [StringLength(255, ErrorMessage = "Image URL cannot exceed 255 characters")]
         [Column(TypeName = "nvarchar(255)")]
-        public string? Image { get; set; }
+        public string? ImageUrl { get; set; }
 
         [Required(ErrorMessage = "Preparation time is required")]
         public int PreparationTime { get; set; } // In minutes
@@ -33,22 +34,21 @@ namespace Rest.Domain.Entities
         [Range(0, 10000, ErrorMessage = "Calories must be between 0 and 10000")]
         public int? Calories { get; set; }
 
-        [Required(ErrorMessage = "Stock is required")]
-        public bool IsAvailable { get; set; } = true;
+        public ProductStatus Status { get; set; } = ProductStatus.Available;
 
         [Required]
         public bool IsPromoted { get; set; } = false;
 
         [Column(TypeName = "decimal(5, 2)")]
-        [Range(0.00, 100.00, ErrorMessage = "Discount percent must be between 0 and 100")]
-        public decimal DiscountPercent { get; set; } = 0.00m; // Default to 0%
+        [Range(0.00, 100, ErrorMessage = "Discount percent must be between 0 and 100")]
+        public decimal DiscountPercent { get; set; } = 0; // Default to 0%
 
         [Column(TypeName = "decimal(5, 2)")]
-        [Range(0.00, 100.00, ErrorMessage = "Allowed discount percent must be between 0 and 100")]
+        [Range(0.00, 100, ErrorMessage = "Allowed discount percent must be between 0 and 100")]
         public decimal AllowedDiscountPercent { get; set; }
 
         // Foreign key
-        [Required(ErrorMessage = "Category is required")]
+        [Required]
         public int CategoryId { get; set; }
 
         // Navigation properties
@@ -63,5 +63,9 @@ namespace Rest.Domain.Entities
             var discountToApply = Math.Min(DiscountPercent, AllowedDiscountPercent);
             return Price * (100 - discountToApply) / 100;
         }
+
+        // Helper properties
+        public bool IsAvailable => Status == ProductStatus.Available;
+        public bool IsArchived => Status == ProductStatus.Archived;
     }
 }

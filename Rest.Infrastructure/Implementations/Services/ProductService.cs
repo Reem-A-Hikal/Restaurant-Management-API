@@ -120,10 +120,10 @@ namespace Rest.Infrastructure.Implementations.Services
             existingProduct.DiscountPercent = productDto.DiscountPercent;
             existingProduct.Calories = productDto.Calories;
             existingProduct.CategoryId = productDto.CategoryId;
-            existingProduct.Image = productDto.Image;
+            existingProduct.ImageUrl = productDto.Image;
             existingProduct.PreparationTime = productDto.PreparationTime;
-            existingProduct.IsAvailable = productDto.IsAvailable;
-            
+            existingProduct.Status = productDto.Status;
+
             _productRepository.Update(existingProduct);
             await _productRepository.SaveChangesAsync();
         }

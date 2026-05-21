@@ -15,7 +15,6 @@ namespace Rest.Infrastructure.Implementations.Services
 
         public async Task AddOrderDetailAsync(OrderDetail orderDetail)
         {
-            orderDetail.CalculateSubtotal();
             await _orderDetailRepository.AddAsync(orderDetail);
             await _orderDetailRepository.SaveChangesAsync();
         }

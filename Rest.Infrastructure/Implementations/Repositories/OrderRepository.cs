@@ -42,7 +42,7 @@ namespace Rest.Infrastructure.Repositories
             return await _context.Orders
                 .Where(o => o.OrderDate >= startDate &&
                             o.OrderDate < endDate &&
-                            o.PaymentStatus == "paid")
+                            o.PaymentStatus == PaymentStatus.Completed)
                 .SumAsync(o => o.TotalAmount);
         }
 

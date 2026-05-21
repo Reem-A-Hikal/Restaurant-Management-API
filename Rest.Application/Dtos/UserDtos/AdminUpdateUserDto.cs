@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Rest.Domain.Entities.Enums;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -13,14 +14,12 @@ namespace Rest.Application.Dtos.UserDtos
     /// </summary>
     public class AdminUpdateUserDto
     {
-
         /// <summary>
         /// Activate or deactivate the user account
         /// </summary>
-        public bool? IsActive { get; set; }
+        public UserStatus Status { get; set; }
         public string? Specialization { get; set; }
         public string? VehicleNumber { get; set; }
         public bool? IsAvailable { get; set; }
-
     }
 }

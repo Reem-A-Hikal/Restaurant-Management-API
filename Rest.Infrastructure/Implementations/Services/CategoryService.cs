@@ -57,9 +57,8 @@ namespace Rest.Infrastructure.Implementations.Services
             category.Status = CategoryStatus.Archived;
 
             foreach (var product in category.Products)
-                product.IsAvailable = false;
+                product.Status = ProductStatus.Unavailable;
 
-            //_categoryRepository.Update(category);
             await _categoryRepository.SaveChangesAsync();
         }
 

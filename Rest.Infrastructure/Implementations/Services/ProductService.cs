@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Rest.Application.Dtos.ProductDtos;
 using Rest.Application.Interfaces.IRepositories;
 using Rest.Application.Interfaces.IServices;
@@ -75,14 +76,15 @@ namespace Rest.Infrastructure.Implementations.Services
         /// </summary>
         /// <param name="categoryId"> The ID of the category to filter products by</param>
         /// <returns> List of products in the specified category</returns>
-
         public async Task<IEnumerable<ProductDto>> GetProductsByCategoryAsync(int categoryId)
         {
             var products = await _productRepository.GetByCategoryAsync(categoryId);
-            var category = (await _categoryRepository.GetByIdAsync(categoryId)) ?? throw new KeyNotFoundException($"Category with ID {categoryId} not found.");
-            if (!products.Any())
+            var category = (await _categoryRepository.GetByIdAsync(categoryId)) 
+                ?? throw new KeyNotFoundException($"Category with ID {categoryId} not found.");
+
+            if (products == null || !products.Any())
             {
-                throw new KeyNotFoundException($"No products found in category with ID {categoryId}.");
+                return Enumerable.Empty<ProductDto>();
             }
             return _mapper.Map<IEnumerable<ProductDto>>(products);
         }
@@ -136,28 +138,5 @@ namespace Rest.Infrastructure.Implementations.Services
             await _productRepository.DeleteAsync(id);
             await _productRepository.SaveChangesAsync();
         }
-
-        #region old methods
-        ///// <summary>
-        ///// Searches for products by name
-        ///// </summary>
-        ///// <param name="searchTerm"> The search term to look for in product names</param>
-        ///// <returns> List of products matching the search term</returns>
-        //public async Task<IEnumerable<ProductDto>> SearchProductsAsync(string searchTerm)
-        //{
-        //    var products = await _productRepository.SearchProductsAsync(searchTerm);
-        //    return _mapper.Map<IEnumerable<ProductDto>>(products);
-        //}
-
-        ///// <summary>
-        ///// Gets all available products
-        ///// </summary>
-        ///// <returns> List of available products</returns>
-        //public async Task<IEnumerable<ProductDto>> GetAvailableProductsAsync()
-        //{
-        //    var products = await _productRepository.GetAvailableProductsAsync();
-        //    return _mapper.Map<IEnumerable<ProductDto>>(products);
-        //}
-        #endregion
     }
 }

@@ -15,37 +15,25 @@ namespace Rest.API.Controllers
     public class CategoryController : BaseController
     {
         private readonly ICategoryService _categoryService;
-        private readonly ILogger<CategoryController> _logger;
 
         /// <summary>
         /// Constructor for CategoryController.
         /// </summary>
         /// <param name="categoryService"></param>
-        /// <param name="logger"></param>
-        public CategoryController(ICategoryService categoryService, ILogger<CategoryController> logger)
+        public CategoryController(ICategoryService categoryService)
         {
             _categoryService = categoryService;
-            _logger = logger;
         }
 
         /// <summary>
         /// get all categories
         /// </summary>
         /// <returns></returns>
-
         [HttpGet("all")]
         public async Task<IActionResult> GetAll()
         {
-            try
-            {
-                var categories = await _categoryService.GetAllAsync();
-                return SuccessResponse(categories, "Categories retrieved successfully");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error occurred while getting all categories");
-                return InternalErrorResponse(ex);
-            }
+            var categories = await _categoryService.GetAllAsync();
+            return SuccessResponse(categories, "Categories retrieved successfully");
         }
         /// <summary>
         /// get all categories with pagination and filter
@@ -55,7 +43,6 @@ namespace Rest.API.Controllers
         /// <param name="searchTerm"></param>
         /// <param name="selectedFilter"></param>
         /// <returns></returns>
-
         [HttpGet("GetAllPaginated")]
         public async Task<IActionResult> GetPaginated(
             [FromQuery] int pageIndex = 1,
@@ -63,17 +50,10 @@ namespace Rest.API.Controllers
             [FromQuery] string? searchTerm = "",
             [FromQuery] string? selectedFilter = "All")
         {
-            try
-            {
-                var categories = await _categoryService.GetPaginatedCatsWithFilterAsync(
-                    pageIndex, pageSize, searchTerm, selectedFilter);
-                return SuccessResponse(categories, "Categories retrieved successfully");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error occurred while getting paginated categories");
-                return InternalErrorResponse(ex);
-            }
+            var categories = await _categoryService.GetPaginatedCatsWithFilterAsync(
+                pageIndex, pageSize, searchTerm, selectedFilter);
+
+            return SuccessResponse(categories, "Categories retrieved successfully");
         }
         /// <summary>
         /// get category by id
@@ -83,21 +63,8 @@ namespace Rest.API.Controllers
         [HttpGet("getcategory/{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            try
-            {
-                var category = await _categoryService.GetByIdAsync(id);
-                return SuccessResponse(category, "Category retrieved successfully");
-            }
-            catch (KeyNotFoundException ex)
-            {
-                _logger.LogWarning(ex, "Category not found");
-                return ValidationErrorResponse(["Category not found."]);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error occurred while getting category with ID {id}", id);
-                return InternalErrorResponse(ex);
-            }
+            var category = await _categoryService.GetByIdAsync(id);
+            return SuccessResponse(category, "Category retrieved successfully");
         }
 
         /// <summary>
@@ -112,20 +79,12 @@ namespace Rest.API.Controllers
                 return ValidationErrorResponse(
                     ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)));
 
-            try
-            {
-                var createdCategory = await _categoryService.AddAsync(dto);
-                return CreatedResponse(
-                    nameof(GetById),
-                    new { id = createdCategory.CategoryId },
-                    createdCategory,
-                    "Category created successfully");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error occurred while adding a new category");
-                return InternalErrorResponse(ex);
-            }
+            var createdCategory = await _categoryService.AddAsync(dto);
+            return CreatedResponse(
+                nameof(GetById),
+                new { id = createdCategory.CategoryId },
+                createdCategory,
+                "Category created successfully");
         }
         /// <summary>
         /// Update a category by ID
@@ -133,28 +92,15 @@ namespace Rest.API.Controllers
         /// <param name="id"></param>
         /// <param name="request"></param>
         /// <returns></returns>
-
         [HttpPut("update/{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] CategoryUpdateDto request)
         {
             if (!ModelState.IsValid)
                 return ValidationErrorResponse(
                     ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)));
-            try
-            {
-                await _categoryService.UpdateAsync(id, request);
-                return SuccessResponse<string>(null, "Category updated successfully");
-            }
-            catch (KeyNotFoundException ex)
-            {
-                _logger.LogWarning("Category not found with ID {id}", id);
-                return NotFoundResponse(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error occurred while updating category with ID {id}", id);
-                return InternalErrorResponse(ex);
-            }
+           
+            await _categoryService.UpdateAsync(id, request);
+            return SuccessResponse<string>(null, "Category updated successfully");
         }
         /// <summary>
         /// Delete a category by ID (soft delete / deactivate).
@@ -164,21 +110,8 @@ namespace Rest.API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Archive(int id)
         {
-            try
-            {
-                await _categoryService.ArchiveAsync(id);
-                return SuccessResponse<string>(null, "Category archived successfully");
-            }
-            catch (KeyNotFoundException ex)
-            {
-                _logger.LogWarning("Category not found with ID {id}", id);
-                return NotFoundResponse(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error archiving category: {Id}", id);
-                return InternalErrorResponse(ex);
-            }
+            await _categoryService.ArchiveAsync(id);
+            return SuccessResponse<string>(null, "Category archived successfully");
         }
     }
 }

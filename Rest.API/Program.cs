@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Rest.API.Middleware;
 using Rest.Application.Interfaces;
 using Rest.Application.Interfaces.IRepositories;
 using Rest.Application.Interfaces.IServices;
@@ -37,16 +38,17 @@ namespace Rest.API
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
+            // Database
             builder.Services.AddDbContext<RestDbContext>(options =>
-                options.UseLazyLoadingProxies().UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+                options.UseLazyLoadingProxies()
+                        .UseSqlServer(builder.Configuration
+                            .GetConnectionString("DefaultConnection")));
 
             builder.Services.AddControllers();
-            // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
 
+            // Repositories
             builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
-
             builder.Services.AddScoped<IUserRepository, UserRepository>();
             builder.Services.AddScoped<IProductRepository, ProductRepositort>();
             builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
@@ -56,9 +58,10 @@ namespace Rest.API
             builder.Services.AddScoped<IChefRepository, ChefRepository>();
             builder.Services.AddScoped<IDeliveryPersonRepository, DeliveryPersonRepository>();
 
-
+            // Unit of Work
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
+            // Services
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<IAccountService, AccountService>();
             builder.Services.AddScoped<IUserService, UserService>();
@@ -71,6 +74,7 @@ namespace Rest.API
             builder.Services.AddScoped<IOrderDetailService, OrderDetailService>();
             builder.Services.AddScoped<IReviewService, ReviewService>();
 
+            // Role Strategies
             builder.Services.AddScoped<IRoleStrategy, ChefStrategy>();
             builder.Services.AddScoped<IRoleStrategy, DeliveryPersonStrategy>();
             builder.Services.AddScoped<IRoleStrategy>(sp => new DefaultUserStrategy(
@@ -81,6 +85,7 @@ namespace Rest.API
 
             builder.Services.AddScoped<IRoleStrategyResolver, RoleStrategyResolver>();
 
+            // CORS
             string txt = "AllowAll";
             builder.Services.AddCors( options =>
             {
@@ -93,18 +98,18 @@ namespace Rest.API
                     });
             });
 
+            // Identity 
             builder.Services.AddIdentity<User, IdentityRole>(options =>
             {
                 options.User.RequireUniqueEmail = true;
-
                 options.Password.RequireDigit = true;
                 options.Password.RequiredLength = 8;
                 options.Password.RequireNonAlphanumeric = false;
                 options.Password.RequireUppercase = true;
                 options.Password.RequireLowercase = true;
             })
-                .AddEntityFrameworkStores<RestDbContext>()
-                .AddDefaultTokenProviders();
+            .AddEntityFrameworkStores<RestDbContext>()
+            .AddDefaultTokenProviders();
 
             //JWT Configuration
             var jwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -132,6 +137,7 @@ namespace Rest.API
                 };
             });
 
+            // Authorization
             builder.Services.AddAuthorizationBuilder()
             .AddPolicy("SelfOrAdmin", policy =>
                 policy.RequireAssertion(context =>
@@ -144,14 +150,15 @@ namespace Rest.API
                     return userIdClaim == routeUserId || context.User.IsInRole("Admin");
                 })
             );
-            
 
+            // AutoMapper
             builder.Services.AddAutoMapper(typeof(UserProfile));
-            IServiceCollection serviceCollection = builder.Services.AddAutoMapper(typeof(ProductProfile));
+            builder.Services.AddAutoMapper(typeof(ProductProfile));
             builder.Services.AddAutoMapper(typeof(AddressProfile));
             builder.Services.AddAutoMapper(typeof(OrderProfile));
+            builder.Services.AddAutoMapper(typeof(CategoryProfile));
 
-
+            // Swagger
             builder.Services.AddSwaggerGen(c =>
             {
                
@@ -159,7 +166,7 @@ namespace Rest.API
                 {
                     Title = "Restaurant Management API",
                     Version = "v1",
-                    Description = "API for managing restaurant users with role-based permissions",
+                    Description = "API for managing restaurant operations",
                     Contact = new OpenApiContact
                     {
                         Name = "Reem Heikal"
@@ -169,32 +176,57 @@ namespace Rest.API
                 var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
                 c.IncludeXmlComments(xmlPath);
+
+                // JWT in Swagger
+                c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Name = "Authorization",
+                    Type = SecuritySchemeType.ApiKey,
+                    Scheme = "Bearer",
+                    BearerFormat = "JWT",
+                    In = ParameterLocation.Header
+                });
+                c.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
+                        },
+                        Array.Empty<string>()
+                    }
+                });
             });
 
             var app = builder.Build();
 
+            // Seed Roles
             using (var scope = app.Services.CreateScope())
             {
-                var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+                var roleManager = scope.ServiceProvider
+                    .GetRequiredService<RoleManager<IdentityRole>>();
                 var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
                 
                 string[] roles = ["Admin", "Chef", "DeliveryPerson", "Customer"];
                 foreach (var role in roles)
                 {
                     if (!await roleManager.RoleExistsAsync(role))
-                    {
                         await roleManager.CreateAsync(new IdentityRole(role));
-                    }
                 }
             }
 
+            // Middleware Pipeline
+            app.UseMiddleware<ExceptionHandlingMiddleware>();
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
-                app.MapOpenApi();
                 app.UseSwagger();
-                app.UseSwaggerUI(op => op.SwaggerEndpoint("/openapi/v1.json", "v1"));
+                app.UseSwaggerUI(op => op.SwaggerEndpoint("/swagger/v1/swagger.json", "v1"));
             }
 
             app.UseHttpsRedirection();

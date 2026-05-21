@@ -19,18 +19,14 @@ namespace Rest.API.Controllers
         /// Controller for managing user operations including retrieval, updates, and deletion
         /// </summary>
         private readonly IUserService _userService;
-        private readonly ILogger<UserController> _logger;
 
         /// <summary>
         /// Initializes a new instance of the UserController
         /// </summary>
         /// <param name="userService">The user service for business logic operations</param>
-        /// <param name="logger">The logger for logging operations</param>
-        public UserController(IUserService userService,
-            ILogger<UserController> logger)
+        public UserController(IUserService userService)
         {
             _userService = userService;
-            _logger = logger;
         }
         /// <summary>
         /// Retrieves all users without pagination (Admin only)
@@ -44,16 +40,8 @@ namespace Rest.API.Controllers
         [SwaggerResponse(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetAllUsers()
         {
-            try
-            {
-                var users = await _userService.GetAllUsersAsync();
-                return SuccessResponse(users, "Users retrieved successfully");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting all users");
-                return InternalErrorResponse(ex, "An error occurred while retrieving users");
-            }
+            var users = await _userService.GetAllUsersAsync();
+            return SuccessResponse(users, "Users retrieved successfully");
         }
 
         /// <summary>
@@ -77,17 +65,10 @@ namespace Rest.API.Controllers
             [FromQuery] string? searchTerm = "",
             [FromQuery] string? selectedRole = "")
         {
-            try
-            {
-                var users = await _userService.GetPaginatedUsersWithFilterAsync( 
-                    pageIndex, pageSize, searchTerm, selectedRole );
-                return SuccessResponse(users, "Users retrieved successfully");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting paginated users");
-                return InternalErrorResponse(ex, "An error occurred while retrieving users");
-            }
+            var users = await _userService.GetPaginatedUsersWithFilterAsync( 
+                pageIndex, pageSize, searchTerm, selectedRole );
+
+            return SuccessResponse(users, "Users retrieved successfully");
         }
 
         /// <summary>
@@ -106,21 +87,8 @@ namespace Rest.API.Controllers
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal server error")]
         public async Task<IActionResult> GetUserById(string userId)
         {
-            try
-            {
-                var user = await _userService.GetUserByIdAsync(userId);
-                return SuccessResponse(user, "User retrieved successfully");
-            }
-            catch (KeyNotFoundException ex)
-            {
-                _logger.LogWarning(ex, "User not found: {UserId}", userId);
-                return NotFoundResponse(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting user: {UserId}", userId);
-                return InternalErrorResponse(ex, "An error occurred while retrieving the user");
-            }
+            var user = await _userService.GetUserByIdAsync(userId);
+            return SuccessResponse(user, "User retrieved successfully");
         }
         /// <summary>
         /// Create User with specefic role
@@ -139,24 +107,12 @@ namespace Rest.API.Controllers
                 return ValidationErrorResponse(
                     ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)));
 
-            try
-            {
-                var id = await _userService.AddUser(model);
-                return CreatedResponse(
-                    nameof(GetUserById),
-                    new { userId = id },
-                    "User created successfully");
-            }
-            catch (ApplicationException ex)
-            {
-                _logger.LogWarning(ex, "Validation error while creating user");
-                return ErrorResponse(new[] { ex.Message }, "Failed to create user");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating user");
-                return InternalErrorResponse(ex, "An error occurred while creating the user");
-            }
+            var id = await _userService.AddUser(model);
+            return CreatedResponse(
+                nameof(GetUserById),
+                new { userId = id },
+                new { userId = id },
+                "User created successfully");
         }
 
         /// <summary>
@@ -166,7 +122,7 @@ namespace Rest.API.Controllers
         [Authorize(Roles = "Admin")]
         [SwaggerOperation(
             Summary = "Admin update user",
-            Description = "Admin can update: IsActive, Role, Specialization (Chef), VehicleNumber & IsAvailable (DeliveryPerson)")]
+            Description = "Admin can update: IsActive, Specialization (Chef), VehicleNumber & IsAvailable (DeliveryPerson)")]
         [SwaggerResponse(StatusCodes.Status200OK, "User updated successfully")]
         [SwaggerResponse(StatusCodes.Status404NotFound, "User not found")]
         public async Task<IActionResult> AdminUpdateUser(string userId, [FromBody] AdminUpdateUserDto dto)
@@ -175,26 +131,8 @@ namespace Rest.API.Controllers
                 return ValidationErrorResponse(
                     ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)));
 
-            try
-            {
-                await _userService.AdminUpdateUserAsync(userId, dto);
-                return SuccessResponse<string>(null, "User updated successfully");
-            }
-            catch (KeyNotFoundException ex)
-            {
-                _logger.LogWarning(ex, "User not found: {UserId}", userId);
-                return NotFoundResponse(ex.Message);
-            }
-            catch (ApplicationException ex)
-            {
-                _logger.LogWarning(ex, "Error updating user: {UserId}", userId);
-                return ErrorResponse(new[] { ex.Message }, "Failed to update user");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating user: {UserId}", userId);
-                return InternalErrorResponse(ex, "An error occurred while updating the user");
-            }
+            await _userService.AdminUpdateUserAsync(userId, dto);
+            return SuccessResponse<string>(null, "User updated successfully");
         }
 
         /// <summary>
@@ -228,26 +166,8 @@ namespace Rest.API.Controllers
                 return ValidationErrorResponse(
                     ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)));
         
-            try
-            {
-                await _userService.UpdateUserProfileAsync(userId, updateDto);
-                return SuccessResponse<string>(null, "Profile updated successfully");
-            }
-            catch (KeyNotFoundException ex)
-            {
-                _logger.LogWarning(ex, "User not found: {UserId}", userId);
-                return NotFoundResponse(ex.Message);
-            }
-            catch (ApplicationException ex)
-            {
-                _logger.LogWarning(ex, "Validation error updating user: {UserId}", userId);
-                return ErrorResponse(new[] { ex.Message }, "Failed to update profile");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating profile: {UserId}", userId);
-                return InternalErrorResponse(ex, "An error occurred while updating the profile");
-            }
+            await _userService.UpdateUserProfileAsync(userId, updateDto);
+            return SuccessResponse<string>(null, "Profile updated successfully");
         }
 
         /// <summary>
@@ -266,26 +186,8 @@ namespace Rest.API.Controllers
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal server error")]
         public async Task<IActionResult> DeleteUser(string userId)
         {
-            try
-            {
-                await _userService.DeleteUser(userId);
-                return SuccessResponse(userId, "User deleted successfully");
-            }
-            catch (KeyNotFoundException ex)
-            {
-                _logger.LogWarning(ex, "User not found with ID: {UserId}", userId);
-                return NotFound(new { Message = ex.Message });
-            }
-            catch (ApplicationException ex)
-            {
-                _logger.LogWarning(ex, "Validation error for user ID: {UserId}", userId);
-                return BadRequest(new { Message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error deleting user with ID: {UserId}", userId);
-                return StatusCode(500, new { Message = $"An error occurred while deleting the user ${ex.Message}" });
-            }
+            await _userService.DeleteUser(userId);
+            return SuccessResponse(userId, "User deleted successfully");
         }
     }
 }

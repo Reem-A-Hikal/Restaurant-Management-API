@@ -7,6 +7,7 @@ using Rest.Application.Interfaces.IServices;
 using Rest.Application.Interfaces.IServices.StrategyFactory;
 using Rest.Application.Utilities;
 using Rest.Domain.Entities;
+using Rest.Domain.Exceptions;
 using Rest.Infrastructure.Data;
 
 namespace Rest.Infrastructure.Implementations.Services
@@ -51,12 +52,12 @@ namespace Rest.Infrastructure.Implementations.Services
             var users = await _userRepository.GetAllAsync();
             var userDtos = _mapper.Map<List<UserDto>>(users);
 
-            var userIds = userDtos.Select(u => u.Id).ToList();
-            var rolesDict = await GetUsersRolesDictAsync(userIds);
+            var rolesDict = await GetUsersRolesDictAsync(userDtos.Select(u => u.Id));
 
             foreach (var userDto in userDtos)
             {
-                userDto.Role = rolesDict.TryGetValue(userDto.Id, out var role) ? role : string.Empty;
+                userDto.Role = rolesDict.TryGetValue(userDto.Id, out var role) 
+                    ? role : string.Empty;
                 await EnrichWithRoleDataAsync(userDto);
             }
 
@@ -76,7 +77,8 @@ namespace Rest.Infrastructure.Implementations.Services
 
             foreach (var item in mappedItems)
             {
-                item.Role = rolesDict.TryGetValue(item.Id, out var role) ? role : string.Empty;
+                item.Role = rolesDict.TryGetValue(item.Id, out var role) 
+                    ? role : string.Empty;
                 await EnrichWithRoleDataAsync(item);
             }
             return new PaginatedList<UserDto>(mappedItems, paginatedUsers.TotalItems, pageIndex, pageSize);
@@ -86,7 +88,7 @@ namespace Rest.Infrastructure.Implementations.Services
         public async Task<UserDto> GetUserByIdAsync(string userId)
         {
             var user = await _userRepository.GetByIdAsync(userId)
-                ?? throw new KeyNotFoundException("User not found");
+                ?? throw new NotFoundException("User", userId);
 
             var userDto = _mapper.Map<UserDto>(user);
             var roles = await _userManager.GetRolesAsync(user);
@@ -101,20 +103,20 @@ namespace Rest.Infrastructure.Implementations.Services
         {
             var existingUser = await _userManager.FindByEmailAsync(userDto.Email);
             if (existingUser != null)
-                throw new ApplicationException("User with this email already exists");
+                throw new ValidationException("User with this email already exists");
 
             var strategy = _roleResolver.Resolve(userDto.UserRole);
             var user = strategy.CreateUserEntity(userDto);
 
             var result = await _userManager.CreateAsync(user, userDto.Password);
             if (!result.Succeeded)
-                throw new ApplicationException(string.Join(", ", result.Errors.Select(e => e.Description)));
+                throw new ValidationException(result.Errors.Select(e => e.Description));
 
             var roleResult = await _userManager.AddToRoleAsync(user, userDto.UserRole);
             if (!roleResult.Succeeded)
             {
                 await _userManager.DeleteAsync(user);
-                throw new ApplicationException(string.Join(", ", roleResult.Errors.Select(e => e.Description)));
+                throw new ValidationException(roleResult.Errors.Select(e => e.Description));
             }
             return user.Id;
         }
@@ -122,13 +124,13 @@ namespace Rest.Infrastructure.Implementations.Services
         public async Task AdminUpdateUserAsync(string userId, AdminUpdateUserDto dto)
         {
             var user = await _userManager.FindByIdAsync(userId)
-                ?? throw new KeyNotFoundException("User not found");
+                ?? throw new NotFoundException("User", userId);
 
             if (dto.IsActive.HasValue) user.IsActive = dto.IsActive.Value;
 
             var result = await _userManager.UpdateAsync(user);
             if (!result.Succeeded)
-                throw new ApplicationException(string.Join(", ", result.Errors.Select(e => e.Description)));
+                throw new ValidationException(result.Errors.Select(e => e.Description));
 
             var roles = await _userManager.GetRolesAsync(user);
             var primaryRole = roles.FirstOrDefault();
@@ -146,16 +148,14 @@ namespace Rest.Infrastructure.Implementations.Services
                     };
                     await strategy.UpdateRoleDataAsync(userId, roleDataDto);
                 }
-                catch (KeyNotFoundException)
-                {
-                }
+                catch (KeyNotFoundException) {}
             }
         }
 
         public async Task UpdateUserProfileAsync(string userId, UpdateProfileDto dto)
         {
             var user = await _userRepository.GetByIdAsync(userId) 
-                ?? throw new Exception("User not found");
+                ?? throw new NotFoundException("User", userId);
 
             if (!string.IsNullOrWhiteSpace(dto.FullName))
                 user.FullName = dto.FullName;
@@ -168,18 +168,18 @@ namespace Rest.Infrastructure.Implementations.Services
 
             var result = await _userManager.UpdateAsync(user);
             if (!result.Succeeded)
-                throw new ApplicationException(string.Join(", ", result.Errors.Select(e => e.Description)));
+                throw new ValidationException( result.Errors.Select(e => e.Description));
         }
 
         public async Task DeleteUser(string userId)
         {
             var user = await _userManager.FindByIdAsync(userId)
-                ?? throw new KeyNotFoundException("User not found");
-            
+                ?? throw new NotFoundException("User", userId);
+
             var result = await _userManager.DeleteAsync(user);
             if (!result.Succeeded)
             {
-                throw new ApplicationException(string.Join(", ", result.Errors.Select(e => e.Description)));
+                throw new ValidationException(result.Errors.Select(e => e.Description));
             }
         }
 

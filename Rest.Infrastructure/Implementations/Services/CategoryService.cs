@@ -5,6 +5,7 @@ using Rest.Application.Interfaces.IServices;
 using Rest.Application.Utilities;
 using Rest.Domain.Entities;
 using Rest.Domain.Entities.Enums;
+using Rest.Domain.Exceptions;
 
 namespace Rest.Infrastructure.Implementations.Services
 {
@@ -33,7 +34,7 @@ namespace Rest.Infrastructure.Implementations.Services
         public async Task<CategoryWithProductsDto> AddAsync(CategoryCreateDto dto)
         {
             if (dto == null)
-                throw new ArgumentNullException(nameof(dto));
+                throw new ValidationException("Category data is required");
 
             var category = _mapper.Map<Category>(dto);
             await _categoryRepository.AddAsync(category);
@@ -43,19 +44,22 @@ namespace Rest.Infrastructure.Implementations.Services
         }
 
         /// <summary>
-        /// Deactivates a category by setting its IsActive property to false.
+        /// Deactivates a category by setting its IsAvailable property to false.
         /// </summary>
         /// <param name="id"></param>
         public async Task ArchiveAsync(int id)
         {
             var category = await _categoryRepository.GetByIdAsync(id);
 
+            if (category.Status == CategoryStatus.Archived)
+                throw new BusinessException("Category is already archived");
+
             category.Status = CategoryStatus.Archived;
 
             foreach (var product in category.Products)
                 product.IsAvailable = false;
 
-            _categoryRepository.Update(category);
+            //_categoryRepository.Update(category);
             await _categoryRepository.SaveChangesAsync();
         }
 
@@ -85,7 +89,9 @@ namespace Rest.Infrastructure.Implementations.Services
         /// <returns> The category with the specified ID</returns>
         public async Task<CategoryWithProductsDto> GetByIdAsync(int id)
         {
-            var category = await _categoryRepository.GetByIdAsync(id);
+            var category = await _categoryRepository.GetByIdAsync(id)
+                ?? throw new NotFoundException("Category", id);
+
             return _mapper.Map<CategoryWithProductsDto>(category);
         }
 

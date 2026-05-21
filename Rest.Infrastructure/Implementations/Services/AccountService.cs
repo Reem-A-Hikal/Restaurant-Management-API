@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Rest.Application.Dtos.AccountDtos;
 using Rest.Application.Interfaces.IServices;
 using Rest.Domain.Entities;
+using Rest.Domain.Exceptions;
 
 namespace Rest.Infrastructure.Implementations.Services
 {
@@ -23,25 +24,21 @@ namespace Rest.Infrastructure.Implementations.Services
             
             var existingUser = await _userManager.FindByEmailAsync(registerDto.Email);
             if (existingUser != null)
-                throw new ApplicationException("User with this email already exists");
+                throw new ValidationException("User with this email already exists");
             
             var user = _mapper.Map<User>(registerDto);
             var result = await _userManager.CreateAsync(user, registerDto.Password);
 
             if (!result.Succeeded)
-            {
-                throw new ApplicationException(
-                    string.Join(", ", result.Errors.Select(e => e.Description))
-                );
-            }
+                throw new ValidationException(result.Errors.Select(e => e.Description));
+            
             await _userManager.AddToRoleAsync(user, "Customer");
         }
         public async Task<LoginResponse> LoginAsync(LoginDto loginDto)
         {
             
-            var user = await _authService.ValidateUserCredentialsAsync(loginDto.Email, loginDto.Password);
-            if (user == null)
-                throw new ApplicationException("Invalid email or password");
+            var user = await _authService.ValidateUserCredentialsAsync(loginDto.Email, loginDto.Password) 
+                ?? throw new ValidationException("Invalid email or password");
 
             var token = await _authService.GenerateJwtTokenAsync(user);
             var userRoles = await _userManager.GetRolesAsync(user);

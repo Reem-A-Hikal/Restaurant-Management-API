@@ -13,16 +13,14 @@ namespace Rest.API.Controllers
     public class AccountController : BaseController
     {
         private readonly IAccountService _accountService;
-        private readonly ILogger<AccountController> _logger;
 
         /// <summary>
         /// Initializes a new instance of the AccountController
         /// </summary>
         /// <param name="accountService">Service for account related operations</param>
-        public AccountController( IAccountService accountService, ILogger<AccountController> logger)
+        public AccountController( IAccountService accountService)
         {
             _accountService = accountService;
-            _logger = logger;
         }
 
         /// <summary>
@@ -39,22 +37,9 @@ namespace Rest.API.Controllers
             if (!ModelState.IsValid)
                 return ValidationErrorResponse(
                     ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)));
-
-            try
-            {
-                await _accountService.RegisterAsync(registerDto);
-                return SuccessResponse<string>(null, "Registration successful");
-            }
-            catch (ApplicationException ex)
-            {
-                _logger.LogWarning(ex, "Registration failed for email: {Email}", registerDto.Email);
-                return ErrorResponse(new[] { ex.Message }, "Registration failed");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Unexpected error during registration");
-                return InternalErrorResponse(ex, "An error occurred during registration");
-            }
+            
+            await _accountService.RegisterAsync(registerDto);
+            return SuccessResponse<string>(null, "Registration successful");
         }
 
         /// <summary>
@@ -84,21 +69,8 @@ namespace Rest.API.Controllers
                 return ValidationErrorResponse(
                     ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)));
 
-            try
-            {
-                var response = await _accountService.LoginAsync(loginDto);
-                return SuccessResponse(response, "Login successful");
-            }
-            catch (ApplicationException ex)
-            {
-                _logger.LogWarning(ex, "Login failed for email: {Email}", loginDto.Email);
-                return ErrorResponse(new[] { ex.Message }, "Login failed");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Unexpected error during login");
-                return InternalErrorResponse(ex, "An error occurred during login");
-            }
+            var response = await _accountService.LoginAsync(loginDto);
+            return SuccessResponse(response, "Login successful");
         }
         ///// <summary>
         ///// Retrieves details for a specific user

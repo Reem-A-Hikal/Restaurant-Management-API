@@ -29,7 +29,7 @@ namespace Rest.Application.Dtos.ProductDtos
         /// <summary>
         /// The image URL of the product
         /// </summary>
-        public string? Image { get; set; }
+        public string? ImageUrl { get; set; }
 
         /// <summary>
         /// The preparation time for the product in minutes
@@ -65,11 +65,5 @@ namespace Rest.Application.Dtos.ProductDtos
         /// The ID of the category to which the product belongs
         /// </summary>
         public int CategoryId { get; set; }
-        //#region category Details
-        ///// <summary>
-        ///// The category to which the product belongs
-        ///// </summary>
-        ////public SimpleCategoryDto? Category { get; set; }
-        //#endregion
     }
 }

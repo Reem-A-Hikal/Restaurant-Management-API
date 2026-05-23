@@ -7,6 +7,7 @@ using Rest.Application.Interfaces.IServices;
 using Rest.Application.Interfaces.IServices.StrategyFactory;
 using Rest.Application.Utilities;
 using Rest.Domain.Entities;
+using Rest.Domain.Entities.Enums;
 using Rest.Domain.Exceptions;
 using Rest.Infrastructure.Data;
 
@@ -105,6 +106,10 @@ namespace Rest.Infrastructure.Implementations.Services
             if (existingUser != null)
                 throw new ValidationException("User with this email already exists");
 
+            var validRoles = new[] { "Admin", "Chef", "DeliveryPerson", "Customer" };
+            if(!validRoles.Contains(userDto.UserRole))
+                throw new ValidationException($"Invalid role '{userDto.UserRole}'");
+
             var strategy = _roleResolver.Resolve(userDto.UserRole);
             var user = strategy.CreateUserEntity(userDto);
 
@@ -126,30 +131,31 @@ namespace Rest.Infrastructure.Implementations.Services
             var user = await _userManager.FindByIdAsync(userId)
                 ?? throw new NotFoundException("User", userId);
 
-            user.Status = dto.Status;
+            bool hasChanges = false;
 
-            var result = await _userManager.UpdateAsync(user);
-            if (!result.Succeeded)
-                throw new ValidationException(result.Errors.Select(e => e.Description));
+            if (user.Status != dto.Status)
+            {
+                user.Status = (UserStatus)dto.Status;
+                hasChanges = true;
+            }
+
+            if (hasChanges)
+            {
+                var result = await _userManager.UpdateAsync(user);
+                if (!result.Succeeded)
+                    throw new ValidationException(result.Errors.Select(e => e.Description));
+            }
 
             var roles = await _userManager.GetRolesAsync(user);
             var primaryRole = roles.FirstOrDefault();
+            if (primaryRole == null) return;
 
-            if (!string.IsNullOrEmpty(primaryRole))
+            try
             {
-                try
-                {
-                    var strategy = _roleResolver.Resolve(primaryRole);
-                    var roleDataDto = new UpdateProfileDto
-                    {
-                        Specialization = dto.Specialization,
-                        VehicleNumber = dto.VehicleNumber,
-                        IsAvailable = dto.IsAvailable
-                    };
-                    await strategy.UpdateRoleDataAsync(userId, roleDataDto);
-                }
-                catch (KeyNotFoundException) {}
+                var strategy = _roleResolver.Resolve(primaryRole);
+                await strategy.UpdateRoleDataAsync(userId, dto);
             }
+            catch (KeyNotFoundException) { }
         }
 
         public async Task UpdateUserProfileAsync(string userId, UpdateProfileDto dto)
@@ -176,11 +182,23 @@ namespace Rest.Infrastructure.Implementations.Services
             var user = await _userManager.FindByIdAsync(userId)
                 ?? throw new NotFoundException("User", userId);
 
-            var result = await _userManager.DeleteAsync(user);
-            if (!result.Succeeded)
+            var roles = await _userManager.GetRolesAsync(user);
+            if(roles.Contains("Admin"))
             {
-                throw new ValidationException(result.Errors.Select(e => e.Description));
+                var adminCount = (await _userManager.GetUsersInRoleAsync("Admin")).Count;
+                if(adminCount <= 1)
+                    throw new BusinessException("Cannot delete the last admin user");
             }
+
+            user.Status = UserStatus.Deleted;
+            user.Email = $"deleted{user.Id}@deleted.com";
+            user.FullName = $"deleted_{user.Id}";
+            user.PhoneNumber = null;
+            user.ProfileImageUrl = null;
+
+            var result = await _userManager.UpdateAsync(user);
+            if (!result.Succeeded)
+                throw new ValidationException(result.Errors.Select(e => e.Description));
         }
 
         private async Task EnrichWithRoleDataAsync(UserDto userDto)

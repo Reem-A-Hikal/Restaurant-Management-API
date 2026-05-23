@@ -171,23 +171,23 @@ namespace Rest.API.Controllers
         }
 
         /// <summary>
-        /// Delete user (Admin only)
+        /// Archive user (Admin only)
         /// </summary>
-        /// <param name="userId">The user ID to delete</param>
-        [HttpDelete("DeleteUser/{userId}")]
+        /// <param name="userId">The user ID to archive</param>
+        [HttpDelete("{userId}")]
         [Authorize(Roles = "Admin")]
         [SwaggerOperation(
-            Summary = "Delete user",
-            Description = "Deletes a user account. Requires Admin role.")]
-        [SwaggerResponse(StatusCodes.Status204NoContent, "User deleted successfully")]
+            Summary = "Archive User",
+            Description = "Archive a user account. Requires Admin role.")]
+        [SwaggerResponse(StatusCodes.Status204NoContent, "User Archived successfully")]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access")]
         [SwaggerResponse(StatusCodes.Status403Forbidden, "Forbidden - Admin role required")]
         [SwaggerResponse(StatusCodes.Status404NotFound, "User not found")]
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal server error")]
-        public async Task<IActionResult> DeleteUser(string userId)
+        public async Task<IActionResult> ArchiveUser(string userId)
         {
             await _userService.DeleteUser(userId);
-            return SuccessResponse(userId, "User deleted successfully");
+            return SuccessResponse(userId, "User Archived successfully");
         }
     }
 }

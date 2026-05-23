@@ -77,11 +77,8 @@ namespace Rest.API
             // Role Strategies
             builder.Services.AddScoped<IRoleStrategy, ChefStrategy>();
             builder.Services.AddScoped<IRoleStrategy, DeliveryPersonStrategy>();
-            builder.Services.AddScoped<IRoleStrategy>(sp => new DefaultUserStrategy(
-                    sp.GetRequiredService<IMapper>(), AppRoles.Admin ));
-
-            builder.Services.AddScoped<IRoleStrategy>(sp => new DefaultUserStrategy(
-                    sp.GetRequiredService<IMapper>(), AppRoles.Customer));
+            builder.Services.AddScoped<IRoleStrategy, AdminStrategy>();
+            builder.Services.AddScoped<IRoleStrategy, CustomerStrategy>();
 
             builder.Services.AddScoped<IRoleStrategyResolver, RoleStrategyResolver>();
 

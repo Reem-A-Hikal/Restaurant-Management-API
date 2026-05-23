@@ -120,7 +120,7 @@ namespace Rest.Infrastructure.Implementations.Services
             existingProduct.DiscountPercent = productDto.DiscountPercent;
             existingProduct.Calories = productDto.Calories;
             existingProduct.CategoryId = productDto.CategoryId;
-            existingProduct.ImageUrl = productDto.Image;
+            existingProduct.ImageUrl = productDto.ImageUrl;
             existingProduct.PreparationTime = productDto.PreparationTime;
             existingProduct.Status = productDto.Status;
 

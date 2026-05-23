@@ -10,6 +10,7 @@ namespace Rest.Domain.Entities.Enums
     {
         Active,
         Inactive,
-        Archived
+        Suspended,
+        Deleted
     }
 }

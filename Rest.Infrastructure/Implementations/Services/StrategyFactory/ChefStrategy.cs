@@ -27,7 +27,7 @@ namespace Rest.Infrastructure.Implementations.Services.StrategyFactory
             dto.Specialization = chef?.Specialization;
         }
 
-        public async Task UpdateRoleDataAsync(string userId, UpdateProfileDto dto)
+        public async Task UpdateRoleDataAsync(string userId, AdminUpdateUserDto dto)
         {
             if (!string.IsNullOrWhiteSpace(dto.Specialization))
             {

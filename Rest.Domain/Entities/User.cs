@@ -20,6 +20,9 @@ namespace Rest.Domain.Entities
 
         public DateTime? LastLoginDate { get; set; }
 
+        public bool IsActive => Status == UserStatus.Active;
+        public bool IsDeleted => Status == UserStatus.Deleted;
+
         // Navigation properties
         [InverseProperty("User")]
         public virtual ICollection<Order> CustomerOrders { get; set; } = [];

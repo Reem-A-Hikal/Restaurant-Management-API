@@ -28,7 +28,7 @@ namespace Rest.Infrastructure.Implementations.Services.StrategyFactory
             dto.IsAvailable = deliveryPerson?.IsAvailable;
         }
 
-        public async Task UpdateRoleDataAsync(string userId, UpdateProfileDto dto)
+        public async Task UpdateRoleDataAsync(string userId, AdminUpdateUserDto dto)
         {
             var deliveryPerson = await _deliveryPersonRepo.GetDeliveryPersonByIdAsync(userId);
             if (deliveryPerson != null)

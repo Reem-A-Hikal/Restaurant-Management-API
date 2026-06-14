@@ -8,7 +8,7 @@ namespace Rest.Infrastructure.Repositories
     /// <summary>
     /// Repository implementation for product operations
     /// </summary>
-    public class ProductRepositort : IProductRepository
+    public class ProductRepository : IProductRepository
     {
         private readonly RestDbContext context;
         private readonly IRepository<Product> repository;
@@ -18,7 +18,7 @@ namespace Rest.Infrastructure.Repositories
         /// </summary>
         /// <param name="context"> Database context</param>
         /// <param name="repository"> Generic repository</param>
-        public ProductRepositort(RestDbContext context, IRepository<Product> repository)
+        public ProductRepository(RestDbContext context, IRepository<Product> repository)
         {
             this.context = context;
             this.repository = repository;

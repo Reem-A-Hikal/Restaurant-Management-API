@@ -1,5 +1,6 @@
 ﻿
 using Rest.Domain.Entities.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace Rest.Application.Dtos.CategoryDtos
 {
@@ -11,6 +12,7 @@ namespace Rest.Application.Dtos.CategoryDtos
         /// <summary>
         /// Category Name
         /// </summary>
+        [Required]
         public string Name { get; set; }
 
         /// <summary>

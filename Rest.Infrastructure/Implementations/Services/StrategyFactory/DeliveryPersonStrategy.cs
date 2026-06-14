@@ -30,17 +30,19 @@ namespace Rest.Infrastructure.Implementations.Services.StrategyFactory
 
         public async Task UpdateRoleDataAsync(string userId, AdminUpdateUserDto dto)
         {
+            if (string.IsNullOrWhiteSpace(dto.VehicleNumber) && dto.IsAvailable == null) return;
+            
             var deliveryPerson = await _deliveryPersonRepo.GetDeliveryPersonByIdAsync(userId);
-            if (deliveryPerson != null)
-            {
-                if (!string.IsNullOrWhiteSpace(dto.VehicleNumber))
-                    deliveryPerson.VehicleNumber = dto.VehicleNumber;
+            if (deliveryPerson == null) return;
+            
+            if (!string.IsNullOrWhiteSpace(dto.VehicleNumber))
+                deliveryPerson.VehicleNumber = dto.VehicleNumber;
 
-                if (dto.IsAvailable.HasValue)
-                    deliveryPerson.IsAvailable = dto.IsAvailable.Value;
+            if (dto.IsAvailable.HasValue)
+                deliveryPerson.IsAvailable = dto.IsAvailable.Value;
 
-                await _deliveryPersonRepo.SaveChangesAsync();
-            }
+            await _deliveryPersonRepo.SaveChangesAsync();
+            
         }
     }
 }

@@ -76,7 +76,7 @@ namespace Rest.Infrastructure.Implementations
             {
                 if (_productGenericRepository == null)
                     _productGenericRepository = new Repository<Product>(_context);
-                _productRepository = new ProductRepositort(_context, _productGenericRepository);
+                _productRepository = new ProductRepository(_context, _productGenericRepository);
                 return _productRepository;
             }
         }

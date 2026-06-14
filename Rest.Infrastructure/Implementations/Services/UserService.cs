@@ -20,46 +20,30 @@ namespace Rest.Infrastructure.Implementations.Services
         private readonly IUserRepository _userRepository;
         private readonly IRoleStrategyResolver _roleResolver;
         private readonly IMapper _mapper;
-        private readonly RestDbContext _context;
 
-        public UserService(UserManager<User> userManager, IRoleStrategyResolver roleResolver, IUserRepository userRepository, IMapper mapper, RestDbContext context)
+        public UserService(
+            UserManager<User> userManager,
+            IRoleStrategyResolver roleResolver,
+            IUserRepository userRepository,
+            IMapper mapper)
         {
             _userManager = userManager;
             _userRepository = userRepository;
             _roleResolver = roleResolver;
             _mapper = mapper;
-            _context = context;
-
         }
-
-        private async Task<Dictionary<string, string>> GetUsersRolesDictAsync(IEnumerable<string> userIds)
-        {
-            var userRoles = await (
-                from ur in _context.UserRoles
-                join r in _context.Roles on ur.RoleId equals r.Id
-                where userIds.Contains(ur.UserId)
-                select new { ur.UserId, r.Name }
-            ).ToListAsync();
-
-            return userRoles.GroupBy(x => x.UserId)
-                .ToDictionary(
-                    g => g.Key,
-                    g => g.Select(x => x.Name).FirstOrDefault() ?? string.Empty
-                );
-        }
-
         public async Task<IEnumerable<UserDto>> GetAllUsersAsync()
         {
             var users = await _userRepository.GetAllAsync();
             var userDtos = _mapper.Map<List<UserDto>>(users);
 
-            var rolesDict = await GetUsersRolesDictAsync(userDtos.Select(u => u.Id));
+            var rolesDict = await _userRepository.GetUsersRolesDictAsync(userDtos.Select(u => u.Id));
 
             foreach (var userDto in userDtos)
             {
                 userDto.Role = rolesDict.TryGetValue(userDto.Id, out var role) 
                     ? role : string.Empty;
-                await EnrichWithRoleDataAsync(userDto);
+                await _userRepository.BulkEnrichUsersAsync(userDtos);
             }
 
             return userDtos;
@@ -74,13 +58,13 @@ namespace Rest.Infrastructure.Implementations.Services
             var mappedItems = _mapper.Map<List<UserDto>>(paginatedUsers.Items);
 
             var userIds = mappedItems.Select(u => u.Id).ToList();
-            var rolesDict = await GetUsersRolesDictAsync(userIds);
+            var rolesDict = await _userRepository.GetUsersRolesDictAsync(userIds);
 
             foreach (var item in mappedItems)
             {
                 item.Role = rolesDict.TryGetValue(item.Id, out var role) 
                     ? role : string.Empty;
-                await EnrichWithRoleDataAsync(item);
+                await _userRepository.BulkEnrichUsersAsync(mappedItems);
             }
             return new PaginatedList<UserDto>(mappedItems, paginatedUsers.TotalItems, pageIndex, pageSize);
             
@@ -95,7 +79,7 @@ namespace Rest.Infrastructure.Implementations.Services
             var roles = await _userManager.GetRolesAsync(user);
 
             userDto.Role = roles.FirstOrDefault() ?? string.Empty;
-            await EnrichWithRoleDataAsync(userDto);
+            await _userRepository.BulkEnrichUsersAsync(new List<UserDto> { userDto });
 
             return userDto;
         }
@@ -108,7 +92,7 @@ namespace Rest.Infrastructure.Implementations.Services
 
             var validRoles = new[] { "Admin", "Chef", "DeliveryPerson", "Customer" };
             if(!validRoles.Contains(userDto.UserRole))
-                throw new ValidationException($"Invalid role '{userDto.UserRole}'");
+                throw new ValidationException($"Invalid role '{userDto.UserRole}'" + $"Valid roles: {string.Join(",", validRoles)}");
 
             var strategy = _roleResolver.Resolve(userDto.UserRole);
             var user = strategy.CreateUserEntity(userDto);
@@ -131,16 +115,12 @@ namespace Rest.Infrastructure.Implementations.Services
             var user = await _userManager.FindByIdAsync(userId)
                 ?? throw new NotFoundException("User", userId);
 
-            bool hasChanges = false;
-
-            if (user.Status != dto.Status)
+            if(dto.Status.HasValue)
             {
-                user.Status = (UserStatus)dto.Status;
-                hasChanges = true;
-            }
+                if (dto.Status == UserStatus.Deleted)
+                    throw new BusinessException("Cannot set status to Deleted. Use the Delete Button instead.");
+                user.Status = dto.Status.Value;
 
-            if (hasChanges)
-            {
                 var result = await _userManager.UpdateAsync(user);
                 if (!result.Succeeded)
                     throw new ValidationException(result.Errors.Select(e => e.Description));
@@ -155,7 +135,7 @@ namespace Rest.Infrastructure.Implementations.Services
                 var strategy = _roleResolver.Resolve(primaryRole);
                 await strategy.UpdateRoleDataAsync(userId, dto);
             }
-            catch (KeyNotFoundException) { }
+            catch (BusinessException) { }
         }
 
         public async Task UpdateUserProfileAsync(string userId, UpdateProfileDto dto)
@@ -191,7 +171,7 @@ namespace Rest.Infrastructure.Implementations.Services
             }
 
             user.Status = UserStatus.Deleted;
-            user.Email = $"deleted{user.Id}@deleted.com";
+            user.Email = $"deleted_{user.Id}@deleted.com";
             user.FullName = $"deleted_{user.Id}";
             user.PhoneNumber = null;
             user.ProfileImageUrl = null;
@@ -199,17 +179,6 @@ namespace Rest.Infrastructure.Implementations.Services
             var result = await _userManager.UpdateAsync(user);
             if (!result.Succeeded)
                 throw new ValidationException(result.Errors.Select(e => e.Description));
-        }
-
-        private async Task EnrichWithRoleDataAsync(UserDto userDto)
-        {
-            if (string.IsNullOrEmpty(userDto.Role)) return;
-            try
-            {
-                var strategy = _roleResolver.Resolve(userDto.Role);
-                await strategy.EnrichDtoAsync(userDto);
-            }
-            catch (KeyNotFoundException) { }
         }
     }
 }

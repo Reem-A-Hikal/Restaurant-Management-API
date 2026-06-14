@@ -5,6 +5,7 @@ using Rest.Application.Interfaces.IRepositories;
 using Rest.Application.Interfaces.IServices;
 using Rest.Application.Utilities;
 using Rest.Domain.Entities;
+using Rest.Domain.Exceptions;
 
 namespace Rest.Infrastructure.Implementations.Services
 {
@@ -64,11 +65,7 @@ namespace Rest.Infrastructure.Implementations.Services
         public async Task<ProductDto> GetProductByIdAsync(int id)
         {
             var product = await _productRepository.GetByIdAsync(id);
-            if(product == null)
-            {
-                throw new KeyNotFoundException($"Product with ID {id} not found.");
-            }
-            return _mapper.Map<ProductDto>(product);
+            return product == null ? throw new KeyNotFoundException($"Product with ID {id} not found.") : _mapper.Map<ProductDto>(product);
         }
 
         /// <summary>
@@ -112,17 +109,20 @@ namespace Rest.Infrastructure.Implementations.Services
         public async Task UpdateProductAsync(int id, ProductDto productDto)
         {
             var existingProduct = await _productRepository.GetByIdAsync(id) ?? throw new KeyNotFoundException($"Product with ID {id} not found.");
+
             existingProduct.Name = productDto.Name;
             existingProduct.Description = productDto.Description;
             existingProduct.Price = productDto.Price;
             existingProduct.IsPromoted = productDto.IsPromoted;
-            existingProduct.AllowedDiscountPercent = productDto.AllowedDiscountPercent;
-            existingProduct.DiscountPercent = productDto.DiscountPercent;
             existingProduct.Calories = productDto.Calories;
             existingProduct.CategoryId = productDto.CategoryId;
             existingProduct.ImageUrl = productDto.ImageUrl;
             existingProduct.PreparationTime = productDto.PreparationTime;
             existingProduct.Status = productDto.Status;
+            if (productDto.DiscountPercent > productDto.AllowedDiscountPercent )
+                throw new ValidationException("More than Allowed Discount Percent");
+            existingProduct.AllowedDiscountPercent = productDto.AllowedDiscountPercent;
+            existingProduct.DiscountPercent = productDto.DiscountPercent;
 
             _productRepository.Update(existingProduct);
             await _productRepository.SaveChangesAsync();

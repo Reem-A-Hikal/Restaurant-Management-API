@@ -3,6 +3,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Rest.Application.Interfaces.IServices;
 using Rest.Domain.Entities;
+using Rest.Domain.Entities.Enums;
+using Rest.Domain.Exceptions;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -32,10 +34,10 @@ namespace Rest.Infrastructure.Implementations.Services
 
             var claims = new List<Claim>
             {
-                new Claim(ClaimTypes.NameIdentifier, user.Id),
-                new Claim(ClaimTypes.Name, user.FullName ?? user.UserName),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+                new (ClaimTypes.NameIdentifier, user.Id),
+                new (ClaimTypes.Name, user.FullName ?? user.UserName),
+                new (ClaimTypes.Email, user.Email),
+                new (JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
             foreach (var role in userRoles)
@@ -58,13 +60,16 @@ namespace Rest.Infrastructure.Implementations.Services
             return tokenHandler.WriteToken(token);
         }
 
-        public async Task<User> ValidateUserCredentialsAsync(string email, string password)
+        public async Task<User?> ValidateUserCredentialsAsync(string email, string password)
         {
             var user = await userManager.FindByEmailAsync(email);
             if (user != null && await userManager.CheckPasswordAsync(user, password))
             {
+                if (user.Status != UserStatus.Active)
+                    throw new ValidationException("Account is not active");
                 return user;
             }
+            
             return null;
         }
 
@@ -73,6 +78,5 @@ namespace Rest.Infrastructure.Implementations.Services
             var user = await userManager.FindByEmailAsync(email);
             return user != null;
         }
-
     }
 }

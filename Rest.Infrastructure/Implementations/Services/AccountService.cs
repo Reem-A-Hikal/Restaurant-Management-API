@@ -42,6 +42,8 @@ namespace Rest.Infrastructure.Implementations.Services
 
             var token = await _authService.GenerateJwtTokenAsync(user);
             var userRoles = await _userManager.GetRolesAsync(user);
+            user.LastLoginDate = DateTime.UtcNow;
+            await _userManager.UpdateAsync(user);
 
             return new LoginResponse()
             {

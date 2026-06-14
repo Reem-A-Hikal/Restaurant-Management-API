@@ -122,7 +122,7 @@ namespace Rest.API.Controllers
         [Authorize(Roles = "Admin")]
         [SwaggerOperation(
             Summary = "Admin update user",
-            Description = "Admin can update: IsActive, Specialization (Chef), VehicleNumber & IsAvailable (DeliveryPerson)")]
+            Description = "Admin can update: Status, Specialization (Chef), VehicleNumber & IsAvailable (DeliveryPerson)")]
         [SwaggerResponse(StatusCodes.Status200OK, "User updated successfully")]
         [SwaggerResponse(StatusCodes.Status404NotFound, "User not found")]
         public async Task<IActionResult> AdminUpdateUser(string userId, [FromBody] AdminUpdateUserDto dto)

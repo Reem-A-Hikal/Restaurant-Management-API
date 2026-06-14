@@ -1,4 +1,5 @@
 ﻿using Rest.Application.Interfaces.IServices.StrategyFactory;
+using Rest.Domain.Exceptions;
 
 namespace Rest.Infrastructure.Implementations.Services.StrategyFactory
 {
@@ -12,9 +13,12 @@ namespace Rest.Infrastructure.Implementations.Services.StrategyFactory
 
         public IRoleStrategy Resolve(string role)
         {
-            return _strategies.TryGetValue(role, out var strategy)
-                ? strategy
-                : throw new KeyNotFoundException($"No strategy registered for role '{role}'.");
+            if(string.IsNullOrWhiteSpace(role)) 
+                throw new ValidationException("Role cannot be empty");
+            if(_strategies.TryGetValue(role, out var strategy))
+                return strategy;
+
+            throw new BusinessException($"No strategy registered for role '{role}'." + $"Valid roles: {string.Join(",", _strategies.Keys)}");
         }
     }
 }

@@ -3,7 +3,7 @@ using Rest.Application.Interfaces.IRepositories;
 using Rest.Domain.Entities;
 using Rest.Infrastructure.Data;
 
-namespace Rest.Infrastructure.Repositories
+namespace Rest.Infrastructure.Implementations.Repositories
 {
     public class ReviewRepository : IReviewRepository
     {

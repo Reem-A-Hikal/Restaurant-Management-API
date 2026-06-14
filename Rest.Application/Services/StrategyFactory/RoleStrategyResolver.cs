@@ -1,7 +1,7 @@
 ﻿using Rest.Application.Interfaces.IServices.StrategyFactory;
 using Rest.Domain.Exceptions;
 
-namespace Rest.Infrastructure.Implementations.Services.StrategyFactory
+namespace Rest.Application.Services.StrategyFactory
 {
     public class RoleStrategyResolver : IRoleStrategyResolver
     {

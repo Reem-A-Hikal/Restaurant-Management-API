@@ -2,7 +2,7 @@
 using Rest.Application.Interfaces.IRepositories;
 using Rest.Domain.Entities;
 using Rest.Infrastructure.Data;
-using Rest.Infrastructure.Repositories;
+using Rest.Infrastructure.Implementations.Repositories;
 
 namespace Rest.Infrastructure.Implementations
 {
@@ -37,7 +37,7 @@ namespace Rest.Infrastructure.Implementations
             _context = context;
         }
 
-        public IUserRepository userRepository
+        public IUserRepository UserRepository
         {
             get
             {
@@ -48,7 +48,7 @@ namespace Rest.Infrastructure.Implementations
             }
         }
 
-        public IAddressRepository addressRepository
+        public IAddressRepository AddressRepository
         {
             get
             {
@@ -59,7 +59,7 @@ namespace Rest.Infrastructure.Implementations
             }
         }
 
-        public ICategoryRepository categoryRepository
+        public ICategoryRepository CategoryRepository
         {
             get
             {
@@ -70,7 +70,7 @@ namespace Rest.Infrastructure.Implementations
             }
         }
 
-        public IProductRepository productRepository
+        public IProductRepository ProductRepository
         {
             get
             {
@@ -81,7 +81,7 @@ namespace Rest.Infrastructure.Implementations
             }
         }
 
-        public IOrderRepository orderRepository
+        public IOrderRepository OrderRepository
         {
             get
             {
@@ -92,7 +92,7 @@ namespace Rest.Infrastructure.Implementations
             }
         }
 
-        public IRepository<OrderDetail> orderDetailRepository
+        public IRepository<OrderDetail> OrderDetailRepository
         {
             get
             {
@@ -102,7 +102,7 @@ namespace Rest.Infrastructure.Implementations
             }
         }
 
-        public IRepository<Review> reviewRepository
+        public IRepository<Review> ReviewRepository
         {
             get
             {
@@ -112,7 +112,7 @@ namespace Rest.Infrastructure.Implementations
             }
         }
 
-        public IRepository<Delivery> deliveryRepository
+        public IRepository<Delivery> DeliveryRepository
         {
             get
             {

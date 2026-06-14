@@ -9,9 +9,8 @@ using Rest.Application.Utilities;
 using Rest.Domain.Entities;
 using Rest.Domain.Entities.Enums;
 using Rest.Domain.Exceptions;
-using Rest.Infrastructure.Data;
 
-namespace Rest.Infrastructure.Implementations.Services
+namespace Rest.Application.Services
 {
     public class UserService : IUserService
     {

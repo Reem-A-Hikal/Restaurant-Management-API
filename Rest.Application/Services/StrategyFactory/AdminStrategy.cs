@@ -4,17 +4,17 @@ using Rest.Application.Interfaces.IServices.StrategyFactory;
 using Rest.Application.Utilities;
 using Rest.Domain.Entities;
 
-namespace Rest.Infrastructure.Implementations.Services.StrategyFactory
+namespace Rest.Application.Services.StrategyFactory
 {
-    public class CustomerStrategy : IRoleStrategy
+    public class AdminStrategy : IRoleStrategy
     {
         private readonly IMapper _mapper;
-        public CustomerStrategy(IMapper mapper)
+        public AdminStrategy(IMapper mapper)
         {
             _mapper = mapper;
         }
 
-        public string RoleName => AppRoles.Customer;
+        public string RoleName => AppRoles.Admin;
 
         public User CreateUserEntity(CreateUserDto dto)
             => _mapper.Map<User>(dto);

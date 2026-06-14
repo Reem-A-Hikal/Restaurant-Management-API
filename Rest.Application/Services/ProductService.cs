@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Rest.Application.Dtos.ProductDtos;
 using Rest.Application.Interfaces.IRepositories;
 using Rest.Application.Interfaces.IServices;
@@ -7,7 +6,7 @@ using Rest.Application.Utilities;
 using Rest.Domain.Entities;
 using Rest.Domain.Exceptions;
 
-namespace Rest.Infrastructure.Implementations.Services
+namespace Rest.Application.Services
 {
     /// <summary>
     /// Service implementation for product operations
@@ -76,7 +75,7 @@ namespace Rest.Infrastructure.Implementations.Services
         public async Task<IEnumerable<ProductDto>> GetProductsByCategoryAsync(int categoryId)
         {
             var products = await _productRepository.GetByCategoryAsync(categoryId);
-            var category = (await _categoryRepository.GetByIdAsync(categoryId)) 
+            var category = await _categoryRepository.GetByIdAsync(categoryId) 
                 ?? throw new KeyNotFoundException($"Category with ID {categoryId} not found.");
 
             if (products == null || !products.Any())

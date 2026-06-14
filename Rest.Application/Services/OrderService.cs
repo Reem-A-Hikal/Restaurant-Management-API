@@ -5,7 +5,7 @@ using Rest.Application.Interfaces.IServices;
 using Rest.Domain.Entities;
 using Rest.Domain.Entities.Enums;
 
-namespace Rest.Infrastructure.Implementations.Services
+namespace Rest.Application.Services
 {
     public class OrderService :IOrderService
     {
@@ -19,7 +19,7 @@ namespace Rest.Infrastructure.Implementations.Services
 
         public async Task<OrderDto> AddOrderItemAsync(int orderId, CreateOrderDetailDto itemDto)
         {
-            var order = await unitOfWork.orderRepository.GetByIdAsync(orderId);
+            var order = await unitOfWork.OrderRepository.GetByIdAsync(orderId);
             if (order == null)
                 throw new KeyNotFoundException($"Order with ID {orderId} not found.");
 
@@ -39,14 +39,14 @@ namespace Rest.Infrastructure.Implementations.Services
             order.SubTotal = order.OrderDetails.Sum(od => od.Subtotal); // Recalculate subtotal from order details
             order.TotalAmount = order.SubTotal + order.DeliveryFee + order.Tax - order.Discount;
 
-            unitOfWork.orderRepository.Update(order);
-            await unitOfWork.orderRepository.SaveChangesAsync();
+            unitOfWork.OrderRepository.Update(order);
+            await unitOfWork.OrderRepository.SaveChangesAsync();
 
             return _mapper.Map<OrderDto>(order);
         }
         public async Task<OrderDto> RemoveOrderItemAsync(int orderId, int productId)
         {
-            var order = await unitOfWork.orderRepository.GetByIdAsync(orderId);
+            var order = await unitOfWork.OrderRepository.GetByIdAsync(orderId);
             if (order == null)
                 throw new KeyNotFoundException($"Order with ID {orderId} not found.");
 
@@ -63,8 +63,8 @@ namespace Rest.Infrastructure.Implementations.Services
             order.SubTotal = order.OrderDetails.Sum(od => od.Subtotal);
             order.TotalAmount = order.SubTotal + order.DeliveryFee + order.Tax - order.Discount; // Recalculate total amount
 
-            unitOfWork.orderRepository.Update(order);
-            await unitOfWork.orderRepository.SaveChangesAsync();
+            unitOfWork.OrderRepository.Update(order);
+            await unitOfWork.OrderRepository.SaveChangesAsync();
 
             return _mapper.Map<OrderDto>(order);
         }
@@ -77,14 +77,14 @@ namespace Rest.Infrastructure.Implementations.Services
                 order.OrderDate = DateTime.UtcNow;
                 order.OrderNumber = GenerateOrderNumber();
                 order.Status = OrderStatus.New;
-                var customer = await unitOfWork.userRepository.GetByIdAsync(createorderDto.UserId);
+                var customer = await unitOfWork.UserRepository.GetByIdAsync(createorderDto.UserId);
                 if (customer == null)
                     throw new Exception("Customer not found");
 
                 order.UserId = customer.Id;
                 order.User = customer;
 
-                var deliveryAddress = await unitOfWork.addressRepository.GetByIdAsync(createorderDto.DeliveryAddressId);
+                var deliveryAddress = await unitOfWork.AddressRepository.GetByIdAsync(createorderDto.DeliveryAddressId);
                 if (deliveryAddress == null)
                     throw new Exception("Delivery address not found");
 
@@ -109,7 +109,7 @@ namespace Rest.Infrastructure.Implementations.Services
 
                 foreach (var orderDetail in order.OrderDetails)
                 {
-                    var product = await unitOfWork.productRepository.GetByIdAsync(orderDetail.ProductId);
+                    var product = await unitOfWork.ProductRepository.GetByIdAsync(orderDetail.ProductId);
                     if (product == null)
                         throw new Exception($"Product with ID {orderDetail.ProductId} not found");
 
@@ -119,7 +119,7 @@ namespace Rest.Infrastructure.Implementations.Services
                 order.TotalAmount = order.SubTotal + order.DeliveryFee + order.Tax - order.Discount;
 
                 
-                await unitOfWork.orderRepository.AddAsync(order);
+                await unitOfWork.OrderRepository.AddAsync(order);
                 await unitOfWork.SaveChangesAsync();
 
                 var orderDto = _mapper.Map<OrderDto>(order);
@@ -134,10 +134,10 @@ namespace Rest.Infrastructure.Implementations.Services
 
         public async Task<OrderDto> AssignDeliveryPersonAsync(int orderId, string deliveryPersonId)
         {
-            await unitOfWork.orderRepository.AssignDeliveryPersonAsync(orderId, deliveryPersonId);
-            await unitOfWork.orderRepository.SaveChangesAsync();
+            await unitOfWork.OrderRepository.AssignDeliveryPersonAsync(orderId, deliveryPersonId);
+            await unitOfWork.OrderRepository.SaveChangesAsync();
 
-            var updatedOrder = await unitOfWork.orderRepository.GetByIdAsync(orderId);
+            var updatedOrder = await unitOfWork.OrderRepository.GetByIdAsync(orderId);
             var orderdto =  _mapper.Map<OrderDto>(updatedOrder);
             orderdto.DeliveryFee = 50; // Example delivery fee
             orderdto.StatusDisplay = updatedOrder.Status.ToString(); // Set the status display value
@@ -148,12 +148,12 @@ namespace Rest.Infrastructure.Implementations.Services
 
         public async Task<OrderDto> CancelOrderAsync(int orderId, string cancellationReason)
         {
-            await unitOfWork.orderRepository.UpdateOrderStatusAsync(orderId, OrderStatus.Canceled);
-            var order = await unitOfWork.orderRepository.GetByIdAsync(orderId);
+            await unitOfWork.OrderRepository.UpdateOrderStatusAsync(orderId, OrderStatus.Canceled);
+            var order = await unitOfWork.OrderRepository.GetByIdAsync(orderId);
             order.Notes = $"{order.Notes}\nCancellation Reason: {cancellationReason}";
 
-            unitOfWork.orderRepository.Update(order);
-            await unitOfWork.orderRepository.SaveChangesAsync();
+            unitOfWork.OrderRepository.Update(order);
+            await unitOfWork.OrderRepository.SaveChangesAsync();
 
             return _mapper.Map<OrderDto>(order);
         }
@@ -161,7 +161,7 @@ namespace Rest.Infrastructure.Implementations.Services
         public async Task<OrderDto> ConfirmOrderAsync(int orderId, string confirmedBy, ConfirmOrderDto confirmDto)
         {
             
-            var order = await unitOfWork.orderRepository.UpdateOrderStatusAsync(orderId, OrderStatus.Confirmed);
+            var order = await unitOfWork.OrderRepository.UpdateOrderStatusAsync(orderId, OrderStatus.Confirmed);
             //order.ConfirmedBy = confirmedBy;
             order.ConfirmationTime = DateTime.UtcNow;
 
@@ -171,7 +171,7 @@ namespace Rest.Infrastructure.Implementations.Services
             if (!string.IsNullOrEmpty(confirmDto.Notes))
                 order.Notes = confirmDto.Notes;
 
-            await unitOfWork.orderRepository.SaveChangesAsync();
+            await unitOfWork.OrderRepository.SaveChangesAsync();
 
             var orderdto =  _mapper.Map<OrderDto>(order);
             orderdto.DeliveryFee = 50;
@@ -186,29 +186,29 @@ namespace Rest.Infrastructure.Implementations.Services
 
         public async Task DeleteOrderAsync(int id)
         {
-            var order = await unitOfWork.orderRepository.GetByIdAsync(id);
+            var order = await unitOfWork.OrderRepository.GetByIdAsync(id);
             if (order == null)
                 throw new KeyNotFoundException($"Order with ID {id} not found.");
 
-            await unitOfWork.orderRepository.DeleteAsync(id);
-            await unitOfWork.orderRepository.SaveChangesAsync();
+            await unitOfWork.OrderRepository.DeleteAsync(id);
+            await unitOfWork.OrderRepository.SaveChangesAsync();
         }
 
         public async Task<IEnumerable<OrderDto>> GetAllOrdersAsync()
         {
-            var orders = await unitOfWork.orderRepository.GetAllAsync();
+            var orders = await unitOfWork.OrderRepository.GetAllAsync();
             return _mapper.Map<IEnumerable<OrderDto>>(orders);
         }
 
         public async Task<decimal> GetDailyRevenueAsync(DateTime date)
         {
-            return await unitOfWork.orderRepository.GetDailyRevenueAsync(date);
+            return await unitOfWork.OrderRepository.GetDailyRevenueAsync(date);
         }
 
         public async Task<IEnumerable<OrderDto>> GetKitchenQueueAsync()
         {
             var kitchenStatuses = new[] { OrderStatus.Confirmed, OrderStatus.Preparing };
-            var allOrders = await unitOfWork.orderRepository.GetAllAsync();
+            var allOrders = await unitOfWork.OrderRepository.GetAllAsync();
             var kitchenOrders = allOrders.Where(o => kitchenStatuses.Contains(o.Status))
                                        .OrderBy(o => o.RequiredTime ?? o.OrderDate);
 
@@ -217,7 +217,7 @@ namespace Rest.Infrastructure.Implementations.Services
 
         public async Task<OrderDto> GetOrderByIdAsync(int id)
         {
-            var order = await unitOfWork.orderRepository.GetByIdAsync(id);
+            var order = await unitOfWork.OrderRepository.GetByIdAsync(id);
             if (order == null)
             {
                 throw new ArgumentException($"Order with ID {id} not found.");
@@ -229,25 +229,25 @@ namespace Rest.Infrastructure.Implementations.Services
 
         public async Task<OrderDto> MarkAsDeliveredAsync(int orderId)
         {
-            await unitOfWork.orderRepository.UpdateOrderStatusAsync(orderId, OrderStatus.Delivered);
-            await unitOfWork.orderRepository.SaveChangesAsync();
+            await unitOfWork.OrderRepository.UpdateOrderStatusAsync(orderId, OrderStatus.Delivered);
+            await unitOfWork.OrderRepository.SaveChangesAsync();
 
-            var updatedOrder = await unitOfWork.orderRepository.GetByIdAsync(orderId);
+            var updatedOrder = await unitOfWork.OrderRepository.GetByIdAsync(orderId);
             return _mapper.Map<OrderDto>(updatedOrder);
         }
 
         public async Task<OrderDto> MarkAsPreparedAsync(int orderId)
         {
-            await unitOfWork.orderRepository.UpdateOrderStatusAsync(orderId, OrderStatus.Ready);
-            await unitOfWork.orderRepository.SaveChangesAsync();
+            await unitOfWork.OrderRepository.UpdateOrderStatusAsync(orderId, OrderStatus.Ready);
+            await unitOfWork.OrderRepository.SaveChangesAsync();
 
-            var updatedOrder = await unitOfWork.orderRepository.GetByIdAsync(orderId);
+            var updatedOrder = await unitOfWork.OrderRepository.GetByIdAsync(orderId);
             return _mapper.Map<OrderDto>(updatedOrder);
         }
 
         public async Task ProcessPaymentAsync(int orderId, PaymentMethod paymentMethod)
         {
-            var order = await unitOfWork.orderRepository.GetByIdAsync(orderId);
+            var order = await unitOfWork.OrderRepository.GetByIdAsync(orderId);
             if (order == null)
                 throw new KeyNotFoundException($"Order with ID {orderId} not found.");
 
@@ -263,15 +263,15 @@ namespace Rest.Infrastructure.Implementations.Services
                 //order.TransactionId = Guid.NewGuid().ToString();
             }
 
-            unitOfWork.orderRepository.Update(order);
-            await unitOfWork.orderRepository.SaveChangesAsync();
+            unitOfWork.OrderRepository.Update(order);
+            await unitOfWork.OrderRepository.SaveChangesAsync();
         }
 
         
 
         public async Task UpdateOrderAsync(int id, UpdateOrderDto orderDto)
         {
-            var existingOrder = await unitOfWork.orderRepository.GetByIdAsync(id);
+            var existingOrder = await unitOfWork.OrderRepository.GetByIdAsync(id);
             if (existingOrder == null)
             {
                 throw new ArgumentException($"Order with ID {id} not found.");
@@ -288,39 +288,39 @@ namespace Rest.Infrastructure.Implementations.Services
             if (!string.IsNullOrEmpty(orderDto.Notes))
                 existingOrder.Notes = orderDto.Notes;
 
-            unitOfWork.orderRepository.Update(existingOrder);
+            unitOfWork.OrderRepository.Update(existingOrder);
             await unitOfWork.SaveChangesAsync(); // Save changes to the database
         }
 
         public async Task<OrderDto> UpdateOrderStatusAsync(int orderId, OrderStatus newStatus)
         {
-            await unitOfWork.orderRepository.UpdateOrderStatusAsync(orderId, newStatus);
-            await unitOfWork.orderRepository.SaveChangesAsync();
+            await unitOfWork.OrderRepository.UpdateOrderStatusAsync(orderId, newStatus);
+            await unitOfWork.OrderRepository.SaveChangesAsync();
 
-            var updatedOrder = await unitOfWork.orderRepository.GetByIdAsync(orderId);
+            var updatedOrder = await unitOfWork.OrderRepository.GetByIdAsync(orderId);
             return _mapper.Map<OrderDto>(updatedOrder);
         }
 
         public async Task<OrderDto> UpdatePaymentStatusAsync(int orderId, PaymentStatus newStatus)
         {
-            var order = await unitOfWork.orderRepository.GetByIdAsync(orderId);
+            var order = await unitOfWork.OrderRepository.GetByIdAsync(orderId);
             if (order == null)
                 throw new KeyNotFoundException($"Order with ID {orderId} not found.");
 
             order.PaymentStatus = newStatus;
-            unitOfWork.orderRepository.Update(order);
-            await unitOfWork.orderRepository.SaveChangesAsync();
+            unitOfWork.OrderRepository.Update(order);
+            await unitOfWork.OrderRepository.SaveChangesAsync();
 
             return _mapper.Map<OrderDto>(order);
         }
 
         public async Task<IEnumerable<OrderDto>> GetOrdersByCustomerAsync(string customerId)
         {
-            var orders = await unitOfWork.orderRepository.GetOrdersByCustomerAsync(customerId);
+            var orders = await unitOfWork.OrderRepository.GetOrdersByCustomerAsync(customerId);
             var ordersdtos =  _mapper.Map<IEnumerable<OrderDto>>(orders);
             foreach (var orderDto in ordersdtos)
             {
-                var order = await unitOfWork.orderRepository.GetByIdAsync(orderDto.OrderId);
+                var order = await unitOfWork.OrderRepository.GetByIdAsync(orderDto.OrderId);
                 if (order != null)
                 {
                     orderDto.StatusDisplay = order.Status.ToString(); // Set the status display value
@@ -337,24 +337,24 @@ namespace Rest.Infrastructure.Implementations.Services
 
         public async Task<IEnumerable<OrderDto>> GetOrdersByDeliveryPersonAsync(string deliveryPersonId)
         {
-            var orders = await unitOfWork.orderRepository.GetOrdersByDeliveryPersonAsync(deliveryPersonId);
+            var orders = await unitOfWork.OrderRepository.GetOrdersByDeliveryPersonAsync(deliveryPersonId);
             return _mapper.Map<IEnumerable<OrderDto>>(orders);
         }
 
         public async Task<IEnumerable<OrderDto>> GetOrdersByStatusAsync(OrderStatus status)
         {
-            var orders = await unitOfWork.orderRepository.GetOrdersByStatusAsync(status);
+            var orders = await unitOfWork.OrderRepository.GetOrdersByStatusAsync(status);
             return _mapper.Map<IEnumerable<OrderDto>>(orders);
         }
 
         public async Task<IEnumerable<OrderDto>> GetPendingDeliveryOrdersAsync()
         {
-            var orders = await unitOfWork.orderRepository.GetPendingDeliveryOrdersAsync();
+            var orders = await unitOfWork.OrderRepository.GetPendingDeliveryOrdersAsync();
             return _mapper.Map<IEnumerable<OrderDto>>(orders);
         }
         public async Task<int> GetOrderCountByStatusAsync(OrderStatus status)
         {
-            return await unitOfWork.orderRepository.GetOrderCountByStatusAsync(status);
+            return await unitOfWork.OrderRepository.GetOrderCountByStatusAsync(status);
         }
     }
 }

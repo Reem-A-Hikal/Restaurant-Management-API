@@ -2,7 +2,7 @@
 using Rest.Application.Interfaces.IRepositories;
 using Rest.Infrastructure.Data;
 
-namespace Rest.Infrastructure.Repositories
+namespace Rest.Infrastructure.Implementations.Repositories
 {
     public class Repository<TEntity> :IRepository<TEntity> where TEntity : class
     {

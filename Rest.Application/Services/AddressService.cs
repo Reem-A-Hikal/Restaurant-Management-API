@@ -4,7 +4,7 @@ using Rest.Application.Interfaces.IRepositories;
 using Rest.Application.Interfaces.IServices;
 using Rest.Domain.Entities;
 
-namespace Rest.Infrastructure.Implementations.Services
+namespace Rest.Application.Services
 {
     /// <summary>
     /// Service for managing addresses.

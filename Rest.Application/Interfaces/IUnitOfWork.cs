@@ -5,16 +5,14 @@ namespace Rest.Application.Interfaces
 {
     public interface IUnitOfWork
     {
-        //IAuthService authService { get; }
-        //IRepository<User> userRepository {get; }
-        IUserRepository userRepository { get; }
-        IAddressRepository addressRepository {get; }
-        ICategoryRepository categoryRepository { get; }
-        IProductRepository productRepository { get; }
-        IOrderRepository orderRepository { get; }
-        IRepository<OrderDetail> orderDetailRepository { get; }
-        IRepository<Review> reviewRepository { get; }
-        IRepository<Delivery> deliveryRepository { get; }
+        IUserRepository UserRepository { get; }
+        IAddressRepository AddressRepository {get; }
+        ICategoryRepository CategoryRepository { get; }
+        IProductRepository ProductRepository { get; }
+        IOrderRepository OrderRepository { get; }
+        IRepository<OrderDetail> OrderDetailRepository { get; }
+        IRepository<Review> ReviewRepository { get; }
+        IRepository<Delivery> DeliveryRepository { get; }
 
         Task<int> SaveChangesAsync();
     }

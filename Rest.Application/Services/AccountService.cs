@@ -5,7 +5,7 @@ using Rest.Application.Interfaces.IServices;
 using Rest.Domain.Entities;
 using Rest.Domain.Exceptions;
 
-namespace Rest.Infrastructure.Implementations.Services
+namespace Rest.Application.Services
 {
     public class AccountService : IAccountService
     {

@@ -1,13 +1,14 @@
-﻿using Rest.Domain.Entities;
+﻿using Rest.Application.Dtos.OrderDetailsDtos;
+using Rest.Domain.Entities;
 
 namespace Rest.Application.Interfaces.IServices
 {
     public interface IOrderDetailService
     {
-        Task<IEnumerable<OrderDetail>> GetAllOrderDetailsAsync();
-        Task<OrderDetail> GetOrderDetailByIdAsync(int id);
-        Task AddOrderDetailAsync(OrderDetail orderDetail);
-        Task UpdateOrderDetailAsync(OrderDetail orderDetail);
+        Task<IEnumerable<OrderDetailDto>> GetAllOrderDetailsAsync();
+        Task<OrderDetailDto> GetOrderDetailByIdAsync(int id);
+        Task AddOrderDetailAsync(OrderDetailDto orderDetail);
+        Task UpdateOrderDetailAsync(OrderDetailDto orderDetail);
         Task DeleteOrderDetailAsync(int id);
     }
 }

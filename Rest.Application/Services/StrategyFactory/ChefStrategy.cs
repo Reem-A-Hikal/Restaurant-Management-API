@@ -5,7 +5,7 @@ using Rest.Application.Interfaces.IServices.StrategyFactory;
 using Rest.Application.Utilities;
 using Rest.Domain.Entities;
 
-namespace Rest.Infrastructure.Implementations.Services.StrategyFactory
+namespace Rest.Application.Services.StrategyFactory
 {
     public class ChefStrategy : IRoleStrategy
     {

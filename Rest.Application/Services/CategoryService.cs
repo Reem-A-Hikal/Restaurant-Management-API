@@ -7,7 +7,7 @@ using Rest.Domain.Entities;
 using Rest.Domain.Entities.Enums;
 using Rest.Domain.Exceptions;
 
-namespace Rest.Infrastructure.Implementations.Services
+namespace Rest.Application.Services
 {
     /// <summary>
     /// Service interface for managing categories.

@@ -6,7 +6,7 @@ using Rest.Domain.Entities;
 using Rest.Domain.Entities.Enums;
 using Rest.Infrastructure.Data;
 
-namespace Rest.Infrastructure.Repositories
+namespace Rest.Infrastructure.Implementations.Repositories
 {
     public class UserRepository : IUserRepository
     {

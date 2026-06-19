@@ -95,7 +95,7 @@ namespace Rest.Infrastructure.Implementations.Repositories
 
             if (deliveryIds.Count != 0)
             {
-                var deliveryPersons = await _context.DeliveryPeople
+                var deliveryPersons = await _context.DeliveryPersons
                     .Where(dp => deliveryIds.Contains(dp.Id))
                     .ToDictionaryAsync(dp => dp.Id, dp => new
                     {

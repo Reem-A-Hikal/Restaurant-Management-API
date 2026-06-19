@@ -10,7 +10,6 @@ namespace Rest.Domain.Entities
 
         [Required]
         [StringLength(100, MinimumLength = 3)]
-        [Column(TypeName = "nvarchar(100)")]
         public required string FullName { get; set; }
 
         [StringLength(255)]

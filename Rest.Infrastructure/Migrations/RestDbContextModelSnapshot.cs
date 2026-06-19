@@ -205,7 +205,7 @@ namespace Rest.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Addresses");
+                    b.ToTable("Addresses", (string)null);
                 });
 
             modelBuilder.Entity("Rest.Domain.Entities.Category", b =>
@@ -234,7 +234,7 @@ namespace Rest.Infrastructure.Migrations
                         .IsUnique()
                         .HasDatabaseName("IX_Categories_Name");
 
-                    b.ToTable("Categories");
+                    b.ToTable("Categories", (string)null);
                 });
 
             modelBuilder.Entity("Rest.Domain.Entities.Delivery", b =>
@@ -283,7 +283,7 @@ namespace Rest.Infrastructure.Migrations
                     b.HasIndex("OrderId")
                         .IsUnique();
 
-                    b.ToTable("Deliveries");
+                    b.ToTable("Deliveries", (string)null);
                 });
 
             modelBuilder.Entity("Rest.Domain.Entities.Order", b =>
@@ -391,7 +391,7 @@ namespace Rest.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Orders");
+                    b.ToTable("Orders", (string)null);
                 });
 
             modelBuilder.Entity("Rest.Domain.Entities.OrderDetail", b =>
@@ -429,7 +429,7 @@ namespace Rest.Infrastructure.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("OrderDetails");
+                    b.ToTable("OrderDetails", (string)null);
                 });
 
             modelBuilder.Entity("Rest.Domain.Entities.Payment", b =>
@@ -475,7 +475,7 @@ namespace Rest.Infrastructure.Migrations
                     b.HasIndex("OrderId")
                         .HasDatabaseName("IX_Payments_OrderId");
 
-                    b.ToTable("Payments");
+                    b.ToTable("Payments", (string)null);
                 });
 
             modelBuilder.Entity("Rest.Domain.Entities.Product", b =>
@@ -532,7 +532,7 @@ namespace Rest.Infrastructure.Migrations
                         .IsUnique()
                         .HasDatabaseName("IX_Products_Name_CategoryId");
 
-                    b.ToTable("Products", t =>
+                    b.ToTable("Products", null, t =>
                         {
                             t.HasCheckConstraint("CK_Products_Discount", "[DiscountPercent] <= [AllowedDiscountPercent]");
 
@@ -589,7 +589,7 @@ namespace Rest.Infrastructure.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("Reviews");
+                    b.ToTable("Reviews", (string)null);
                 });
 
             modelBuilder.Entity("Rest.Domain.Entities.User", b =>

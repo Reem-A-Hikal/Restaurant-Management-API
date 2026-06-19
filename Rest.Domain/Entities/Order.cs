@@ -1,5 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using Rest.Domain.Entities.Enums;
 
 namespace Rest.Domain.Entities
@@ -13,7 +12,6 @@ namespace Rest.Domain.Entities
         /// Gets or sets the unique identifier for the order.
         /// </summary>
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int OrderId { get; set; }
 
         /// <summary>
@@ -52,30 +50,25 @@ namespace Rest.Domain.Entities
         /// <summary>
         /// Items total before fees/discounts
         /// </summary>
-        [Column(TypeName = "decimal(18, 2)")]
         public decimal SubTotal { get; set; }
 
         /// <summary>
         /// Gets or sets the delivery fee for the order.
         /// </summary>
-        [Column(TypeName = "decimal(18, 2)")]
         public decimal DeliveryFee { get; set; }
 
         /// <summary>
         /// Gets or sets the tax amount for the order.
         /// </summary>
-        [Column(TypeName = "decimal(18, 2)")]
         public decimal Tax { get; set; }
 
         /// <summary>
         /// Gets or sets the discount amount for the order.
         /// </summary>
-        [Column(TypeName = "decimal(18, 2)")]
         public decimal Discount { get; set; } = 0.00m;
         /// <summary>
         /// Gets or sets the total amount for the order.
         /// </summary>
-        [Column(TypeName = "decimal(18, 2)")]
         public decimal TotalAmount { get; set; } // Total amount including items, delivery fee, tax, and discount
 
         /// <summary>
@@ -124,24 +117,18 @@ namespace Rest.Domain.Entities
         /// <summary>
         /// User who placed the order.
         /// </summary>
-        [ForeignKey("UserId")]
-        [InverseProperty("CustomerOrders")]
         public virtual required User User { get; set; }
 
         /// <summary>
         /// Gets or sets the delivery address for the order.
         /// </summary>
-        [ForeignKey("DeliveryAddressId")]
         public virtual required Address DeliveryAddress { get; set; }
 
         /// <summary>
         /// Gets or sets the delivery person assigned to the order.
         /// </summary>
-        [ForeignKey("DeliveryPersonId")]
-        [InverseProperty("DeliveryOrders")]
         public virtual User? DeliveryPerson { get; set; }
 
-        [ForeignKey("ConfirmedById")]
         public virtual User? ConfirmedBy { get; set; }
 
         /// <summary>

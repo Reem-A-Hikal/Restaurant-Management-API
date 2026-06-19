@@ -6,7 +6,6 @@ namespace Rest.Domain.Entities
     public class OrderDetail
     {
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int OrderDetailId { get; set; }
 
         // Foreign keys
@@ -21,22 +20,18 @@ namespace Rest.Domain.Entities
         public int Quantity { get; set; } = 1; // Default to 1
 
         [Required]
-        [Column(TypeName = "decimal(18, 2)")]
         [Range(0.01, double.MaxValue, ErrorMessage = "Unit price must be positive")]
         public decimal UnitPrice { get; set; }
 
         [Required]
-        [Column(TypeName = "decimal(18, 2)")]
         public decimal Subtotal { get; set; }
 
         [StringLength(500)]
         public string? SpecialInstructions { get; set; }
 
         // Navigation properties
-        [ForeignKey("OrderId")]
         public virtual Order? Order { get; set; }
 
-        [ForeignKey("ProductId")]
         public virtual Product Product { get; set; }
     }
 }

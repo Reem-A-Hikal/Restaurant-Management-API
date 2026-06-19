@@ -49,7 +49,6 @@ namespace Rest.Domain.Entities
         /// Gets or sets the address type (e.g., Home, Work, Other).
         /// </summary>
         [Required]
-        [Column(TypeName = "nvarchar(20)")]
         public AddressType AddressType { get; set; }
 
         /// <summary>
@@ -61,7 +60,6 @@ namespace Rest.Domain.Entities
         public required string UserId { get; set; }
 
         // Navigation properties
-        [ForeignKey("UserId")]
         public virtual required User User { get; set; }
 
         public virtual required ICollection<Order> Orders { get; set; }

@@ -1,12 +1,10 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Rest.Domain.Entities
 {
     public class Review
     {
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int ReviewId { get; set; }
 
         [StringLength(50)]
@@ -16,11 +14,9 @@ namespace Rest.Domain.Entities
         public int Rating { get; set; }
 
         [StringLength(1000, ErrorMessage = "Comment cannot exceed 1000 characters")]
-        [Column(TypeName = "nvarchar(1000)")]
         public string? Comment { get; set; }
 
         [Required]
-        [DataType(DataType.DateTime)]
         public DateTime ReviewDate { get; set; } = DateTime.UtcNow;
 
         [Range(1, 5, ErrorMessage = "Delivery rating must be between 1 and 5")]
@@ -39,13 +35,10 @@ namespace Rest.Domain.Entities
         public int? ProductId { get; set; }
 
         // Navigation properties
-        [ForeignKey("OrderId")]
         public virtual Order? Order { get; set; }
 
-        [ForeignKey("CustomerId")]
         public virtual User? Customer { get; set; }
 
-        [ForeignKey("ProductId")]
         public virtual Product? Product { get; set; }
 
         public double GetAvgRating()

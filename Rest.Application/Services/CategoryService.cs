@@ -49,7 +49,8 @@ namespace Rest.Application.Services
         /// <param name="id"></param>
         public async Task ArchiveAsync(int id)
         {
-            var category = await _categoryRepository.GetByIdAsync(id);
+            var category = await _categoryRepository.GetByIdAsync(id)
+                 ?? throw new NotFoundException("Category", id);
 
             if (category.Status == CategoryStatus.Archived)
                 throw new BusinessException("Category is already archived");
@@ -103,7 +104,8 @@ namespace Rest.Application.Services
         /// <returns> Task representing the asynchronous operation</returns>
         public async Task UpdateAsync(int id, CategoryUpdateDto dto)
         {
-            var existingCategory = await _categoryRepository.GetByIdAsync(id);
+            var existingCategory = await _categoryRepository.GetByIdAsync(id)
+                 ?? throw new NotFoundException("Category", id);
 
             if (!string.IsNullOrWhiteSpace(dto.Name))
                 existingCategory.Name = dto.Name;
@@ -115,14 +117,6 @@ namespace Rest.Application.Services
                 existingCategory.DisplayOrder = dto.DisplayOrder.Value;
 
             _categoryRepository.Update(existingCategory);
-            await _categoryRepository.SaveChangesAsync();
-        }
-
-        /// <summary>
-        /// Saves changes to the database.
-        /// </summary>
-        public async Task SaveChangesAsync()
-        {
             await _categoryRepository.SaveChangesAsync();
         }
     }

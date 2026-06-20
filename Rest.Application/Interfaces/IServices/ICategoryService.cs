@@ -39,10 +39,5 @@ namespace Rest.Application.Interfaces.IServices
         /// <param name="id">The ID of the category to archive.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
         Task ArchiveAsync(int id);
-        /// <summary>
-        /// Saves changes asynchronously.
-        /// </summary>
-        /// <returns>A task that represents the asynchronous operation.</returns>
-        Task SaveChangesAsync();
     }
 }

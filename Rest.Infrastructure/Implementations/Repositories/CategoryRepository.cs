@@ -94,9 +94,7 @@ namespace Rest.Infrastructure.Implementations.Repositories
         {
             return await _context.Categories
                 .Include(c => c.Products)
-                .FirstOrDefaultAsync(c => c.CategoryId == id)
-                ?? throw new KeyNotFoundException($"Category with ID {id} not found");
-
+                .FirstOrDefaultAsync(c => c.CategoryId == id);
         }
 
         /// <summary>

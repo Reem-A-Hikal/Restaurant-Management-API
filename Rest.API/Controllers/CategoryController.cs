@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Rest.Application.Dtos.CategoryDtos;
 using Rest.Application.Interfaces.IServices;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace Rest.API.Controllers
 {
@@ -30,6 +31,7 @@ namespace Rest.API.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet("all")]
+        [SwaggerOperation(Summary = "Get all categories")]
         public async Task<IActionResult> GetAll()
         {
             var categories = await _categoryService.GetAllAsync();
@@ -44,6 +46,7 @@ namespace Rest.API.Controllers
         /// <param name="selectedFilter"></param>
         /// <returns></returns>
         [HttpGet("GetAllPaginated")]
+        [SwaggerOperation(Summary = "Get paginated categories with optional filtering")]
         public async Task<IActionResult> GetPaginated(
             [FromQuery] int pageIndex = 1,
             [FromQuery] int pageSize = 10,

@@ -28,9 +28,7 @@ namespace Rest.Application.Profiles
                 .ForAllMembers(opt => opt.Condition(
                     (src, dest, srcMember) => srcMember != null));
 
-            CreateMap<Category, CategoryUpdateDto>();
-
-            CreateMap<Product, SimpleProductDto>();
+            CreateMap<Category, SimpleCategoryDto>();
         }
     }
 }

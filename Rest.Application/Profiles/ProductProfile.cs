@@ -20,10 +20,9 @@ namespace Rest.Application.Profiles
             CreateMap<ProductCreateDto, Product>()
                 .ForMember(dest => dest.OrderDetails, opt => opt.Ignore())
                 .ForMember(dest => dest.Reviews, opt => opt.Ignore())
-                .ForMember(dest => dest.Category, opt => opt.Ignore())
-                .ReverseMap();
+                .ForMember(dest => dest.Category, opt => opt.Ignore());
 
-            CreateMap<Category, SimpleCategoryDto>();
+            CreateMap<Product, SimpleProductDto>();
         }
     }
 }

@@ -94,19 +94,7 @@ namespace Rest.Application.Services
             if(!validRoles.Contains(userDto.UserRole))
                 throw new ValidationException($"Invalid role '{userDto.UserRole}'" + $"Valid roles: {string.Join(",", validRoles)}");
 
-            var strategy = _roleResolver.Resolve(userDto.UserRole);
-            var user = strategy.CreateUserEntity(userDto);
-
-            var result = await _userManager.CreateAsync(user, userDto.Password);
-            if (!result.Succeeded)
-                throw new ValidationException(result.Errors.Select(e => e.Description));
-
-            var roleResult = await _userManager.AddToRoleAsync(user, userDto.UserRole);
-            if (!roleResult.Succeeded)
-            {
-                await _userManager.DeleteAsync(user);
-                throw new ValidationException(roleResult.Errors.Select(e => e.Description));
-            }
+            var user = await _roleResolver.CreateUserAsync(userDto);
             return user.Id;
         }
 

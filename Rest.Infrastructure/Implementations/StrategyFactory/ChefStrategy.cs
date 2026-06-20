@@ -5,7 +5,7 @@ using Rest.Application.Interfaces.IServices.StrategyFactory;
 using Rest.Application.Utilities;
 using Rest.Domain.Entities;
 
-namespace Rest.Application.Services.StrategyFactory
+namespace Rest.Infrastructure.Implementations.StrategyFactory
 {
     public class ChefStrategy : IRoleStrategy
     {
@@ -18,9 +18,6 @@ namespace Rest.Application.Services.StrategyFactory
         }
         public string RoleName => AppRoles.Chef;
 
-        public User CreateUserEntity(CreateUserDto dto)
-            => _mapper.Map<Chef>(dto);
-
         public async Task EnrichDtoAsync(UserDto dto)
         {
             var chef = await _chefRepo.GetChefByIdAsync(dto.Id);
@@ -32,11 +29,11 @@ namespace Rest.Application.Services.StrategyFactory
             if (!string.IsNullOrWhiteSpace(dto.Specialization))
             {
                 var chef = await _chefRepo.GetChefByIdAsync(userId);
-                if (chef != null)
-                {
-                    chef.Specialization = dto.Specialization;
-                    await _chefRepo.SaveChangesAsync();
-                }
+                if (chef == null) return;
+                
+                chef.Specialization = dto.Specialization;
+                await _chefRepo.SaveChangesAsync();
+                
             }
         }
     }

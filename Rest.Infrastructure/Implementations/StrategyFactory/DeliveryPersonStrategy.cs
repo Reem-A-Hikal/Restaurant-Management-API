@@ -5,7 +5,7 @@ using Rest.Application.Interfaces.IServices.StrategyFactory;
 using Rest.Application.Utilities;
 using Rest.Domain.Entities;
 
-namespace Rest.Application.Services.StrategyFactory
+namespace Rest.Infrastructure.Implementations.StrategyFactory
 {
     public class DeliveryPersonStrategy : IRoleStrategy
     {
@@ -17,9 +17,6 @@ namespace Rest.Application.Services.StrategyFactory
             _mapper = mapper;
         }
         public string RoleName => AppRoles.DeliveryPerson;
-
-        public User CreateUserEntity(CreateUserDto dto)
-            => _mapper.Map<DeliveryPerson>(dto);
 
         public async Task EnrichDtoAsync(UserDto dto)
         {

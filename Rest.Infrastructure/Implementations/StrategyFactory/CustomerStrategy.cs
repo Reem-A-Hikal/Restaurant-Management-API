@@ -4,20 +4,11 @@ using Rest.Application.Interfaces.IServices.StrategyFactory;
 using Rest.Application.Utilities;
 using Rest.Domain.Entities;
 
-namespace Rest.Application.Services.StrategyFactory
+namespace Rest.Infrastructure.Implementations.StrategyFactory
 {
-    public class AdminStrategy : IRoleStrategy
+    public class CustomerStrategy : IRoleStrategy
     {
-        private readonly IMapper _mapper;
-        public AdminStrategy(IMapper mapper)
-        {
-            _mapper = mapper;
-        }
-
-        public string RoleName => AppRoles.Admin;
-
-        public User CreateUserEntity(CreateUserDto dto)
-            => _mapper.Map<User>(dto);
+        public string RoleName => AppRoles.Customer;
 
         public Task EnrichDtoAsync(UserDto dto) => Task.CompletedTask;
 

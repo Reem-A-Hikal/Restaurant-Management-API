@@ -8,14 +8,6 @@ namespace Rest.Application.Interfaces.IServices.StrategyFactory
         string RoleName { get; }
 
         /// <summary>
-        /// Creates the correct User entity based on the role
-        /// Chef → creates Chef entity
-        /// DeliveryPerson → creates DeliveryPerson entity
-        /// Admin/Customer → creates base User entity
-        /// </summary>
-        User CreateUserEntity(CreateUserDto dto);
-
-        /// <summary>
         /// Enriches the UserDto with role-specific data
         /// Called when returning user data to the client
         /// </summary>

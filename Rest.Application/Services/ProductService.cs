@@ -1,9 +1,11 @@
 ﻿using AutoMapper;
 using Rest.Application.Dtos.ProductDtos;
+using Rest.Application.Interfaces;
 using Rest.Application.Interfaces.IRepositories;
 using Rest.Application.Interfaces.IServices;
 using Rest.Application.Utilities;
 using Rest.Domain.Entities;
+using Rest.Domain.Entities.Enums;
 using Rest.Domain.Exceptions;
 
 namespace Rest.Application.Services
@@ -13,8 +15,7 @@ namespace Rest.Application.Services
     /// </summary>
     public class ProductService : IProductService
     {
-        private readonly IProductRepository _productRepository;
-        private readonly ICategoryRepository _categoryRepository;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
 
         /// <summary>
@@ -22,11 +23,10 @@ namespace Rest.Application.Services
         /// </summary>
         /// <param name="productRepository"> The product repository for data access</param>
         /// <param name="mapper"> The AutoMapper instance for mapping between DTOs and entities</param>
-        public ProductService(IProductRepository productRepository, IMapper mapper, ICategoryRepository categoryRepository)
+        public ProductService(IUnitOfWork unitOfWork, IMapper mapper)
         {
-            _productRepository = productRepository;
+            _unitOfWork = unitOfWork;
             _mapper = mapper;
-            _categoryRepository = categoryRepository;
         }
 
         /// <summary>
@@ -35,23 +35,17 @@ namespace Rest.Application.Services
         /// <returns> List of all products</returns>
         public async Task<IEnumerable<ProductDto>> GetAllProductsAsync()
         {
-            var products = await _productRepository.GetAllWithCatAsync();
+            var products = await _unitOfWork.ProductRepository.GetAllWithCatAsync();
             return _mapper.Map<IEnumerable<ProductDto>>(products);
         }
 
         public async Task<PaginatedList<ProductDto>> GetPaginatedProductsWithFilterAsync(int pageIndex, int pageSize, string? searchTerm, string? selectedFilter)
         {
-            try
-            {
-                var paginated = await _productRepository.GetPaginatedAsync(pageIndex, pageSize, searchTerm, selectedFilter);
+            var paginated = await _unitOfWork.ProductRepository.GetPaginatedAsync(pageIndex, pageSize, searchTerm, selectedFilter);
 
-                var dtos = _mapper.Map<List<ProductDto>>(paginated.Items);
-                return new PaginatedList<ProductDto>(dtos, paginated.TotalItems, pageIndex, pageSize);
-            }
-            catch(Exception ex)
-            {
-                throw new InvalidOperationException("An error occurred while retrieving paginated products with filter.", ex);
-            }
+            var dtos = _mapper.Map<List<ProductDto>>(paginated.Items);
+            return new PaginatedList<ProductDto>(dtos, paginated.TotalItems, pageIndex, pageSize);
+            
         }
 
         /// <summary>
@@ -62,8 +56,9 @@ namespace Rest.Application.Services
 
         public async Task<ProductDto> GetProductByIdAsync(int id)
         {
-            var product = await _productRepository.GetByIdAsync(id);
-            return product == null ? throw new KeyNotFoundException($"Product with ID {id} not found.") : _mapper.Map<ProductDto>(product);
+            var product = await _unitOfWork.ProductRepository.GetByIdAsync(id)
+                ?? throw new NotFoundException("Product", id);
+            return _mapper.Map<ProductDto>(product);
         }
 
         /// <summary>
@@ -73,15 +68,11 @@ namespace Rest.Application.Services
         /// <returns> List of products in the specified category</returns>
         public async Task<IEnumerable<ProductDto>> GetProductsByCategoryAsync(int categoryId)
         {
-            var products = await _productRepository.GetByCategoryAsync(categoryId);
-            var category = await _categoryRepository.GetByIdAsync(categoryId) 
-                ?? throw new KeyNotFoundException($"Category with ID {categoryId} not found.");
+            _ = await _unitOfWork.CategoryRepository.GetByIdAsync(categoryId) 
+                ?? throw new NotFoundException($"Category", categoryId);
 
-            if (products == null || !products.Any())
-            {
-                return Enumerable.Empty<ProductDto>();
-            }
-            return _mapper.Map<IEnumerable<ProductDto>>(products);
+            var products = await _unitOfWork.ProductRepository.GetByCategoryAsync(categoryId);
+            return products.Any() ? _mapper.Map<IEnumerable<ProductDto>>(products) : [];
         }
 
         /// <summary>
@@ -91,9 +82,12 @@ namespace Rest.Application.Services
         /// <returns> The created product</returns>
         public async Task<int> CreateProductAsync(ProductCreateDto productDto)
         {
+            if (productDto.DiscountPercent > productDto.AllowedDiscountPercent)
+                throw new ValidationException("Discount percent cannot exceed allowed discount percent.");
+
             var product = _mapper.Map<Product>(productDto);
-            await _productRepository.AddAsync(product);
-            await _productRepository.SaveChangesAsync();
+            await _unitOfWork.ProductRepository.AddAsync(product);
+            await _unitOfWork.ProductRepository.SaveChangesAsync();
             return product.ProductId;
         }
 
@@ -106,7 +100,11 @@ namespace Rest.Application.Services
         /// <exception cref="KeyNotFoundException"> Thrown when the product with the specified ID is not found</exception>
         public async Task UpdateProductAsync(int id, ProductDto productDto)
         {
-            var existingProduct = await _productRepository.GetByIdAsync(id) ?? throw new KeyNotFoundException($"Product with ID {id} not found.");
+            var existingProduct = await _unitOfWork.ProductRepository.GetByIdAsync(id)
+                ?? throw new NotFoundException("Product", id);
+
+            if (productDto.DiscountPercent > productDto.AllowedDiscountPercent)
+                throw new ValidationException("Discount percent cannot exceed allowed discount percent.");
 
             existingProduct.Name = productDto.Name;
             existingProduct.Description = productDto.Description;
@@ -117,24 +115,25 @@ namespace Rest.Application.Services
             existingProduct.ImageUrl = productDto.ImageUrl;
             existingProduct.PreparationTime = productDto.PreparationTime;
             existingProduct.Status = productDto.Status;
-            if (productDto.DiscountPercent > productDto.AllowedDiscountPercent )
-                throw new ValidationException("More than Allowed Discount Percent");
             existingProduct.AllowedDiscountPercent = productDto.AllowedDiscountPercent;
             existingProduct.DiscountPercent = productDto.DiscountPercent;
 
-            _productRepository.Update(existingProduct);
-            await _productRepository.SaveChangesAsync();
+            _unitOfWork.ProductRepository.Update(existingProduct);
+            await _unitOfWork.ProductRepository.SaveChangesAsync();
         }
         /// <summary>
-        /// Deletes a product by its ID
+        /// Archive a product by its ID
         /// </summary>
-        /// <param name="id"> The ID of the product to delete</param>
+        /// <param name="id"> The ID of the product to archived</param>
         /// <returns> Task representing the asynchronous operation</returns>
         public async Task DeleteProductAsync(int id)
         {
-            var product = await _productRepository.GetByIdAsync(id) ?? throw new KeyNotFoundException($"Product with ID {id} not found.");
-            await _productRepository.DeleteAsync(id);
-            await _productRepository.SaveChangesAsync();
+            var product = await _unitOfWork.ProductRepository.GetByIdAsync(id)
+                    ?? throw new NotFoundException("Product", id);
+
+            product.Status = ProductStatus.Archived;
+            _unitOfWork.ProductRepository.Update(product);
+            await _unitOfWork.ProductRepository.SaveChangesAsync();
         }
     }
 }

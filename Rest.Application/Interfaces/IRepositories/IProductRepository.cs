@@ -8,9 +8,7 @@ namespace Rest.Application.Interfaces.IRepositories
     /// </summary>
     public interface IProductRepository :IRepository<Product>
     {
-        //IQueryable<Product> GetAllQueryable();
         Task<PaginatedList<Product>> GetPaginatedAsync(int pageIndex, int pageSize, string? searchTerm, string? filter);
-        //IQueryable<Product> GetFilteredProducts(string? searchTerm, string? selectedFilter = "All");
         /// <summary>
         /// Gets products by category
         /// </summary>

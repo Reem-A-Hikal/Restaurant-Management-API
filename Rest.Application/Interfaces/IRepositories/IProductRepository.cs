@@ -1,4 +1,5 @@
-﻿using Rest.Domain.Entities;
+﻿using Rest.Application.Utilities;
+using Rest.Domain.Entities;
 
 namespace Rest.Application.Interfaces.IRepositories
 {
@@ -7,8 +8,9 @@ namespace Rest.Application.Interfaces.IRepositories
     /// </summary>
     public interface IProductRepository :IRepository<Product>
     {
-        IQueryable<Product> GetAllQueryable();
-        IQueryable<Product> GetFilteredProducts(string? searchTerm, string? selectedFilter = "All");
+        //IQueryable<Product> GetAllQueryable();
+        Task<PaginatedList<Product>> GetPaginatedAsync(int pageIndex, int pageSize, string? searchTerm, string? filter);
+        //IQueryable<Product> GetFilteredProducts(string? searchTerm, string? selectedFilter = "All");
         /// <summary>
         /// Gets products by category
         /// </summary>
@@ -23,19 +25,5 @@ namespace Rest.Application.Interfaces.IRepositories
         /// <returns> List of products within the specified price range</returns>
         Task<IEnumerable<Product>> GetProductsByPriceRangeAsync(decimal minPrice, decimal maxPrice);
         Task<IEnumerable<Product>> GetAllWithCatAsync();
-        #region old methods
-        ///// <summary>
-        ///// Gets available products
-        ///// </summary>
-        ///// <returns>List of available products</returns>
-        //Task<IEnumerable<Product>> GetAvailableProductsAsync();
-
-        ///// <summary>
-        ///// Searches products by name
-        ///// </summary>
-        ///// <param name="searchTerm">Search term to look for in product names</param>
-        ///// <returns>List of matching products</returns>
-        //Task<IEnumerable<Product>> SearchProductsAsync(string searchTerm);
-        #endregion
     }
 }

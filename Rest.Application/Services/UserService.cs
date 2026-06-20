@@ -50,23 +50,24 @@ namespace Rest.Application.Services
 
         public async Task<PaginatedList<UserDto>> GetPaginatedUsersWithFilterAsync(int pageIndex, int pageSize, string? searchTerm, string? selectedRole)
         {
-            
-            var query = _userRepository.GetFilteredUsers(searchTerm, selectedRole);
-                
-            var paginatedUsers = await PaginatedList<User>.CreateAsync(query, pageIndex, pageSize);
-            var mappedItems = _mapper.Map<List<UserDto>>(paginatedUsers.Items);
 
-            var userIds = mappedItems.Select(u => u.Id).ToList();
+            var paginated = await _userRepository.GetPaginatedAsync(
+                pageIndex, pageSize, searchTerm, selectedRole);
+
+            var userIds = paginated.Items.Select(u => u.Id).ToList();
             var rolesDict = await _userRepository.GetUsersRolesDictAsync(userIds);
 
-            foreach (var item in mappedItems)
+            var dtos = _mapper.Map<List<UserDto>>(paginated.Items);
+
+
+            foreach (var dto in dtos)
             {
-                item.Role = rolesDict.TryGetValue(item.Id, out var role) 
+                dto.Role = rolesDict.TryGetValue(dto.Id, out var role) 
                     ? role : string.Empty;
-                await _userRepository.BulkEnrichUsersAsync(mappedItems);
             }
-            return new PaginatedList<UserDto>(mappedItems, paginatedUsers.TotalItems, pageIndex, pageSize);
-            
+
+            await _userRepository.BulkEnrichUsersAsync(dtos);
+            return new PaginatedList<UserDto>(dtos, paginated.TotalItems, pageIndex, pageSize);
         }
 
         public async Task<UserDto> GetUserByIdAsync(string userId)

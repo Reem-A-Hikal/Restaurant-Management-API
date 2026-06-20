@@ -43,11 +43,10 @@ namespace Rest.Application.Services
         {
             try
             {
-                var query = _productRepository.GetFilteredProducts(searchTerm, selectedFilter);
+                var paginated = await _productRepository.GetPaginatedAsync(pageIndex, pageSize, searchTerm, selectedFilter);
 
-                var pagintatedProducts = await PaginatedList<Product>.CreateAsync(query, pageIndex, pageSize);
-                var productsDto = _mapper.Map<List<ProductDto>>(pagintatedProducts.Items);
-                return new PaginatedList<ProductDto>(productsDto, pagintatedProducts.TotalItems, pagintatedProducts.PageIndex, pagintatedProducts.PageSize);
+                var dtos = _mapper.Map<List<ProductDto>>(paginated.Items);
+                return new PaginatedList<ProductDto>(dtos, paginated.TotalItems, pageIndex, pageSize);
             }
             catch(Exception ex)
             {

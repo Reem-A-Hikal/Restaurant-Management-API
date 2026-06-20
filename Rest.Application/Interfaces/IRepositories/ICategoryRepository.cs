@@ -1,4 +1,5 @@
-﻿using Rest.Domain.Entities;
+﻿using Rest.Application.Utilities;
+using Rest.Domain.Entities;
 
 namespace Rest.Application.Interfaces.IRepositories
 {
@@ -12,7 +13,6 @@ namespace Rest.Application.Interfaces.IRepositories
         /// </summary>
         /// <returns></returns>
         Task<IEnumerable<Category>> GetAllWithProductsAsync();
-        IQueryable<Category> GetAllQueryable();
-        IQueryable<Category> GetFilteredCats(string? searchTerm, string? selectedFilter = "All");
+        Task<PaginatedList<Category>> GetPaginatedAsync(int pageIndex, int pageSize, string? searchTerm, string? selectedFilter);
     }
 }

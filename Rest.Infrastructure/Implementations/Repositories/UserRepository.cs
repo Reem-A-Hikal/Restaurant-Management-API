@@ -5,6 +5,7 @@ using Rest.Application.Utilities;
 using Rest.Domain.Entities;
 using Rest.Domain.Entities.Enums;
 using Rest.Infrastructure.Data;
+using Rest.Infrastructure.Helpers;
 
 namespace Rest.Infrastructure.Implementations.Repositories
 {
@@ -19,14 +20,11 @@ namespace Rest.Infrastructure.Implementations.Repositories
             _repository = repository;
         }
 
-        public IQueryable<User> GetAllQueryable() =>
-            _context.Users
-            .Where(u => u.Status != UserStatus.Deleted)
-            .AsQueryable();
-
         public IQueryable<User> GetFilteredUsers(string? searchTerm, string? selectedRole = "All")
         {
-            var query = GetAllQueryable();
+            var query = _context.Users
+                .Where(u => u.Status != UserStatus.Deleted)
+                .AsQueryable();
 
             if (!string.IsNullOrEmpty(selectedRole) && selectedRole != "All")
             {
@@ -43,6 +41,15 @@ namespace Rest.Infrastructure.Implementations.Repositories
             }
             return query.OrderByDescending(u => u.JoinDate);
         }
+
+        public async Task<PaginatedList<User>> GetPaginatedAsync(
+            int pageIndex, int pageSize,
+            string? searchTerm, string? selectedRole)
+        {
+            var query = GetFilteredUsers(searchTerm, selectedRole);
+            return await PaginationHelper.CreateAsync(query, pageIndex, pageSize);
+        }
+
         public async Task<User> GetByIdAsync(string id)
         {
             return await _context.Users.FirstOrDefaultAsync(u => u.Id == id && u.Status != UserStatus.Deleted)

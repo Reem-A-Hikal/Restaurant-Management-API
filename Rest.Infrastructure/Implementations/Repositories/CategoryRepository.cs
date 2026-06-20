@@ -1,8 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Rest.Application.Interfaces.IRepositories;
+using Rest.Application.Utilities;
 using Rest.Domain.Entities;
 using Rest.Domain.Entities.Enums;
 using Rest.Infrastructure.Data;
+using Rest.Infrastructure.Helpers;
 
 namespace Rest.Infrastructure.Implementations.Repositories
 {
@@ -25,13 +27,11 @@ namespace Rest.Infrastructure.Implementations.Repositories
             _repository = repository;
         }
 
-        public IQueryable<Category> GetAllQueryable() =>
-            _context.Categories.AsNoTracking().AsQueryable();
-
-
-        public IQueryable<Category> GetFilteredCats(string? searchTerm, string? selectedFilter = "All")
+        private IQueryable<Category> GetFilteredCats(string? searchTerm, string? selectedFilter = "All")
         {
-            IQueryable<Category> query = GetAllQueryable().Include(c => c.Products);
+            IQueryable<Category> query = _context.Categories
+                .AsNoTracking()
+                .Include(c => c.Products);
 
             if (!string.IsNullOrEmpty(selectedFilter) && selectedFilter != "All")
             {
@@ -44,6 +44,15 @@ namespace Rest.Infrastructure.Implementations.Repositories
 
             return query.OrderByDescending(c => c.DisplayOrder);
         }
+
+        public async Task<PaginatedList<Category>> GetPaginatedAsync(
+                        int pageIndex, int pageSize,
+                        string? searchTerm, string? selectedFilter)
+        {
+            var query = GetFilteredCats(searchTerm, selectedFilter);
+            return await PaginationHelper.CreateAsync(query, pageIndex, pageSize);
+        }
+
         /// <summary>
         /// Gets all categories with their products
         /// </summary>

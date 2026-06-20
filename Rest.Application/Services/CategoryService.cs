@@ -74,11 +74,12 @@ namespace Rest.Application.Services
 
         public async Task<PaginatedList<CategoryWithProductsDto>> GetPaginatedCatsWithFilterAsync(int pageIndex, int pageSize, string? searchTerm, string? selectedStatus)
         {
-            var query = _categoryRepository.GetFilteredCats(searchTerm, selectedStatus);
+            var paginated = await _categoryRepository.GetPaginatedAsync(
+                pageIndex, pageSize, searchTerm, selectedStatus);
 
-            var paginatedCategories = await PaginatedList<Category>.CreateAsync(query, pageIndex, pageSize);
-            var categoriesDto = _mapper.Map<List<CategoryWithProductsDto>>(paginatedCategories.Items);
-            return new PaginatedList<CategoryWithProductsDto>(categoriesDto, paginatedCategories.TotalItems, pageIndex, pageSize);
+            var dtos = _mapper.Map<List<CategoryWithProductsDto>>(paginated.Items);
+            return new PaginatedList<CategoryWithProductsDto>(
+                dtos, paginated.TotalItems, pageIndex, pageSize);
         }
 
         /// <summary>

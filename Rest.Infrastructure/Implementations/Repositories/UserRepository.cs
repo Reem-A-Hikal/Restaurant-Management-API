@@ -2,6 +2,7 @@
 using Rest.Application.Dtos.UserDtos;
 using Rest.Application.Interfaces.IRepositories;
 using Rest.Application.Utilities;
+using Rest.Domain.Constants;
 using Rest.Domain.Entities;
 using Rest.Domain.Entities.Enums;
 using Rest.Infrastructure.Data;
@@ -12,18 +13,15 @@ namespace Rest.Infrastructure.Implementations.Repositories
     public class UserRepository : IUserRepository
     {
         private readonly RestDbContext _context;
-        private readonly IRepository<User> _repository;
 
-        public UserRepository(RestDbContext context, IRepository<User> repository)
+        public UserRepository(RestDbContext context)
         {
             _context = context;
-            _repository = repository;
         }
 
         public IQueryable<User> GetFilteredUsers(string? searchTerm, string? selectedRole = "All")
         {
             var query = _context.Users
-                .Where(u => u.Status != UserStatus.Deleted)
                 .AsQueryable();
 
             if (!string.IsNullOrEmpty(selectedRole) && selectedRole != "All")
@@ -52,16 +50,17 @@ namespace Rest.Infrastructure.Implementations.Repositories
 
         public async Task<User> GetByIdAsync(string id)
         {
-            return await _context.Users.FirstOrDefaultAsync(u => u.Id == id && u.Status != UserStatus.Deleted)
+            return await _context.Users.FirstOrDefaultAsync(u => u.Id == id)
                 ?? throw new KeyNotFoundException("User not found");
         }
         
         public async Task<User> GetByEmailAsync(string email)
         {
-            return await _context.Users.FirstOrDefaultAsync(u => u.Email == email && u.Status != UserStatus.Deleted)
+            return await _context.Users.FirstOrDefaultAsync(u => u.Email == email)
                 ?? throw new KeyNotFoundException("User not found");
             
         }
+
         public async Task<Dictionary<string, string>> GetUsersRolesDictAsync(IEnumerable<string> userIds)
         {
             var userRoles = await (
@@ -120,13 +119,10 @@ namespace Rest.Infrastructure.Implementations.Repositories
                 }
             }
         }
-        // Methods from IRepository
-        public async Task AddAsync(User entity) => await _repository.AddAsync(entity);
-        public async Task DeleteAsync(int id) => await _repository.DeleteAsync(id);
-        public async Task<IEnumerable<User>> GetAllAsync() => await _repository.GetAllAsync();
-
-        public Task<User> GetByIdAsync(int id) => _repository.GetByIdAsync(id);
-        public void Update(User entity) => _repository.Update(entity);
-        public Task SaveChangesAsync() => _repository.SaveChangesAsync();
+        public async Task<IEnumerable<User>> GetAllAsync() => await _context.Users.ToListAsync();
+        
+        public async Task AddAsync(User entity) => await _context.Users.AddAsync(entity);
+        public void Update(User entity) => _context.Users.Update(entity);
+        public async Task SaveChangesAsync() => await _context.SaveChangesAsync();
     }
 }

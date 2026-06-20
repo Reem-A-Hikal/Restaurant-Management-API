@@ -69,7 +69,7 @@ namespace Rest.Domain.Entities
         /// <summary>
         /// Gets or sets the total amount for the order.
         /// </summary>
-        public decimal TotalAmount { get; set; } // Total amount including items, delivery fee, tax, and discount
+        public decimal TotalAmount { get; private set; }
 
         /// <summary>
         /// Gets or sets the estimated delivery time in minutes.
@@ -81,7 +81,24 @@ namespace Rest.Domain.Entities
         /// Gets or sets the payment status of the order.
         /// </summary>
         [StringLength(20)]
-        public PaymentStatus PaymentStatus { get; set; } = PaymentStatus.Pending;
+        public PaymentStatus PaymentStatus { get
+            {
+                if (!Payments.Any())
+                    return PaymentStatus.Pending;
+
+                if (Payments.Any(p => p.Status == PaymentStatus.Completed))
+                    return PaymentStatus.Completed;
+
+                if (Payments.Any(p => p.Status == PaymentStatus.Refunded))
+                    return PaymentStatus.Refunded;
+
+                if (Payments.All(p => p.Status == PaymentStatus.Failed))
+                    return PaymentStatus.Failed;
+
+                return PaymentStatus.Pending;
+            }
+        }
+        public bool IsPaid => PaymentStatus == PaymentStatus.Completed;
 
         /// <summary>
         /// Gets or sets the special instructions or notes for the order.

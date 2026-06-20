@@ -1,7 +1,7 @@
 ﻿using AutoMapper;
 using Rest.Application.Dtos.UserDtos;
 using Rest.Application.Interfaces.IServices.StrategyFactory;
-using Rest.Application.Utilities;
+using Rest.Domain.Constants;
 using Rest.Domain.Entities;
 
 namespace Rest.Infrastructure.Implementations.StrategyFactory
@@ -15,6 +15,8 @@ namespace Rest.Infrastructure.Implementations.StrategyFactory
         }
 
         public string RoleName => AppRoles.Admin;
+
+        public User CreateUserEntity(CreateUserDto dto) => _mapper.Map<User>(dto);
 
         public Task EnrichDtoAsync(UserDto dto) => Task.CompletedTask;
 

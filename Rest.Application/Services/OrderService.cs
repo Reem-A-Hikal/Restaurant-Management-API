@@ -37,7 +37,7 @@ namespace Rest.Application.Services
 
             order.OrderDetails.Add(orderDetail);
             order.SubTotal = order.OrderDetails.Sum(od => od.Subtotal); // Recalculate subtotal from order details
-            order.TotalAmount = order.SubTotal + order.DeliveryFee + order.Tax - order.Discount;
+            //order.TotalAmount = order.SubTotal + order.DeliveryFee + order.Tax - order.Discount;
 
             unitOfWork.OrderRepository.Update(order);
             await unitOfWork.OrderRepository.SaveChangesAsync();
@@ -61,7 +61,7 @@ namespace Rest.Application.Services
             
             order.OrderDetails.Remove(itemToRemove);
             order.SubTotal = order.OrderDetails.Sum(od => od.Subtotal);
-            order.TotalAmount = order.SubTotal + order.DeliveryFee + order.Tax - order.Discount; // Recalculate total amount
+            //order.TotalAmount = order.SubTotal + order.DeliveryFee + order.Tax - order.Discount; // Recalculate total amount
 
             unitOfWork.OrderRepository.Update(order);
             await unitOfWork.OrderRepository.SaveChangesAsync();
@@ -116,7 +116,7 @@ namespace Rest.Application.Services
                     orderDetail.Product = product;
                 }
                 order.SubTotal = order.OrderDetails.Sum(od => od.UnitPrice * od.Quantity);
-                order.TotalAmount = order.SubTotal + order.DeliveryFee + order.Tax - order.Discount;
+                //order.TotalAmount = order.SubTotal + order.DeliveryFee + order.Tax - order.Discount;
 
                 
                 await unitOfWork.OrderRepository.AddAsync(order);
@@ -253,15 +253,15 @@ namespace Rest.Application.Services
 
             //order.PaymentMethod = paymentMethod;
 
-            if (paymentMethod == PaymentMethod.Cash)
-            {
-                order.PaymentStatus = PaymentStatus.Pending; // Cash payment is pending until delivery
-            }
-            else
-            {
-                order.PaymentStatus = PaymentStatus.Completed;
-                //order.TransactionId = Guid.NewGuid().ToString();
-            }
+            //if (paymentMethod == PaymentMethod.Cash)
+            //{
+            //    order.PaymentStatus = PaymentStatus.Pending; // Cash payment is pending until delivery
+            //}
+            //else
+            //{
+            //    order.PaymentStatus = PaymentStatus.Completed;
+            //    //order.TransactionId = Guid.NewGuid().ToString();
+            //}
 
             unitOfWork.OrderRepository.Update(order);
             await unitOfWork.OrderRepository.SaveChangesAsync();
@@ -280,7 +280,7 @@ namespace Rest.Application.Services
             if (orderDto.Status.HasValue)
                 existingOrder.Status = orderDto.Status.Value;
 
-            existingOrder.PaymentStatus = orderDto.PaymentStatus;
+            //existingOrder.PaymentStatus = orderDto.PaymentStatus;
 
             if (!string.IsNullOrEmpty(orderDto.DeliveryPersonId))
                 existingOrder.DeliveryPersonId = orderDto.DeliveryPersonId;
@@ -307,7 +307,7 @@ namespace Rest.Application.Services
             if (order == null)
                 throw new KeyNotFoundException($"Order with ID {orderId} not found.");
 
-            order.PaymentStatus = newStatus;
+            //order.PaymentStatus = newStatus;
             unitOfWork.OrderRepository.Update(order);
             await unitOfWork.OrderRepository.SaveChangesAsync();
 

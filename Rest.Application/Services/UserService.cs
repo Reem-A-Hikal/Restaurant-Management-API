@@ -1,6 +1,5 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Rest.Application.Dtos.UserDtos;
 using Rest.Application.Interfaces.IRepositories;
 using Rest.Application.Interfaces.IServices;
@@ -18,17 +17,20 @@ namespace Rest.Application.Services
         private readonly UserManager<User> _userManager;
         private readonly IUserRepository _userRepository;
         private readonly IRoleStrategyResolver _roleResolver;
+        private readonly UserCreationHelper _creationHelper;
         private readonly IMapper _mapper;
 
         public UserService(
             UserManager<User> userManager,
             IRoleStrategyResolver roleResolver,
             IUserRepository userRepository,
+            UserCreationHelper userCreationHelper,
             IMapper mapper)
         {
             _userManager = userManager;
             _userRepository = userRepository;
             _roleResolver = roleResolver;
+            _creationHelper = userCreationHelper;
             _mapper = mapper;
         }
         public async Task<IEnumerable<UserDto>> GetAllUsersAsync()
@@ -42,8 +44,8 @@ namespace Rest.Application.Services
             {
                 userDto.Role = rolesDict.TryGetValue(userDto.Id, out var role) 
                     ? role : string.Empty;
-                await _userRepository.BulkEnrichUsersAsync(userDtos);
             }
+            await _userRepository.BulkEnrichUsersAsync(userDtos);
 
             return userDtos;
         }
@@ -86,15 +88,14 @@ namespace Rest.Application.Services
 
         public async Task<string> AddUser(CreateUserDto userDto)
         {
-            var existingUser = await _userManager.FindByEmailAsync(userDto.Email);
-            if (existingUser != null)
-                throw new ValidationException("User with this email already exists");
-
             var validRoles = new[] { "Admin", "Chef", "DeliveryPerson", "Customer" };
             if(!validRoles.Contains(userDto.UserRole))
                 throw new ValidationException($"Invalid role '{userDto.UserRole}'" + $"Valid roles: {string.Join(",", validRoles)}");
 
-            var user = await _roleResolver.CreateUserAsync(userDto);
+            var strategy = _roleResolver.Resolve(userDto.UserRole);
+            var user = strategy.CreateUserEntity(userDto);
+
+            await _creationHelper.CreateAndAssignRoleAsync(user, userDto.Password, userDto.UserRole);
             return user.Id;
         }
 
@@ -123,7 +124,10 @@ namespace Rest.Application.Services
                 var strategy = _roleResolver.Resolve(primaryRole);
                 await strategy.UpdateRoleDataAsync(userId, dto);
             }
-            catch (BusinessException) { }
+            catch (BusinessException ex)
+            {
+                throw new BusinessException($"Failed to update role-specific data: {ex.Message}");
+            }
         }
 
         public async Task UpdateUserProfileAsync(string userId, UpdateProfileDto dto)
@@ -161,6 +165,7 @@ namespace Rest.Application.Services
             user.Status = UserStatus.Deleted;
             user.Email = $"deleted_{user.Id}@deleted.com";
             user.FullName = $"deleted_{user.Id}";
+            user.UserName = $"deleted_{user.Id}";
             user.PhoneNumber = null;
             user.ProfileImageUrl = null;
 

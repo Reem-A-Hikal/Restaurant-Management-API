@@ -34,7 +34,7 @@ namespace Rest.Domain.Entities
         public int OrderId { get; set; }
 
         // Navigation properties
-        public virtual User? DeliveryPerson { get; set; }
+        public virtual User DeliveryPerson { get; set; }
 
         public virtual Order? Order { get; set; }
     }

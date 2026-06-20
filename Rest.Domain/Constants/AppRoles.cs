@@ -1,6 +1,4 @@
-﻿
-
-namespace Rest.Application.Utilities
+﻿namespace Rest.Domain.Constants
 {
     public static class AppRoles
     {

@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Rest.Domain.Entities;
+using Rest.Domain.Entities.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -32,6 +33,8 @@ namespace Rest.Infrastructure.Data.Configurations
                    .WithMany(o => o.OrderDetails)
                    .HasForeignKey(od => od.OrderId)
                    .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasQueryFilter(od => od.Order.User.Status != UserStatus.Deleted);
 
             builder.HasOne(od => od.Product)
                    .WithMany(p => p.OrderDetails)

@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Rest.Domain.Entities;
+using Rest.Domain.Entities.Enums;
 
 namespace Rest.Infrastructure.Data.Configurations
 {
@@ -8,6 +9,8 @@ namespace Rest.Infrastructure.Data.Configurations
     {
         public void Configure(EntityTypeBuilder<User> builder)
         {
+            builder.HasQueryFilter(u => u.Status != UserStatus.Deleted);
+
             builder.Property(u => u.FullName)
                    .IsRequired()
                    .HasMaxLength(100)

@@ -9,7 +9,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace Rest.Application.Services
+namespace Rest.Infrastructure.Implementations.Services
 {
     public class AuthService : IAuthService
     {

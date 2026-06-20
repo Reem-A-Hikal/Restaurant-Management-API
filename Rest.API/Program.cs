@@ -14,6 +14,7 @@ using Rest.Domain.Entities;
 using Rest.Infrastructure.Data;
 using Rest.Infrastructure.Implementations;
 using Rest.Infrastructure.Implementations.Repositories;
+using Rest.Infrastructure.Implementations.Services;
 using Rest.Infrastructure.Implementations.StrategyFactory;
 using System.Reflection;
 using System.Security.Claims;
@@ -78,6 +79,7 @@ namespace Rest.API
             builder.Services.AddScoped<IRoleStrategy, CustomerStrategy>();
 
             builder.Services.AddScoped<IRoleStrategyResolver, RoleStrategyResolver>();
+            builder.Services.AddScoped<UserCreationHelper>();
 
             // CORS
             string txt = "AllowAll";

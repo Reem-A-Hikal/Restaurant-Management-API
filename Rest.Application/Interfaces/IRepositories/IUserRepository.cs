@@ -4,12 +4,16 @@ using Rest.Domain.Entities;
 
 namespace Rest.Application.Interfaces.IRepositories
 {
-    public interface IUserRepository: IRepository<User>
+    public interface IUserRepository
     {
+        Task<IEnumerable<User>> GetAllAsync();
         Task<PaginatedList<User>> GetPaginatedAsync( int pageIndex, int pageSize, string? searchTerm, string? selectedRole);
         Task<User> GetByIdAsync(string id);
         Task<User> GetByEmailAsync(string email);
         Task<Dictionary<string, string>> GetUsersRolesDictAsync(IEnumerable<string> userIds);
         Task BulkEnrichUsersAsync(List<UserDto> userDtos);
+        Task AddAsync(User entity);
+        void Update(User entity);
+        Task SaveChangesAsync();
     }
 }

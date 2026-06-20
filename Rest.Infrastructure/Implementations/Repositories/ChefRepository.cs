@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Rest.Application.Dtos.UserDtos;
 using Rest.Application.Interfaces.IRepositories;
-using Rest.Application.Utilities;
+using Rest.Domain.Constants;
 using Rest.Domain.Entities;
 using Rest.Infrastructure.Data;
 

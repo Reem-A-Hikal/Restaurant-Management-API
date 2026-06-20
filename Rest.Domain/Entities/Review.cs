@@ -37,7 +37,7 @@ namespace Rest.Domain.Entities
         // Navigation properties
         public virtual Order? Order { get; set; }
 
-        public virtual User? Customer { get; set; }
+        public virtual User Customer { get; set; }
 
         public virtual Product? Product { get; set; }
 

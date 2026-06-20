@@ -11,28 +11,20 @@ namespace Rest.Application.Services
     {
         private readonly UserManager<User> _userManager;
         private readonly IAuthService _authService;
+        private readonly UserCreationHelper _creationHelper;
         private readonly IMapper _mapper;
 
-        public AccountService(UserManager<User> userManager, IAuthService authService, IMapper mapper)
+        public AccountService(UserManager<User> userManager, IAuthService authService, UserCreationHelper creationHelper, IMapper mapper)
         {
             _userManager = userManager;
             _authService = authService;
+            _creationHelper = creationHelper;
             _mapper = mapper;
         }
         public async Task RegisterAsync(RegisterDto registerDto)
         {
-            
-            var existingUser = await _userManager.FindByEmailAsync(registerDto.Email);
-            if (existingUser != null)
-                throw new ValidationException("User with this email already exists");
-            
             var user = _mapper.Map<User>(registerDto);
-            var result = await _userManager.CreateAsync(user, registerDto.Password);
-
-            if (!result.Succeeded)
-                throw new ValidationException(result.Errors.Select(e => e.Description));
-            
-            await _userManager.AddToRoleAsync(user, "Customer");
+            await _creationHelper.CreateAndAssignRoleAsync(user, registerDto.Password, "Customer");
         }
         public async Task<LoginResponse> LoginAsync(LoginDto loginDto)
         {

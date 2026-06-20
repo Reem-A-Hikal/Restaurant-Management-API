@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Rest.Domain.Entities;
+using Rest.Domain.Entities.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -42,16 +43,14 @@ namespace Rest.Infrastructure.Data.Configurations
             builder.Property(o => o.Notes)
                    .HasMaxLength(1000);
 
-            builder.Property(o => o.PaymentStatus)
-                   .HasConversion<string>()
-                   .HasColumnType("nvarchar(20)");
-
             builder.HasIndex(o => o.OrderNumber)
                    .IsUnique()
                    .HasDatabaseName("IX_Orders_OrderNumber");
 
             builder.HasIndex(o => o.Status)
                    .HasDatabaseName("IX_Orders_Status");
+
+            builder.Ignore(o => o.PaymentStatus);
 
             builder.HasIndex(o => o.UserId);
             builder.HasIndex(o => o.DeliveryPersonId);
@@ -60,6 +59,8 @@ namespace Rest.Infrastructure.Data.Configurations
                    .WithMany(u => u.CustomerOrders)
                    .HasForeignKey(o => o.UserId)
                    .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasQueryFilter(a => a.User.Status != UserStatus.Deleted);
 
             builder.HasOne(o => o.DeliveryPerson)
                    .WithMany(u => u.DeliveryOrders)

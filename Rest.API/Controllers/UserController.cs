@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Rest.Application.Dtos.UserDtos;
 using Rest.Application.Interfaces.IServices;
 using Swashbuckle.AspNetCore.Annotations;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Rest.API.Controllers
 {

@@ -7,6 +7,5 @@ namespace Rest.Application.Interfaces.IRepositories
     {
         Task<DeliveryPerson?> GetDeliveryPersonByIdAsync(string userId);
         Task BulkEnrichDeliveryPersonsAsync(List<UserDto> userDtos);
-        Task SaveChangesAsync();
     }
 }

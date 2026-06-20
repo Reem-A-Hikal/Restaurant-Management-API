@@ -7,6 +7,5 @@ namespace Rest.Application.Interfaces.IRepositories
     {
         Task<Chef?> GetChefByIdAsync(string userId);
         Task BulkEnrichChefsAsync(List<UserDto> userDtos);
-        Task SaveChangesAsync();
     }
 }

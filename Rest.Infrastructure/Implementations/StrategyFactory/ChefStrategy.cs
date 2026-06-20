@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Rest.Application.Dtos.UserDtos;
+using Rest.Application.Interfaces;
 using Rest.Application.Interfaces.IRepositories;
 using Rest.Application.Interfaces.IServices.StrategyFactory;
 using Rest.Domain.Constants;
@@ -9,11 +10,11 @@ namespace Rest.Infrastructure.Implementations.StrategyFactory
 {
     public class ChefStrategy : IRoleStrategy
     {
-        private readonly IChefRepository _chefRepo;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
-        public ChefStrategy(IChefRepository chefRepo, IMapper mapper)
+        public ChefStrategy(IUnitOfWork unitOfWork, IMapper mapper)
         {
-            _chefRepo = chefRepo;
+            _unitOfWork = unitOfWork;
             _mapper = mapper;
         }
         public string RoleName => AppRoles.Chef;
@@ -22,7 +23,7 @@ namespace Rest.Infrastructure.Implementations.StrategyFactory
 
         public async Task EnrichDtoAsync(UserDto dto)
         {
-            var chef = await _chefRepo.GetChefByIdAsync(dto.Id);
+            var chef = await _unitOfWork.ChefRepository.GetChefByIdAsync(dto.Id);
             dto.Specialization = chef?.Specialization;
         }
 
@@ -30,11 +31,11 @@ namespace Rest.Infrastructure.Implementations.StrategyFactory
         {
             if (!string.IsNullOrWhiteSpace(dto.Specialization))
             {
-                var chef = await _chefRepo.GetChefByIdAsync(userId);
+                var chef = await _unitOfWork.ChefRepository.GetChefByIdAsync(userId);
                 if (chef == null) return;
                 
                 chef.Specialization = dto.Specialization;
-                await _chefRepo.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync();
                 
             }
         }

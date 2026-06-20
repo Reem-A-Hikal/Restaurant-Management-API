@@ -36,11 +36,5 @@ namespace Rest.Infrastructure.Implementations.Repositories
         {
             return await _context.Chefs.FirstOrDefaultAsync(c => c.Id == userId);
         }
-
-
-        public async Task SaveChangesAsync()
-        {
-            await _context.SaveChangesAsync();
-        }
     }
 }

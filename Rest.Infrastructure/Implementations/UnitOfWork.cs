@@ -11,6 +11,8 @@ namespace Rest.Infrastructure.Implementations
         private readonly RestDbContext _context;
 
         private IUserRepository? _userRepository;
+        private IDeliveryPersonRepository? _deliveryPersonRepository;
+        private IChefRepository? _chefRepository;
         private IAddressRepository? _addressRepository;
         private ICategoryRepository? _categoryRepository;
         private IProductRepository? _productRepository;
@@ -29,6 +31,12 @@ namespace Rest.Infrastructure.Implementations
 
         public IUserRepository UserRepository =>
             _userRepository ??= new UserRepository(_context);
+
+        public IChefRepository ChefRepository => 
+            _chefRepository ??= new ChefRepository(_context);
+
+        public IDeliveryPersonRepository DeliveryPersonRepository =>
+            _deliveryPersonRepository ??= new DeliveryPersonRepository(_context);
 
         public IAddressRepository AddressRepository =>
             _addressRepository ??= new AddressRepository(_context,new Repository<Address>(_context));
@@ -50,7 +58,6 @@ namespace Rest.Infrastructure.Implementations
 
         public IRepository<Delivery> DeliveryRepository =>
             _deliveryRepository ??= new Repository<Delivery>(_context);
-
 
         public async Task<int> SaveChangesAsync() => await _context.SaveChangesAsync();
 

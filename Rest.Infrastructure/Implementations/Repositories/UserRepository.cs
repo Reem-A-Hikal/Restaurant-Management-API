@@ -54,13 +54,6 @@ namespace Rest.Infrastructure.Implementations.Repositories
                 ?? throw new KeyNotFoundException("User not found");
         }
         
-        public async Task<User> GetByEmailAsync(string email)
-        {
-            return await _context.Users.FirstOrDefaultAsync(u => u.Email == email)
-                ?? throw new KeyNotFoundException("User not found");
-            
-        }
-
         public async Task<Dictionary<string, string>> GetUsersRolesDictAsync(IEnumerable<string> userIds)
         {
             var userRoles = await (

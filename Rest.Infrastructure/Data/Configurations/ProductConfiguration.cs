@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Rest.Domain.Entities;
+using Rest.Domain.Entities.Enums;
 
 namespace Rest.Infrastructure.Data.Configurations
 {
@@ -8,6 +9,9 @@ namespace Rest.Infrastructure.Data.Configurations
     {
         public void Configure(EntityTypeBuilder<Product> builder)
         {
+            builder.HasQueryFilter(p => p.Status != ProductStatus.Archived
+                          && p.Category!.Status != CategoryStatus.Archived);
+
             builder.ToTable("Products");
             builder.ToTable(t =>
             {

@@ -87,7 +87,7 @@ namespace Rest.Application.Services
 
             var product = _mapper.Map<Product>(productDto);
             await _unitOfWork.ProductRepository.AddAsync(product);
-            await _unitOfWork.ProductRepository.SaveChangesAsync();
+            await _unitOfWork.SaveChangesAsync();
             return product.ProductId;
         }
 
@@ -119,7 +119,7 @@ namespace Rest.Application.Services
             existingProduct.DiscountPercent = productDto.DiscountPercent;
 
             _unitOfWork.ProductRepository.Update(existingProduct);
-            await _unitOfWork.ProductRepository.SaveChangesAsync();
+            await _unitOfWork.SaveChangesAsync();
         }
         /// <summary>
         /// Archive a product by its ID
@@ -133,7 +133,7 @@ namespace Rest.Application.Services
 
             product.Status = ProductStatus.Archived;
             _unitOfWork.ProductRepository.Update(product);
-            await _unitOfWork.ProductRepository.SaveChangesAsync();
+            await _unitOfWork.SaveChangesAsync();
         }
     }
 }

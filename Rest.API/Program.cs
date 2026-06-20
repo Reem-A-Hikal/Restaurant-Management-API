@@ -148,11 +148,11 @@ namespace Rest.API
             );
 
             // AutoMapper
-            builder.Services.AddAutoMapper(typeof(UserProfile));
-            builder.Services.AddAutoMapper(typeof(ProductProfile));
-            builder.Services.AddAutoMapper(typeof(AddressProfile));
-            builder.Services.AddAutoMapper(typeof(OrderProfile));
-            builder.Services.AddAutoMapper(typeof(CategoryProfile));
+            builder.Services.AddAutoMapper(typeof(UserProfile).Assembly);
+            //builder.Services.AddAutoMapper(typeof(ProductProfile));
+            //builder.Services.AddAutoMapper(typeof(AddressProfile));
+            //builder.Services.AddAutoMapper(typeof(OrderProfile));
+            //builder.Services.AddAutoMapper(typeof(CategoryProfile));
 
             // Swagger
             builder.Services.AddSwaggerGen(c =>

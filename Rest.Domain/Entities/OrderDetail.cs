@@ -1,37 +1,27 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.ComponentModel.DataAnnotations;
-
-namespace Rest.Domain.Entities
+﻿namespace Rest.Domain.Entities
 {
     public class OrderDetail
     {
-        [Key]
         public int OrderDetailId { get; set; }
-
-        // Foreign keys
-        [Required]
         public int OrderId { get; set; }
-
-        [Required]
         public int ProductId { get; set; }
+        public int Quantity { get; set; } = 1;
 
-        [Required]
-        [Range(1, int.MaxValue, ErrorMessage = "Quantity must be at least 1")]
-        public int Quantity { get; set; } = 1; // Default to 1
-
-        [Required]
-        [Range(0.01, double.MaxValue, ErrorMessage = "Unit price must be positive")]
+        /// <summary>
+        /// Price snapshot taken from Product.GetDiscountedPrice() at the moment
+        /// this line item was created. Never recalculated afterwards — this is
+        /// what the customer was actually charged, regardless of later price changes.
+        /// </summary>
         public decimal UnitPrice { get; set; }
 
-        [Required]
-        public decimal Subtotal { get; set; }
-
-        [StringLength(500)]
+        /// <summary>
+        /// Computed column in DB: Quantity * UnitPrice
+        /// </summary>
+        public decimal Subtotal { get; private set; }
         public string? SpecialInstructions { get; set; }
 
         // Navigation properties
-        public virtual Order Order { get; set; }
-
-        public virtual Product Product { get; set; }
+        public virtual required Order Order { get; set; }
+        public virtual required Product Product { get; set; }
     }
 }

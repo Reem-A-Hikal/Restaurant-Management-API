@@ -1,41 +1,75 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.ComponentModel.DataAnnotations;
-using Rest.Domain.Entities.Enums;
+﻿using Rest.Domain.Entities.Enums;
+using Rest.Domain.Exceptions;
 
 namespace Rest.Domain.Entities
 {
     public class Delivery
     {
-        [Key]
         public int DeliveryId { get; set; }
-
         public DateTime StatusChangeTime { get; set; } = DateTime.UtcNow;
-
-        [Required]
-        [StringLength(20)]
         public DeliveryStatus Status { get; set; }
-
         public DateTime? DeliveryStartTime { get; set; }
-
         public DateTime? DeliveryEndTime { get; set; }
 
         public decimal? Latitude { get; set; }
 
         public decimal? Longitude { get; set; }
-
-        [StringLength(500)]
         public string? Notes { get; set; }
-
-        // Foreign keys
-        [Required]
         public string DeliveryPersonId { get; set; }
-
-        [Required]
         public int OrderId { get; set; }
 
         // Navigation properties
-        public virtual User DeliveryPerson { get; set; }
-
+        public virtual User? DeliveryPerson { get; set; }
         public virtual Order? Order { get; set; }
+
+        #region State Machine
+        private static readonly Dictionary<DeliveryStatus, DeliveryStatus[]> _allowedTransitions = new()
+        {
+            [DeliveryStatus.Assigned] = new[] { DeliveryStatus.PickedUp, DeliveryStatus.Cancelled },
+            [DeliveryStatus.PickedUp] = new[] { DeliveryStatus.Delivered, DeliveryStatus.Cancelled },
+            [DeliveryStatus.Delivered] = Array.Empty<DeliveryStatus>(),
+            [DeliveryStatus.Cancelled] = Array.Empty<DeliveryStatus>(),
+        };
+
+        public bool CanTransitionTo(DeliveryStatus newStatus)
+        {
+            return _allowedTransitions.TryGetValue(Status, out var allowed)
+                   && allowed.Contains(newStatus);
+        }
+
+        private void TransitionTo(DeliveryStatus newStatus)
+        {
+            if (!CanTransitionTo(newStatus))
+                throw new BusinessException(
+                    $"Cannot transition delivery from '{Status}' to '{newStatus}'.");
+
+            Status = newStatus;
+            StatusChangeTime = DateTime.UtcNow;
+        }
+
+        public void MarkAsPickedUp()
+        {
+            TransitionTo(DeliveryStatus.PickedUp);
+            DeliveryStartTime = DateTime.UtcNow;
+        }
+
+        public void MarkAsDelivered()
+        {
+            TransitionTo(DeliveryStatus.Delivered);
+            DeliveryEndTime = DateTime.UtcNow;
+        }
+
+        public void Cancel(string reason)
+        {
+            if (string.IsNullOrWhiteSpace(reason))
+                throw new ValidationException("Cancellation reason is required.");
+
+            TransitionTo(DeliveryStatus.Cancelled);
+
+            Notes = string.IsNullOrWhiteSpace(Notes)
+                ? $"Cancellation Reason: {reason}"
+                : $"{Notes}\nCancellation Reason: {reason}";
+        }
+        #endregion
     }
 }

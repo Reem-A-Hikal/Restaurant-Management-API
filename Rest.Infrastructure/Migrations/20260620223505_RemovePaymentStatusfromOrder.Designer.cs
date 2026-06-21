@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Rest.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using Rest.Infrastructure.Data;
 namespace Rest.Infrastructure.Migrations
 {
     [DbContext(typeof(RestDbContext))]
-    partial class RestDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260620223505_RemovePaymentStatusfromOrder")]
+    partial class RemovePaymentStatusfromOrder
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -250,7 +253,6 @@ namespace Rest.Infrastructure.Migrations
 
                     b.Property<string>("DeliveryPersonId")
                         .IsRequired()
-                        .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<DateTime?>("DeliveryStartTime")
@@ -272,18 +274,17 @@ namespace Rest.Infrastructure.Migrations
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("varchar(20)");
 
                     b.Property<DateTime>("StatusChangeTime")
                         .HasColumnType("datetime2");
 
                     b.HasKey("DeliveryId");
 
-                    b.HasIndex("DeliveryPersonId")
-                        .HasDatabaseName("IX_Deliveries_DeliveryPersonId");
+                    b.HasIndex("DeliveryPersonId");
 
                     b.HasIndex("OrderId")
-                        .HasDatabaseName("IX_Deliveries_OrderId");
+                        .IsUnique();
 
                     b.ToTable("Deliveries", (string)null);
                 });
@@ -306,19 +307,25 @@ namespace Rest.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("ConfirmedById")
-                        .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<int>("DeliveryAddressId")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("DeliveryEndTime")
+                        .HasColumnType("datetime2");
+
                     b.Property<decimal>("DeliveryFee")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("DeliveryPersonId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime?>("DeliveryStartTime")
+                        .HasColumnType("datetime2");
+
                     b.Property<decimal>("Discount")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("decimal(18,2)")
-                        .HasDefaultValue(0.00m);
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int?>("EstimatedDeliveryTime")
                         .HasColumnType("int");
@@ -343,15 +350,11 @@ namespace Rest.Infrastructure.Migrations
                     b.Property<DateTime?>("RequiredTime")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Source")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                    b.Property<int>("Source")
+                        .HasColumnType("int");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
 
                     b.Property<decimal>("SubTotal")
                         .HasColumnType("decimal(18,2)");
@@ -366,7 +369,6 @@ namespace Rest.Infrastructure.Migrations
 
                     b.Property<string>("UserId")
                         .IsRequired()
-                        .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
                     b.HasKey("OrderId");
@@ -377,6 +379,8 @@ namespace Rest.Infrastructure.Migrations
 
                     b.HasIndex("DeliveryAddressId");
 
+                    b.HasIndex("DeliveryPersonId");
+
                     b.HasIndex("OrderNumber")
                         .IsUnique()
                         .HasDatabaseName("IX_Orders_OrderNumber");
@@ -384,8 +388,7 @@ namespace Rest.Infrastructure.Migrations
                     b.HasIndex("Status")
                         .HasDatabaseName("IX_Orders_Status");
 
-                    b.HasIndex("UserId")
-                        .HasDatabaseName("IX_Orders_UserId");
+                    b.HasIndex("UserId");
 
                     b.ToTable("Orders", (string)null);
                 });
@@ -405,9 +408,7 @@ namespace Rest.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("Quantity")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(1);
+                        .HasColumnType("int");
 
                     b.Property<string>("SpecialInstructions")
                         .HasMaxLength(500)
@@ -423,18 +424,11 @@ namespace Rest.Infrastructure.Migrations
 
                     b.HasKey("OrderDetailId");
 
-                    b.HasIndex("OrderId")
-                        .HasDatabaseName("IX_OrderDetails_OrderId");
+                    b.HasIndex("OrderId");
 
-                    b.HasIndex("ProductId")
-                        .HasDatabaseName("IX_OrderDetails_ProductId");
+                    b.HasIndex("ProductId");
 
-                    b.ToTable("OrderDetails", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_OrderDetails_Quantity", "[Quantity] >= 1");
-
-                            t.HasCheckConstraint("CK_OrderDetails_UnitPrice", "[UnitPrice] > 0");
-                        });
+                    b.ToTable("OrderDetails", (string)null);
                 });
 
             modelBuilder.Entity("Rest.Domain.Entities.Payment", b =>
@@ -459,7 +453,6 @@ namespace Rest.Infrastructure.Migrations
 
                     b.Property<string>("Method")
                         .IsRequired()
-                        .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
                     b.Property<int>("OrderId")
@@ -470,7 +463,6 @@ namespace Rest.Infrastructure.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("TransactionId")
@@ -482,10 +474,7 @@ namespace Rest.Infrastructure.Migrations
                     b.HasIndex("OrderId")
                         .HasDatabaseName("IX_Payments_OrderId");
 
-                    b.ToTable("Payments", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_Payments_Amount", "[Amount] > 0");
-                        });
+                    b.ToTable("Payments", (string)null);
                 });
 
             modelBuilder.Entity("Rest.Domain.Entities.Product", b =>
@@ -789,12 +778,12 @@ namespace Rest.Infrastructure.Migrations
                     b.HasOne("Rest.Domain.Entities.User", "DeliveryPerson")
                         .WithMany("Deliveries")
                         .HasForeignKey("DeliveryPersonId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Rest.Domain.Entities.Order", "Order")
-                        .WithMany("Deliveries")
-                        .HasForeignKey("OrderId")
+                        .WithOne("Delivery")
+                        .HasForeignKey("Rest.Domain.Entities.Delivery", "OrderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -820,6 +809,11 @@ namespace Rest.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Rest.Domain.Entities.User", "DeliveryPerson")
+                        .WithMany("DeliveryOrders")
+                        .HasForeignKey("DeliveryPersonId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Rest.Domain.Entities.User", "User")
                         .WithMany("CustomerOrders")
                         .HasForeignKey("UserId")
@@ -829,6 +823,8 @@ namespace Rest.Infrastructure.Migrations
                     b.Navigation("ConfirmedBy");
 
                     b.Navigation("DeliveryAddress");
+
+                    b.Navigation("DeliveryPerson");
 
                     b.Navigation("User");
                 });
@@ -930,7 +926,7 @@ namespace Rest.Infrastructure.Migrations
 
             modelBuilder.Entity("Rest.Domain.Entities.Order", b =>
                 {
-                    b.Navigation("Deliveries");
+                    b.Navigation("Delivery");
 
                     b.Navigation("OrderDetails");
 
@@ -953,6 +949,8 @@ namespace Rest.Infrastructure.Migrations
                     b.Navigation("CustomerOrders");
 
                     b.Navigation("Deliveries");
+
+                    b.Navigation("DeliveryOrders");
 
                     b.Navigation("Reviews");
                 });

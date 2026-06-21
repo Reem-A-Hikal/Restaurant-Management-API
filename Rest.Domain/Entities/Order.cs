@@ -1,5 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
-using Rest.Domain.Entities.Enums;
+﻿using Rest.Domain.Entities.Enums;
+using Rest.Domain.Exceptions;
 
 namespace Rest.Domain.Entities
 {
@@ -11,14 +11,11 @@ namespace Rest.Domain.Entities
         /// <summary>
         /// Gets or sets the unique identifier for the order.
         /// </summary>
-        [Key]
         public int OrderId { get; set; }
 
         /// <summary>
         /// Gets or sets the order number.
         /// </summary>
-        [Required]
-        [StringLength(20)]
         public required string OrderNumber { get; set; } // Auto-generated
 
         /// <summary>
@@ -32,18 +29,15 @@ namespace Rest.Domain.Entities
         public DateTime? RequiredTime { get; set; }
         public DateTime? ConfirmationTime { get; set; }
         public DateTime? PreparationStartTime { get; set; }
-        public DateTime? DeliveryStartTime { get; set; }
-        public DateTime? DeliveryEndTime { get; set; }
         public DateTime? CancellationTime { get; set; }
 
         /// <summary>
         /// Gets or sets the status of the order.
         /// </summary>
-        [Required]
         public OrderStatus Status { get; set; } = OrderStatus.New; // New, Confirmed, Preparing, Ready, OutForDelivery, Delivered, Canceled
 
         /// <summary>
-        /// Staff ID who confirmed the order
+        /// Staff ID (Admin/Chef) who confirmed the order
         /// </summary>
         public string? ConfirmedById { get; set; }
 
@@ -67,20 +61,21 @@ namespace Rest.Domain.Entities
         /// </summary>
         public decimal Discount { get; set; } = 0.00m;
         /// <summary>
-        /// Gets or sets the total amount for the order.
+        /// Computed column in DB: SubTotal + DeliveryFee + Tax - Discount
         /// </summary>
         public decimal TotalAmount { get; private set; }
 
         /// <summary>
         /// Gets or sets the estimated delivery time in minutes.
         /// </summary>
-        [Range(0, int.MaxValue, ErrorMessage = "Estimated delivery time must be positive")]
         public int? EstimatedDeliveryTime { get; set; }
 
         /// <summary>
-        /// Gets or sets the payment status of the order.
+        /// Computed property — derived from Payments collection.
+        /// A Payment record is never mutated after creation except via its own
+        /// state machine (Complete/Fail/Refund); this property aggregates the
+        /// latest meaningful state across all payment attempts for this order.
         /// </summary>
-        [StringLength(20)]
         public PaymentStatus PaymentStatus { get
             {
                 if (!Payments.Any())
@@ -103,7 +98,6 @@ namespace Rest.Domain.Entities
         /// <summary>
         /// Gets or sets the special instructions or notes for the order.
         /// </summary>
-        [StringLength(1000)]
         public string? Notes { get; set; }
 
         /// <summary>
@@ -115,22 +109,14 @@ namespace Rest.Domain.Entities
         /// UserId of the customer who placed the order.
         /// </summary>
         // Foreign keys
-        [Required]
         public required string UserId { get; set; }
 
         /// <summary>
         /// Gets or sets the delivery address for the order.
         /// </summary>
-        [Required]
         public int DeliveryAddressId { get; set; }
 
-        /// <summary>
-        /// Gets or sets the delivery person assigned to the order.
-        /// </summary>
-        public string? DeliveryPersonId { get; set; }
-
         // Navigation properties
-
         /// <summary>
         /// User who placed the order.
         /// </summary>
@@ -141,29 +127,91 @@ namespace Rest.Domain.Entities
         /// </summary>
         public virtual required Address DeliveryAddress { get; set; }
 
-        /// <summary>
-        /// Gets or sets the delivery person assigned to the order.
-        /// </summary>
-        public virtual User? DeliveryPerson { get; set; }
-
         public virtual User? ConfirmedBy { get; set; }
 
         /// <summary>
         /// Gets or sets the collection of order details associated with the order.
         /// </summary>
         public virtual ICollection<OrderDetail> OrderDetails { get; set; } = new List<OrderDetail>();
-
-        // Payment history
         public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
 
         /// <summary>
-        /// Gets or sets the delivery information for the order.
+        /// One-to-Many: each delivery-person assignment attempt is a separate record
+        /// (mirrors the Payment pattern — a cancelled assignment doesn't get reused,
+        /// a new Delivery record is created instead).
         /// </summary>
-        public virtual Delivery? Delivery { get; set; }
+        public virtual ICollection<Delivery> Deliveries { get; set; } = new List<Delivery>();
 
         /// <summary>
         /// Gets or sets the review associated with the order.
         /// </summary>
         public virtual Review? Review { get; set; }
+
+        #region Start Machine
+        private static readonly Dictionary<OrderStatus, OrderStatus[]> _allowedTransitions = new()
+        {
+            [OrderStatus.New] = new[] {OrderStatus.Confirmed, OrderStatus.Canceled},
+            [OrderStatus.Confirmed] = new[] {OrderStatus.Preparing, OrderStatus.Canceled},
+            [OrderStatus.Preparing] = new[] { OrderStatus.Ready, OrderStatus.Canceled },
+            [OrderStatus.Ready] = new[] { OrderStatus.OutForDelivery, OrderStatus.Canceled },
+            [OrderStatus.OutForDelivery] = new[] { OrderStatus.Delivered },
+            [OrderStatus.Delivered] = Array.Empty<OrderStatus>(),
+            [OrderStatus.Canceled] = Array.Empty<OrderStatus>(),
+        };
+
+        public bool CanTransitionTo(OrderStatus newStatus)
+        {
+            return _allowedTransitions.TryGetValue(Status, out var allowed) 
+                && allowed.Contains(newStatus);
+        }
+
+        /// <summary>
+        /// General-purpose transition engine for statuses that carry no
+        /// mandatory extra data. Confirm() and Cancel() use this internally
+        /// too, then layer on their own required data.
+        /// </summary>
+        public void TransitionTo(OrderStatus newStatus)
+        {
+            if(!CanTransitionTo(newStatus))
+                throw new BusinessException($"Cannot transition order from '{Status}' to '{newStatus}'.");
+
+            Status = newStatus;
+
+            switch (newStatus)
+            {
+                case OrderStatus.Preparing:
+                    PreparationStartTime = DateTime.UtcNow;
+                    break;
+                case OrderStatus.Canceled:
+                    CancellationTime = DateTime.UtcNow;
+                    break;
+            }
+        }
+
+        public void Confirm(string confirmedById, DateTime? requiredTime = null, string? notes = null)
+        {
+            TransitionTo(OrderStatus.Confirmed);
+            ConfirmedById = confirmedById;
+            ConfirmationTime = DateTime.UtcNow;
+
+            if (requiredTime.HasValue)
+                RequiredTime = requiredTime.Value;
+
+            if (!string.IsNullOrWhiteSpace(notes))
+                Notes = notes;
+        }
+
+        public void Cancel(string cancellationReason)
+        {
+            if (string.IsNullOrWhiteSpace(cancellationReason))
+                throw new ValidationException("Cancellation reason is required.");
+
+            TransitionTo(OrderStatus.Canceled);
+
+            Notes = string.IsNullOrWhiteSpace(Notes)
+                ? $"Cancellation Reason: {cancellationReason}"
+                : $"{Notes}\nCancellation Reason: {cancellationReason}";
+        }
+        #endregion
     }
 }

@@ -18,11 +18,16 @@ namespace Rest.Infrastructure.Data.Configurations
 
             builder.HasKey(d => d.DeliveryId);
 
+            builder.Property(d => d.StatusChangeTime)
+                   .IsRequired();
+
             builder.Property(d => d.Status)
                    .HasConversion<string>()
-                   .HasColumnType("varchar(20)")
                    .HasMaxLength(20)
                    .IsRequired();
+
+            builder.Property(d => d.DeliveryStartTime);
+            builder.Property(d => d.DeliveryEndTime);
 
             builder.Property(d => d.Notes)
                    .HasMaxLength(500);
@@ -33,22 +38,33 @@ namespace Rest.Infrastructure.Data.Configurations
             builder.Property(d => d.Longitude)
                    .HasColumnType("decimal(9,6)");
 
-            builder.HasIndex(d => d.OrderId)
-                   .IsUnique();
+            builder.Property(d => d.OrderId)
+                   .IsRequired();
 
-            builder.HasIndex(d => d.DeliveryPersonId);
+            builder.Property(d => d.DeliveryPersonId)
+                   .IsRequired()
+                   .HasMaxLength(450);
+
+            builder.HasIndex(d => d.DeliveryPersonId)
+                   .HasDatabaseName("IX_Deliveries_DeliveryPersonId");
+
+            builder.HasIndex(d => d.OrderId)
+                   .HasDatabaseName("IX_Deliveries_OrderId");
 
             builder.HasOne(d => d.DeliveryPerson)
                    .WithMany(u => u.Deliveries)
                    .HasForeignKey(d => d.DeliveryPersonId)
-                   .OnDelete(DeleteBehavior.Cascade);
-
-            builder.HasQueryFilter(d => d.DeliveryPerson.Status != UserStatus.Deleted);
+                   .OnDelete(DeleteBehavior.Restrict)
+                   .IsRequired();
 
             builder.HasOne(d => d.Order)
-                   .WithOne(o => o.Delivery)
-                   .HasForeignKey<Delivery>(d => d.OrderId)
-                   .OnDelete(DeleteBehavior.Cascade);
+                   .WithMany(o => o.Deliveries)
+                   .HasForeignKey(d => d.OrderId)
+                   .OnDelete(DeleteBehavior.Cascade)
+                   .IsRequired();
+
+            builder.HasQueryFilter(d =>
+                d.Order.User.Status != UserStatus.Deleted);
         }
     }
 }

@@ -20,16 +20,14 @@ namespace Rest.Infrastructure.Implementations.Repositories
         public async Task AssignDeliveryPersonAsync(int orderId, string deliveryPersonId)
         {
             var order = await _context.Orders
-                .Include(o => o.DeliveryPerson)
                 .FirstOrDefaultAsync(o => o.OrderId == orderId);
 
             if (order == null)
             {
                 throw new ArgumentException($"Order with ID {orderId} not found.");
             }
-            order.DeliveryPersonId = deliveryPersonId;
             order.Status = OrderStatus.OutForDelivery; // Update status to OutForDelivery
-            order.DeliveryStartTime = DateTime.UtcNow; // Set the delivery start time
+            //order.DeliveryStartTime = DateTime.UtcNow; // Set the delivery start time
             _context.Entry(order).State = EntityState.Modified; // Mark the order as modified
             await _context.SaveChangesAsync(); // Save changes to the database
         }
@@ -75,10 +73,8 @@ namespace Rest.Infrastructure.Implementations.Repositories
         public async Task<IEnumerable<Order>> GetOrdersByDeliveryPersonAsync(string deliveryPersonId)
         {
             return await _context.Orders
-                .Where(o => o.DeliveryPersonId == deliveryPersonId)
                 .Include(o => o.User)
                 .Include(o => o.DeliveryAddress)
-                .OrderByDescending(o => o.DeliveryStartTime)
                 .ToListAsync();
         }
 
@@ -113,24 +109,24 @@ namespace Rest.Infrastructure.Implementations.Repositories
                 throw new ArgumentException($"Order with ID {orderId} not found.");
             }
             order.Status = newStatus;
-            switch(newStatus)
-            {
-                case OrderStatus.Confirmed:
-                    order.ConfirmationTime = DateTime.UtcNow;
-                    break;
-                case OrderStatus.Preparing:
-                    order.PreparationStartTime = DateTime.UtcNow;
-                    break;
-                case OrderStatus.Ready:
-                    order.DeliveryStartTime = DateTime.UtcNow;
-                    break;
-                case OrderStatus.Delivered:
-                    order.DeliveryEndTime = DateTime.UtcNow;
-                    break;
-                case OrderStatus.Canceled:
-                    order.CancellationTime = DateTime.UtcNow;
-                    break;
-            }
+            //switch(newStatus)
+            //{
+            //    case OrderStatus.Confirmed:
+            //        order.ConfirmationTime = DateTime.UtcNow;
+            //        break;
+            //    case OrderStatus.Preparing:
+            //        order.PreparationStartTime = DateTime.UtcNow;
+            //        break;
+            //    case OrderStatus.Ready:
+            //        order.DeliveryStartTime = DateTime.UtcNow;
+            //        break;
+            //    case OrderStatus.Delivered:
+            //        order.DeliveryEndTime = DateTime.UtcNow;
+            //        break;
+            //    case OrderStatus.Canceled:
+            //        order.CancellationTime = DateTime.UtcNow;
+            //        break;
+            //}
             _orderrepository.Update(order);
             return order;
         }
@@ -147,7 +143,6 @@ namespace Rest.Infrastructure.Implementations.Repositories
             var order = await _context.Orders
                     .Include(o => o.User)
                     .Include(o => o.DeliveryAddress)
-                    .Include(o => o.DeliveryPerson)
                     .Include(o => o.OrderDetails)
                         .ThenInclude(od => od.Product)
                     .FirstOrDefaultAsync(o => o.OrderId == id);

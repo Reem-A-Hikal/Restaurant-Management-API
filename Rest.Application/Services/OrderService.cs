@@ -27,15 +27,15 @@ namespace Rest.Application.Services
             if (order.Status != OrderStatus.New)
                 throw new InvalidOperationException("Cannot modify order items after order has been confirmed.");
 
-            var orderDetail = new OrderDetail
-            {
-                ProductId = itemDto.ProductId,
-                Quantity = itemDto.Quantity,
-                UnitPrice = itemDto.UnitPrice,
-            };
+            //var orderDetail = new OrderDetail
+            //{
+            //    ProductId = itemDto.ProductId,
+            //    Quantity = itemDto.Quantity,
+            //    UnitPrice = itemDto.UnitPrice,
+            //};
             //orderDetail.CalculateSubtotal(); // Assuming this method calculates the subtotal based on quantity and unit price
 
-            order.OrderDetails.Add(orderDetail);
+            //order.OrderDetails.Add(orderDetail);
             order.SubTotal = order.OrderDetails.Sum(od => od.Subtotal); // Recalculate subtotal from order details
             //order.TotalAmount = order.SubTotal + order.DeliveryFee + order.Tax - order.Discount;
 
@@ -98,14 +98,14 @@ namespace Rest.Application.Services
                 if (createorderDto.OrderDetails == null || !createorderDto.OrderDetails.Any())
                     throw new Exception("Order details are empty");
 
-                order.OrderDetails = createorderDto.OrderDetails
-                    .GroupBy(od => od.ProductId)
-                    .Select(g => new OrderDetail
-                    {
-                        ProductId = g.Key,
-                        Quantity = g.Sum(x => x.Quantity),
-                        UnitPrice = g.First().UnitPrice
-                    }).ToList();
+                //order.OrderDetails = createorderDto.OrderDetails
+                //    .GroupBy(od => od.ProductId)
+                //    .Select(g => new OrderDetail
+                //    {
+                //        ProductId = g.Key,
+                //        Quantity = g.Sum(x => x.Quantity),
+                //        UnitPrice = g.First().UnitPrice
+                //    }).ToList();
 
                 foreach (var orderDetail in order.OrderDetails)
                 {
@@ -282,8 +282,8 @@ namespace Rest.Application.Services
 
             //existingOrder.PaymentStatus = orderDto.PaymentStatus;
 
-            if (!string.IsNullOrEmpty(orderDto.DeliveryPersonId))
-                existingOrder.DeliveryPersonId = orderDto.DeliveryPersonId;
+            //if (!string.IsNullOrEmpty(orderDto.DeliveryPersonId))
+            //    existingOrder.DeliveryPersonId = orderDto.DeliveryPersonId;
 
             if (!string.IsNullOrEmpty(orderDto.Notes))
                 existingOrder.Notes = orderDto.Notes;

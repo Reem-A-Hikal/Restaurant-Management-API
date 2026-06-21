@@ -25,9 +25,6 @@ namespace Rest.Domain.Entities
         // Navigation properties
         [InverseProperty("User")]
         public virtual ICollection<Order> CustomerOrders { get; set; } = [];
-
-        [InverseProperty("DeliveryPerson")]
-        public virtual ICollection<Order> DeliveryOrders { get; set; } = [];
         public virtual ICollection<Address> Addresses { get; set; } = [];
         public virtual ICollection<Delivery> Deliveries { get; set; } = [];
         public virtual ICollection<Review> Reviews { get; set; } = [];

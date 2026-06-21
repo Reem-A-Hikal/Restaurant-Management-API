@@ -18,17 +18,21 @@ namespace Rest.Infrastructure.Data.Configurations
 
             builder.HasKey(p => p.PaymentId);
 
+            builder.Property(p => p.OrderId)
+                   .IsRequired();
+
             builder.Property(p => p.Amount)
+                   .IsRequired()
                    .HasColumnType("decimal(18,2)");
 
             builder.Property(p => p.Method)
+                   .IsRequired()
                    .HasConversion<string>()
-                   .HasColumnType("nvarchar(20)")
-                   .IsRequired();
+                   .HasMaxLength(20);
 
             builder.Property(p => p.Status)
                    .HasConversion<string>()
-                   .HasColumnType("nvarchar(20)")
+                   .HasMaxLength(20)
                    .IsRequired();
 
             builder.Property(p => p.TransactionId)
@@ -37,8 +41,15 @@ namespace Rest.Infrastructure.Data.Configurations
             builder.Property(p => p.GatewayResponse)
                    .HasMaxLength(500);
 
+            builder.Property(p => p.PaidAt);
+
             builder.Property(p => p.CreatedAt)
+                   .IsRequired()
                    .HasDefaultValueSql("GETUTCDATE()");
+
+            builder.ToTable(t => t.HasCheckConstraint(
+                "CK_Payments_Amount",
+                "[Amount] > 0"));
 
             builder.HasIndex(p => p.OrderId)
                    .HasDatabaseName("IX_Payments_OrderId");
@@ -46,7 +57,8 @@ namespace Rest.Infrastructure.Data.Configurations
             builder.HasOne(p => p.Order)
                    .WithMany(o => o.Payments)
                    .HasForeignKey(p => p.OrderId)
-                   .OnDelete(DeleteBehavior.Cascade);
+                   .OnDelete(DeleteBehavior.Cascade)
+                   .IsRequired();
 
             builder.HasQueryFilter(p => p.Order.User.Status != UserStatus.Deleted);
         }

@@ -54,6 +54,13 @@ namespace Rest.Infrastructure.Data.Configurations
             builder.HasIndex(p => p.OrderId)
                    .HasDatabaseName("IX_Payments_OrderId");
 
+            // Database-level guard: prevents more than one Completed payment
+            // per order, regardless of application-layer race conditions.
+            builder.HasIndex(p => p.OrderId)
+                   .IsUnique()
+                   .HasFilter("[Status] = 'Completed'")
+                   .HasDatabaseName("IX_Payments_OrderId_CompletedOnly");
+
             builder.HasOne(p => p.Order)
                    .WithMany(o => o.Payments)
                    .HasForeignKey(p => p.OrderId)

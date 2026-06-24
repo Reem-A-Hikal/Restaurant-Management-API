@@ -1,5 +1,6 @@
 ﻿using Rest.Domain.Entities.Enums;
 using Rest.Domain.Exceptions;
+using ValidationException = Rest.Domain.Exceptions.ValidationException;
 
 namespace Rest.Domain.Entities
 {
@@ -96,9 +97,14 @@ namespace Rest.Domain.Entities
         public bool IsPaid => PaymentStatus == PaymentStatus.Completed;
 
         /// <summary>
-        /// Gets or sets the special instructions or notes for the order.
+        /// Notes written by the customer at order creation time.
         /// </summary>
-        public string? Notes { get; set; }
+        public string? CustomerNotes { get; set; }
+
+        /// <summary>
+        /// Notes written by Admin/Chef (confirmation notes, cancellation reason, etc.).
+        /// </summary>
+        public string? StaffNotes { get; set; }
 
         /// <summary>
         /// Gets or sets the source of the order.
@@ -115,6 +121,7 @@ namespace Rest.Domain.Entities
         /// Gets or sets the delivery address for the order.
         /// </summary>
         public int DeliveryAddressId { get; set; }
+
 
         // Navigation properties
         /// <summary>
@@ -188,7 +195,7 @@ namespace Rest.Domain.Entities
             }
         }
 
-        public void Confirm(string confirmedById, DateTime? requiredTime = null, string? notes = null)
+        public void Confirm(string confirmedById, DateTime? requiredTime = null, string? staffNotes = null)
         {
             TransitionTo(OrderStatus.Confirmed);
             ConfirmedById = confirmedById;
@@ -197,8 +204,8 @@ namespace Rest.Domain.Entities
             if (requiredTime.HasValue)
                 RequiredTime = requiredTime.Value;
 
-            if (!string.IsNullOrWhiteSpace(notes))
-                Notes = notes;
+            if (!string.IsNullOrWhiteSpace(staffNotes))
+                StaffNotes = staffNotes;
         }
 
         public void Cancel(string cancellationReason)
@@ -208,9 +215,59 @@ namespace Rest.Domain.Entities
 
             TransitionTo(OrderStatus.Canceled);
 
-            Notes = string.IsNullOrWhiteSpace(Notes)
+            StaffNotes = string.IsNullOrWhiteSpace(StaffNotes)
                 ? $"Cancellation Reason: {cancellationReason}"
-                : $"{Notes}\nCancellation Reason: {cancellationReason}";
+                : $"{StaffNotes}\nCancellation Reason: {cancellationReason}";
+        }
+        #endregion
+
+        #region Domain Methods
+        /// <summary>
+        /// Adds a product to the order, or merges quantity into an existing
+        /// line item if the product is already present.
+        /// </summary>
+        public void AddItem(Product product, int quantity)
+        {
+            if (Status != OrderStatus.New)
+                throw new BusinessException("Cannot modify items after the order has been confirmed.");
+
+            if (quantity <= 0)
+                throw new ValidationException("Quantity must be at least 1.");
+
+            var existingDetail = OrderDetails.FirstOrDefault(od => od.ProductId == product.ProductId);
+            if (existingDetail != null)
+            {
+                existingDetail.Quantity += quantity;
+            }
+            else
+            {
+                OrderDetails.Add(new OrderDetail
+                {
+                    Order = this,
+                    Product = product,
+                    ProductId = product.ProductId,
+                    Quantity = quantity,
+                    UnitPrice = product.GetDiscountedPrice()
+                });
+            }
+            RecalculateSubTotal();
+        }
+
+        private void RecalculateSubTotal()
+        {
+            SubTotal = OrderDetails.Sum(od => od.UnitPrice * od.Quantity);
+        }
+
+        public void RemoveItem(int productId)
+        {
+            if (Status != OrderStatus.New)
+                throw new BusinessException("Cannot modify items after the order has been confirmed.");
+
+            var detail = OrderDetails.FirstOrDefault(od => od.ProductId == productId)
+                ?? throw new NotFoundException("Product in order", productId);
+
+            OrderDetails.Remove(detail);
+            RecalculateSubTotal();
         }
         #endregion
     }

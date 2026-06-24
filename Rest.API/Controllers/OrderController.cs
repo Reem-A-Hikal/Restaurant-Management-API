@@ -302,60 +302,60 @@ namespace Rest.API.Controllers
                 return StatusCode(500, "Internal server error occurred");
             }
         }
-        [HttpPatch("{orderid}/assign-delivery")]
-        [Authorize(Roles = "Admin,Chef")]
-        [ProducesResponseType(typeof(OrderDto), 200)]
-        [ProducesResponseType(400)]
-        [ProducesResponseType(404)]
-        public async Task<ActionResult<OrderDto>> AssignDeliveryPerson(int orderId, [FromBody] AssignDeliveryDto assignDto)
-        {
-            try
-            {
-                var order = await _orderService.AssignDeliveryPersonAsync(orderId, assignDto.DeliveryPersonId);
+        //[HttpPatch("{orderid}/assign-delivery")]
+        //[Authorize(Roles = "Admin,Chef")]
+        //[ProducesResponseType(typeof(OrderDto), 200)]
+        //[ProducesResponseType(400)]
+        //[ProducesResponseType(404)]
+        //public async Task<ActionResult<OrderDto>> AssignDeliveryPerson(int orderId, [FromBody] AssignDeliveryDto assignDto)
+        //{
+        //    try
+        //    {
+        //        //var order = await _orderService.AssignDeliveryPersonAsync(orderId, assignDto.DeliveryPersonId);
 
-                _logger.LogInformation($"Order {orderId} assigned to delivery person {assignDto.DeliveryPersonId}");
-                order.StatusDisplay = order.Status.ToString(); // Assuming you want to display the enum name
-                return Ok(order);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error occurred: ${ex.Message}");
-            }
-        }
+        //        //_logger.LogInformation($"Order {orderId} assigned to delivery person {assignDto.DeliveryPersonId}");
+        //        //order.StatusDisplay = order.Status.ToString(); // Assuming you want to display the enum name
+        //        //return Ok(order);
+        //    }
+        //    catch (ArgumentException ex)
+        //    {
+        //        return BadRequest(ex.Message);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(500, $"Internal server error occurred: ${ex.Message}");
+        //    }
+        //}
 
-        [HttpPatch("{id}/delivered")]
-        [Authorize(Roles = "Admin,Chef,Delivery")]
-        [ProducesResponseType(typeof(OrderDto), 200)]
-        [ProducesResponseType(400)]
-        [ProducesResponseType(404)]
-        public async Task<ActionResult<OrderDto>> MarkAsDelivered(int id)
-        {
-            try
-            {
-                var order = await _orderService.MarkAsDeliveredAsync(id);
+        //[HttpPatch("{id}/delivered")]
+        //[Authorize(Roles = "Admin,Chef,Delivery")]
+        //[ProducesResponseType(typeof(OrderDto), 200)]
+        //[ProducesResponseType(400)]
+        //[ProducesResponseType(404)]
+        //public async Task<ActionResult<OrderDto>> MarkAsDelivered(int id)
+        //{
+        //    try
+        //    {
+        //        var order = await _orderService.MarkAsDeliveredAsync(id);
 
-                _logger.LogInformation($"Order {id} marked as delivered");
+        //        _logger.LogInformation($"Order {id} marked as delivered");
 
-                return Ok(order);
-            }
-            catch (ArgumentException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error marking order {id} as delivered");
-                return StatusCode(500, "Internal server error occurred");
-            }
-        }
+        //        return Ok(order);
+        //    }
+        //    catch (ArgumentException ex)
+        //    {
+        //        return NotFound(ex.Message);
+        //    }
+        //    catch (InvalidOperationException ex)
+        //    {
+        //        return BadRequest(ex.Message);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, $"Error marking order {id} as delivered");
+        //        return StatusCode(500, "Internal server error occurred");
+        //    }
+        //}
 
         [HttpPatch("{id}/cancel")]
         [ProducesResponseType(typeof(OrderDto), 200)]
@@ -467,110 +467,79 @@ namespace Rest.API.Controllers
                 return StatusCode(500, "Internal server error occurred");
             }
         }
-        [HttpPost("{id}/payment")]
-        [ProducesResponseType(200)]
-        [ProducesResponseType(400)]
-        [ProducesResponseType(404)]
-        public async Task<IActionResult> ProcessPayment(int id, [FromBody] PaymentMethod payment)
-        {
-            try
-            {
-                if (!ModelState.IsValid)
-                    return BadRequest(ModelState);
+        //[HttpPost("{id}/payment")]
+        //[ProducesResponseType(200)]
+        //[ProducesResponseType(400)]
+        //[ProducesResponseType(404)]
+        //public async Task<IActionResult> ProcessPayment(int id, [FromBody] PaymentMethod payment)
+        //{
+        //    try
+        //    {
+        //        if (!ModelState.IsValid)
+        //            return BadRequest(ModelState);
 
-                var order = await _orderService.GetOrderByIdAsync(id);
-                var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+        //        var order = await _orderService.GetOrderByIdAsync(id);
+        //        var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        //        var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
 
-                if (userRole != "Admin" && userRole != "Chef" && currentUserId != order.CustomerId)
-                    return Forbid("You can only process payment for your own orders");
+        //        if (userRole != "Admin" && userRole != "Chef" && currentUserId != order.CustomerId)
+        //            return Forbid("You can only process payment for your own orders");
 
-                await _orderService.ProcessPaymentAsync(id, payment);
+        //        await _orderService.ProcessPaymentAsync(id, payment);
 
-                _logger.LogInformation($"Payment processed for order {id} by user {currentUserId}");
+        //        _logger.LogInformation($"Payment processed for order {id} by user {currentUserId}");
 
-                return Ok(new { message = "Payment processed successfully" });
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error processing payment for order {id}");
-                return StatusCode(500, "Internal server error occurred");
-            }
-        }
+        //        return Ok(new { message = "Payment processed successfully" });
+        //    }
+        //    catch (ArgumentException ex)
+        //    {
+        //        return BadRequest(ex.Message);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, $"Error processing payment for order {id}");
+        //        return StatusCode(500, "Internal server error occurred");
+        //    }
+        //}
 
-        [HttpPut("{id}")]
-        [ProducesResponseType(200)]
-        [ProducesResponseType(400)]
-        [ProducesResponseType(404)]
-        public async Task<IActionResult> UpdateOrder(int id, [FromBody] UpdateOrderDto orderDto)
-        {
-            try
-            {
-                if (!ModelState.IsValid)
-                    return BadRequest(ModelState);
+        //[HttpPut("{id}")]
+        //[ProducesResponseType(200)]
+        //[ProducesResponseType(400)]
+        //[ProducesResponseType(404)]
+        //public async Task<IActionResult> UpdateOrder(int id, [FromBody] UpdateOrderDto orderDto)
+        //{
+        //    try
+        //    {
+        //        if (!ModelState.IsValid)
+        //            return BadRequest(ModelState);
 
-                var order = await _orderService.GetOrderByIdAsync(id);
-                var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+        //        var order = await _orderService.GetOrderByIdAsync(id);
+        //        var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        //        var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
 
-                if (userRole != "Admin" && userRole != "Chef" && currentUserId != order.CustomerId)
-                    return Forbid("You can only update your own orders");
+        //        if (userRole != "Admin" && userRole != "Chef" && currentUserId != order.CustomerId)
+        //            return Forbid("You can only update your own orders");
 
-                await _orderService.UpdateOrderAsync(id, orderDto);
+        //        await _orderService.UpdateOrderAsync(id, orderDto);
 
-                _logger.LogInformation($"Order {id} updated by user {currentUserId}");
+        //        _logger.LogInformation($"Order {id} updated by user {currentUserId}");
 
-                return Ok(new { message = "Order updated successfully" });
-            }
-            catch (ArgumentException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error updating order {id}");
-                return StatusCode(500, "Internal server error occurred");
-            }
-        }
-
-        [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
-        [ProducesResponseType(200)]
-        [ProducesResponseType(400)]
-        [ProducesResponseType(404)]
-        public async Task<IActionResult> DeleteOrder(int id)
-        {
-            try
-            {
-                await _orderService.DeleteOrderAsync(id);
-
-                var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                _logger.LogInformation($"Order {id} deleted by user {currentUserId}");
-
-                return Ok(new { message = "Order deleted successfully" });
-            }
-            catch (ArgumentException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error deleting order {id}");
-                return StatusCode(500, "Internal server error occurred");
-            }
-        }
+        //        return Ok(new { message = "Order updated successfully" });
+        //    }
+        //    catch (ArgumentException ex)
+        //    {
+        //        return NotFound(ex.Message);
+        //    }
+        //    catch (InvalidOperationException ex)
+        //    {
+        //        return BadRequest(ex.Message);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, $"Error updating order {id}");
+        //        return StatusCode(500, "Internal server error occurred");
+        //    }
+        //}
 
         [HttpGet("stats/count/{status}")]
         [Authorize(Roles = "Admin")]

@@ -51,6 +51,13 @@ namespace Rest.Infrastructure.Data.Configurations
             builder.HasIndex(d => d.OrderId)
                    .HasDatabaseName("IX_Deliveries_OrderId");
 
+            // Database-level guard: prevents more than one active delivery
+            // (Assigned or PickedUp) per order
+            builder.HasIndex(d => d.OrderId)
+                   .IsUnique()
+                   .HasFilter("[Status] IN ('Assigned', 'PickedUp')")
+                   .HasDatabaseName("IX_Deliveries_OrderId_ActiveOnly");
+
             builder.HasOne(d => d.DeliveryPerson)
                    .WithMany(u => u.Deliveries)
                    .HasForeignKey(d => d.DeliveryPersonId)

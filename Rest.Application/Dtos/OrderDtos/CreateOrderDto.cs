@@ -16,6 +16,9 @@ namespace Rest.Application.Dtos.OrderDtos
         public decimal Discount { get; set; } = 0.00m;
         public decimal Tax { get; set; } // Tax per item
         public decimal DeliveryFee { get; set; }
+
+        [StringLength(1000)]
+        public string? CustomerNotes { get; set; }
         [Required]
         [MinLength(1, ErrorMessage = "Order must have at least one item")]
         public List<CreateOrderDetailDto> OrderDetails { get; set; } = new();

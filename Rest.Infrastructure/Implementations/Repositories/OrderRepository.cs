@@ -9,45 +9,67 @@ namespace Rest.Infrastructure.Implementations.Repositories
     public class OrderRepository : IOrderRepository
     {
         private readonly RestDbContext _context;
-        private readonly IRepository<Order> _orderrepository;
+        private readonly IRepository<Order> _repository;
         public OrderRepository(RestDbContext context,
-            IRepository<Order> orderrepository)
+            IRepository<Order> repository)
         {
             _context = context;
-            _orderrepository = orderrepository;
+            _repository = repository;
         }
 
-        public async Task AssignDeliveryPersonAsync(int orderId, string deliveryPersonId)
-        {
-            var order = await _context.Orders
-                .FirstOrDefaultAsync(o => o.OrderId == orderId);
+        public async Task AddAsync(Order entity) => await _repository.AddAsync(entity);
 
-            if (order == null)
-            {
-                throw new ArgumentException($"Order with ID {orderId} not found.");
-            }
-            order.Status = OrderStatus.OutForDelivery; // Update status to OutForDelivery
-            //order.DeliveryStartTime = DateTime.UtcNow; // Set the delivery start time
-            _context.Entry(order).State = EntityState.Modified; // Mark the order as modified
-            await _context.SaveChangesAsync(); // Save changes to the database
-        }
+        public async Task DeleteAsync(int id) => await _repository.DeleteAsync(id);
 
-        public async Task<decimal> GetDailyRevenueAsync(DateTime date)
-        {
-            var startDate = date.Date;
-            var endDate = startDate.AddDays(1);
+        public void Update(Order entity) => _repository.Update(entity);
 
-            return await _context.Orders
-                .Where(o => o.OrderDate >= startDate &&
-                            o.OrderDate < endDate &&
-                            o.PaymentStatus == PaymentStatus.Completed)
-                .SumAsync(o => o.TotalAmount);
-        }
+        public async Task SaveChangesAsync() => await _repository.SaveChangesAsync();
 
-        public async Task<int> GetOrderCountByStatusAsync(OrderStatus status)
+        /// <summary>
+        /// Lightweight fetch — no Includes.
+        /// </summary>
+        public async Task<Order> GetByIdAsync(int id) => await _repository.GetByIdAsync(id);
+
+        public async Task<IEnumerable<Order>> GetAllAsync()
         {
             return await _context.Orders
-                .CountAsync(o => o.Status == status);
+                .Include(o => o.User)
+                .Include(o => o.OrderDetails)
+                .ToListAsync();
+        }
+
+        public async Task<Order?> GetByIdWithDetailsAsync(int id)
+        {
+            return await _context.Orders
+                .Include (o => o.OrderDetails)
+                    .ThenInclude(od => od.Product)
+                .FirstOrDefaultAsync(o => o.OrderId == id);
+        }
+
+        public async Task<Order?> GetByIdFullAsync(int id)
+        {
+            return await _context.Orders
+                    .Include(o => o.User)
+                    .Include(o => o.DeliveryAddress)
+                    .Include(o => o.ConfirmedBy)
+                    .Include(o => o.OrderDetails)
+                        .ThenInclude(od => od.Product)
+                    .Include(o => o.Payments)
+                    .Include(o => o.Deliveries)
+                        .ThenInclude(o => o.DeliveryPerson)
+                    .Include(o => o.Review)
+                    .FirstOrDefaultAsync(o => o.OrderId == id);
+        }
+
+        public async Task<IEnumerable<Order>> GetOrdersByStatusAsync(OrderStatus status)
+        {
+            return await _context.Orders
+                .Where(o => o.Status == status)
+                .Include(o => o.User)
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.Product)
+                .OrderByDescending(o => o.OrderDate)
+                .ToListAsync();
         }
 
         public async Task<IEnumerable<Order>> GetOrdersByCustomerAsync(string customerId)
@@ -56,6 +78,7 @@ namespace Rest.Infrastructure.Implementations.Repositories
                 .Where(o => o.UserId == customerId)
                 .Include(o => o.DeliveryAddress)
                 .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.Product)
                 .OrderByDescending(o => o.OrderDate)
                 .ToListAsync();
         }
@@ -70,23 +93,13 @@ namespace Rest.Infrastructure.Implementations.Repositories
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<Order>> GetOrdersByDeliveryPersonAsync(string deliveryPersonId)
+        public async Task<IEnumerable<Order>> GetKitchenQueueAsync()
         {
             return await _context.Orders
-                .Include(o => o.User)
-                .Include(o => o.DeliveryAddress)
-                .ToListAsync();
-        }
-
-        public async Task<IEnumerable<Order>> GetOrdersByStatusAsync(OrderStatus status)
-        {
-            return await _context.Orders
-                .Where(o => o.Status == status)
-                .Include(o => o.User)
-                .Include(o => o.DeliveryAddress)
+                .Where(o => o.Status == OrderStatus.Confirmed || o.Status == OrderStatus.Preparing)
                 .Include(o => o.OrderDetails)
                     .ThenInclude(od => od.Product)
-                .OrderByDescending(o => o.OrderDate)
+                .OrderBy(o => o.OrderDate)
                 .ToListAsync();
         }
 
@@ -101,53 +114,22 @@ namespace Rest.Infrastructure.Implementations.Repositories
                 .OrderBy(o => o.RequiredTime)
                 .ToListAsync();
         }
-        public async Task<Order> UpdateOrderStatusAsync(int orderId, OrderStatus newStatus)
+        public async Task<int> GetOrderCountByStatusAsync(OrderStatus status)
         {
-            var order = await _orderrepository.GetByIdAsync(orderId);
-            if (order == null)
-            {
-                throw new ArgumentException($"Order with ID {orderId} not found.");
-            }
-            order.Status = newStatus;
-            //switch(newStatus)
-            //{
-            //    case OrderStatus.Confirmed:
-            //        order.ConfirmationTime = DateTime.UtcNow;
-            //        break;
-            //    case OrderStatus.Preparing:
-            //        order.PreparationStartTime = DateTime.UtcNow;
-            //        break;
-            //    case OrderStatus.Ready:
-            //        order.DeliveryStartTime = DateTime.UtcNow;
-            //        break;
-            //    case OrderStatus.Delivered:
-            //        order.DeliveryEndTime = DateTime.UtcNow;
-            //        break;
-            //    case OrderStatus.Canceled:
-            //        order.CancellationTime = DateTime.UtcNow;
-            //        break;
-            //}
-            _orderrepository.Update(order);
-            return order;
+            return await _context.Orders
+                .CountAsync(o => o.Status == status);
         }
 
-        public async Task SaveChangesAsync() => await _orderrepository.SaveChangesAsync();
-
-        public async Task<IEnumerable<Order>> GetAllAsync() => await _orderrepository.GetAllAsync();
-        public void Update(Order entity) => _orderrepository.Update(entity);
-        public async Task AddAsync(Order entity) => await _orderrepository.AddAsync(entity);
-        public async Task DeleteAsync(int id) => await _orderrepository.DeleteAsync(id);
-
-        public async Task<Order> GetByIdAsync(int id)
+        public async Task<decimal> GetDailyRevenueAsync(DateTime date)
         {
-            var order = await _context.Orders
-                    .Include(o => o.User)
-                    .Include(o => o.DeliveryAddress)
-                    .Include(o => o.OrderDetails)
-                        .ThenInclude(od => od.Product)
-                    .FirstOrDefaultAsync(o => o.OrderId == id);
+            var startDate = date.Date;
+            var endDate = startDate.AddDays(1);
 
-            return order;
+            return await _context.Orders
+                .Where(o => o.OrderDate >= startDate &&
+                            o.OrderDate < endDate)
+                .Where(o => o.Payments.Any(p => p.Status == PaymentStatus.Completed))
+                .SumAsync(o => o.TotalAmount);
         }
     }
 }

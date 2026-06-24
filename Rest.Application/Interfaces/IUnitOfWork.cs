@@ -12,9 +12,10 @@ namespace Rest.Application.Interfaces
         ICategoryRepository CategoryRepository { get; }
         IProductRepository ProductRepository { get; }
         IOrderRepository OrderRepository { get; }
-        IRepository<OrderDetail> OrderDetailRepository { get; }
+        IOrderDetailRepository OrderDetailRepository { get; }
+        IPaymentRepository PaymentRepository { get; }
+        IDeliveryRepository DeliveryRepository { get; }
         IRepository<Review> ReviewRepository { get; }
-        IRepository<Delivery> DeliveryRepository { get; }
 
         Task<int> SaveChangesAsync();
     }

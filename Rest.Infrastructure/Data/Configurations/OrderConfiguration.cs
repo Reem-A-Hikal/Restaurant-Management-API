@@ -65,7 +65,10 @@ namespace Rest.Infrastructure.Data.Configurations
             builder.Ignore(o => o.PaymentStatus);
             builder.Ignore(o => o.IsPaid);
 
-            builder.Property(o => o.Notes)
+            builder.Property(o => o.StaffNotes)
+                   .HasMaxLength(1000);
+
+            builder.Property(o => o.CustomerNotes)
                    .HasMaxLength(1000);
 
             builder.Property(o => o.Source)

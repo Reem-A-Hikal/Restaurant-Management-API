@@ -17,10 +17,11 @@ namespace Rest.Infrastructure.Implementations
         private ICategoryRepository? _categoryRepository;
         private IProductRepository? _productRepository;
         private IOrderRepository? _orderRepository;
+        private IOrderDetailRepository? _orderDetailRepository;
+        private IDeliveryRepository? _deliveryRepository;
+        private IPaymentRepository? _paymentRepository;
 
-        private IRepository<OrderDetail>? _orderDetailRepository;
         private IRepository<Review>? _reviewRepository;
-        private IRepository<Delivery>? _deliveryRepository;
 
 
         public UnitOfWork(
@@ -50,14 +51,16 @@ namespace Rest.Infrastructure.Implementations
         public IOrderRepository OrderRepository =>
          _orderRepository ??= new OrderRepository(_context, new Repository<Order>(_context));
 
-        public IRepository<OrderDetail> OrderDetailRepository =>
-        _orderDetailRepository ??= new Repository<OrderDetail>(_context);
+        public IOrderDetailRepository OrderDetailRepository =>
+        _orderDetailRepository ??= new OrderDetailRepository(_context, new Repository<OrderDetail>(_context));
 
+        public IDeliveryRepository DeliveryRepository =>
+            _deliveryRepository ??= new DeliveryRepository(_context, new Repository<Delivery>(_context));
+
+        public IPaymentRepository PaymentRepository =>
+            _paymentRepository ??= new PaymentRepository(_context, new Repository<Payment>(_context));
         public IRepository<Review> ReviewRepository =>
         _reviewRepository ??= new Repository<Review>(_context);
-
-        public IRepository<Delivery> DeliveryRepository =>
-            _deliveryRepository ??= new Repository<Delivery>(_context);
 
         public async Task<int> SaveChangesAsync() => await _context.SaveChangesAsync();
 

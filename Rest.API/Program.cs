@@ -52,9 +52,12 @@ namespace Rest.API
             builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
             builder.Services.AddScoped<IAddressRepository, AddressRepository>();
             builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
-            builder.Services.AddScoped<IOrderDetailRepository, OrderDetailRepository>();
             builder.Services.AddScoped<IChefRepository, ChefRepository>();
             builder.Services.AddScoped<IDeliveryPersonRepository, DeliveryPersonRepository>();
+            builder.Services.AddScoped<IOrderDetailRepository, OrderDetailRepository>();
+            builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+            builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
+            builder.Services.AddScoped<IDeliveryRepository, DeliveryRepository>();
 
             // Unit of Work
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();

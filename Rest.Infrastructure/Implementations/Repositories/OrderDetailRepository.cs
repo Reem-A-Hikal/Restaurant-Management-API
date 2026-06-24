@@ -8,7 +8,7 @@ namespace Rest.Infrastructure.Implementations.Repositories
     public class OrderDetailRepository : IOrderDetailRepository
     {
         private readonly RestDbContext _context;
-        IRepository<OrderDetail> _repository;
+        private readonly IRepository<OrderDetail> _repository;
         public OrderDetailRepository(RestDbContext restDbContext, IRepository<OrderDetail> repository)
         {
             _context = restDbContext;
@@ -19,6 +19,15 @@ namespace Rest.Infrastructure.Implementations.Repositories
 
         public async Task DeleteAsync(int id) => await _repository.DeleteAsync(id);
 
+        public void Update(OrderDetail entity) => _repository.Update(entity);
+        public async Task SaveChangesAsync() => await _repository.SaveChangesAsync();
+
+        /// <summary>
+        /// Lightweight fetch by Id — no Includes. Intended for internal use
+        /// (e.g. editing a line item already known to belong to a loaded Order).
+        /// </summary>
+        public async Task<OrderDetail> GetByIdAsync(int id) => await _repository.GetByIdAsync(id);
+        
         public async Task<IEnumerable<OrderDetail>> GetAllAsync()
         {
             return await _context.OrderDetails
@@ -27,19 +36,19 @@ namespace Rest.Infrastructure.Implementations.Repositories
                 .ToListAsync();
         }
 
-        public async Task<OrderDetail> GetByIdAsync(int id) =>   await _repository.GetByIdAsync(id);
-
         public async Task<IEnumerable<OrderDetail>> GetByOrderIdAsync(int orderId)
         {
             return await _context.OrderDetails
                 .Include(od => od.Product)
-                .Include(od => od.Order)
-                .Where(od => od.OrderId == orderId).ToListAsync();
+                .Where(od => od.OrderId == orderId)
+                .ToListAsync();
         }
 
-        public async Task SaveChangesAsync() => await _repository.SaveChangesAsync();
-
-        public  void Update(OrderDetail entity) => _repository.Update(entity);
+        public async Task<OrderDetail?> GetByOrderIdAndProductIdAsync(int orderId, int productId)
+        {
+            return await _context.OrderDetails
+                .FirstOrDefaultAsync(od => od.OrderId == orderId && od.ProductId == productId);
+        }
     }
 }
 

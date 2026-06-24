@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Rest.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using Rest.Infrastructure.Data;
 namespace Rest.Infrastructure.Migrations
 {
     [DbContext(typeof(RestDbContext))]
-    partial class RestDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260621194304_AddPaymentAndDeliveryIntegrityConstraints")]
+    partial class AddPaymentAndDeliveryIntegrityConstraints
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -311,10 +314,6 @@ namespace Rest.Infrastructure.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<string>("CustomerNotes")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
                     b.Property<int>("DeliveryAddressId")
                         .HasColumnType("int");
 
@@ -328,6 +327,10 @@ namespace Rest.Infrastructure.Migrations
 
                     b.Property<int?>("EstimatedDeliveryTime")
                         .HasColumnType("int");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<DateTime>("OrderDate")
                         .ValueGeneratedOnAdd()
@@ -349,10 +352,6 @@ namespace Rest.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("StaffNotes")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<string>("Status")
                         .IsRequired()

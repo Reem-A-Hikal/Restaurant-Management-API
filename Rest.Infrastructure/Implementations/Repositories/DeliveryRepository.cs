@@ -3,11 +3,6 @@ using Rest.Application.Interfaces.IRepositories;
 using Rest.Domain.Entities;
 using Rest.Domain.Entities.Enums;
 using Rest.Infrastructure.Data;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Rest.Infrastructure.Implementations.Repositories
 {
@@ -30,7 +25,13 @@ namespace Rest.Infrastructure.Implementations.Repositories
 
         public async Task SaveChangesAsync() => await _repository.SaveChangesAsync();
 
-        public async Task<Delivery> GetByIdAsync(int id) => await _repository.GetByIdAsync(id);
+        public async Task<Delivery?> GetByIdAsync(int id)
+        {
+            return await _context.Deliveries
+                .Include(d => d.Order)
+                .Include(d => d.DeliveryPerson)
+                .FirstOrDefaultAsync(d => d.DeliveryId == id);
+        }
 
         public async Task<IEnumerable<Delivery>> GetAllAsync()
         {
@@ -39,6 +40,26 @@ namespace Rest.Infrastructure.Implementations.Repositories
                 .Include(d => d.Order)
                 .ToListAsync();
         }
+
+        public async Task<IEnumerable<Delivery>> GetDeliveryHistoryByOrderIdAsync(int orderId)
+        {
+            return await _context.Deliveries
+                .Include(d => d.DeliveryPerson)
+                .Where(d => d.OrderId == orderId)
+                .OrderByDescending(d => d.StatusChangeTime)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Delivery>> GetAllActiveDeliveriesAsync()
+        {
+            return await _context.Deliveries
+                .Where(d => d.Status == DeliveryStatus.Assigned || d.Status == DeliveryStatus.PickedUp)
+                .Include(d => d.DeliveryPerson)
+                .Include(d => d.Order)
+                .OrderBy(d => d.StatusChangeTime)
+                .ToListAsync();
+        }
+
         public async Task<Delivery?> GetActiveDeliveryByOrderIdAsync(int orderId)
         {
             return await _context.Deliveries
@@ -48,23 +69,36 @@ namespace Rest.Infrastructure.Implementations.Repositories
                 .FirstOrDefaultAsync();
         }
 
-        public async Task<IEnumerable<Delivery>> GetByOrderIdAsync(int orderId)
+        public async Task<IEnumerable<Delivery>> GetActiveDeliveriesByPersonIdAsync(string deliveryPersonId)
         {
             return await _context.Deliveries
-                .Where(d => d.OrderId == orderId)
-                .Include(d => d.DeliveryPerson)
+                .Include(d => d.Order)
+                    .ThenInclude( o => o!.DeliveryAddress)
+                .Where(d => d.DeliveryPersonId == deliveryPersonId
+                    && (d.Status == DeliveryStatus.Assigned || d.Status == DeliveryStatus.PickedUp))
                 .OrderBy(d => d.StatusChangeTime)
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<Delivery>> GetActiveDeliveriesByPersonIdAsync(string deliveryPersonId)
+        public async Task<string?> GetAvailableDeliveryPersonAsync()
+        {
+            var busyPersonIds = await _context.Deliveries
+                .Where(d => d.Status == DeliveryStatus.Assigned || d.Status == DeliveryStatus.PickedUp)
+                .Select(d => d.DeliveryPersonId)
+                .Distinct()
+                .ToListAsync();
+
+            return await _context.DeliveryPersons
+                .Where(dp => dp.IsAvailable == true && !busyPersonIds.Contains(dp.Id))
+                .Select(dp => dp.Id)
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<bool> HasActiveDeliveryAsync(string deliveryPersonId)
         {
             return await _context.Deliveries
-                .Where(d => d.DeliveryPersonId == deliveryPersonId
-                    && d.Status == DeliveryStatus.Assigned || d.Status == DeliveryStatus.PickedUp)
-                .Include(d => d.Order)
-                .OrderBy(d => d.StatusChangeTime)
-                .ToListAsync();
+                .AnyAsync(d => d.DeliveryPersonId == deliveryPersonId
+                    && (d.Status == DeliveryStatus.Assigned || d.Status == DeliveryStatus.PickedUp));
         }
     }
 }

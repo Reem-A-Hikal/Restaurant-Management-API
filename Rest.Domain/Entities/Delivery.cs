@@ -7,9 +7,9 @@ namespace Rest.Domain.Entities
     {
         public int DeliveryId { get; set; }
         public DateTime StatusChangeTime { get; set; } = DateTime.UtcNow;
-        public DeliveryStatus Status { get; set; }
-        public DateTime? DeliveryStartTime { get; set; }
-        public DateTime? DeliveryEndTime { get; set; }
+        public DeliveryStatus Status { get; private set; } = DeliveryStatus.Assigned;
+        public DateTime? DeliveryStartTime { get; private set; }
+        public DateTime? DeliveryEndTime { get; private set; }
 
         public decimal? Latitude { get; set; }
 

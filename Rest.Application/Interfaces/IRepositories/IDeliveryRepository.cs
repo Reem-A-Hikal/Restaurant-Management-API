@@ -12,15 +12,18 @@ namespace Rest.Application.Interfaces.IRepositories
         Task<Delivery?> GetActiveDeliveryByOrderIdAsync(int orderId);
 
         /// <summary>
-        /// Full delivery attempt history for an order (Assigned, Cancelled,
-        /// Assigned again, Delivered, ...).
-        /// </summary>
-        Task<IEnumerable<Delivery>> GetByOrderIdAsync(int orderId);
-
-        /// <summary>
         /// Active assignments currently on a given delivery person's plate
         /// (status Assigned or PickedUp). Used to answer "what am I delivering right now?"
         /// </summary>
         Task<IEnumerable<Delivery>> GetActiveDeliveriesByPersonIdAsync(string deliveryPersonId);
+        Task<IEnumerable<Delivery>> GetAllActiveDeliveriesAsync();
+        
+        /// <summary>
+        /// Full delivery attempt history for an order (Assigned, Cancelled,
+        /// Assigned again, Delivered, ...).
+        /// </summary>
+        Task<IEnumerable<Delivery>> GetDeliveryHistoryByOrderIdAsync(int orderId);
+        Task<bool> HasActiveDeliveryAsync(string deliveryPersonId);
+        Task<string?> GetAvailableDeliveryPersonAsync();
     }
 }

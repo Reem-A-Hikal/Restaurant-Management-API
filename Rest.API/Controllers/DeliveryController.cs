@@ -1,95 +1,149 @@
-﻿//using Microsoft.AspNetCore.Http;
-//using Microsoft.AspNetCore.Mvc;
-//using Rest.API.Models;
-//using Rest.API.Services.Interfaces;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Rest.Application.Dtos.DeliveryDtos;
+using Rest.Application.Interfaces.IServices;
+using System.Security.Claims;
 
-//namespace Rest.API.Controllers
-//{
-//    [Route("api/[controller]")]
-//    [ApiController]
-//    public class DeliveryController : ControllerBase
-//    {
-//        private readonly IDeliveryService _deliveryService;
+namespace Rest.API.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    [Authorize]
+    public class DeliveryController : BaseController
+    {
+        private readonly IDeliveryService _deliveryService;
 
-//        public DeliveryController(IDeliveryService deliveryService)
-//        {
-//            _deliveryService = deliveryService;
-//        }
+        public DeliveryController(IDeliveryService deliveryService)
+        {
+            _deliveryService = deliveryService;
+        }
 
-//        // GET: api/delivery
-//        [HttpGet]
-//        public async Task<ActionResult<IEnumerable<Delivery>>> GetAll()
-//        {
-//            var deliveries = await _deliveryService.GetAllDeliveriesAsync();
-//            return Ok(deliveries);
-//        }
+        /// <summary>
+        /// Assign a delivery person to a Ready order (auto or manual override)
+        /// </summary>
+        [HttpPost("assign/{orderId}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> AssignDelivery(int orderId, [FromBody] AssignDeliveryDto dto)
+        {
+            var result = await _deliveryService.AssignDeliveryAsync(orderId, dto);
+            return SuccessResponse(result, "Delivery assigned successfully");
+        }
 
-//        // GET: api/delivery/5
-//        [HttpGet("{id}")]
-//        public async Task<ActionResult<Delivery>> GetById(int id)
-//        {
-//            var delivery = await _deliveryService.GetDeliveryByIdAsync(id);
-//            if (delivery == null)
-//            {
-//                return NotFound();
-//            }
-//            return Ok(delivery);
-//        }
+        /// <summary>
+        /// DeliveryPerson marks order as picked up
+        /// </summary>
+        [HttpPut("{deliveryId}/pickup")]
+        [Authorize(Roles = "DeliveryPerson")]
+        public async Task<IActionResult> MarkAsPickedUp(int deliveryId)
+        {
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-//        // POST: api/delivery
-//        [HttpPost]
-//        public async Task<ActionResult<Delivery>> Create([FromBody] Delivery delivery)
-//        {
-//            if (!ModelState.IsValid)
-//                return BadRequest(ModelState);
+            var activeDelivery = await _deliveryService.GetActiveDeliveryForOrderAsync(deliveryId);
+            if (activeDelivery == null)
+                return NotFoundResponse("Delivery not found.");
 
-//            await _deliveryService.AddDeliveryAsync(delivery);
+            if (activeDelivery.DeliveryPersonId != currentUserId)
+                return ForbiddenResponse("You can only update your own deliveries.");
 
-//            // Return created resource URI and object
-//            return CreatedAtAction(nameof(GetById), new { id = delivery.DeliveryId }, delivery);
-//        }
+            var result = await _deliveryService.MarkAsPickedUpAsync(deliveryId);
+            return SuccessResponse(result, "Order marked as picked up");
+        }
 
-//        // PUT: api/delivery/5
-//        [HttpPut("{id}")]
-//        public async Task<IActionResult> Update(int id, [FromBody] Delivery delivery)
-//        {
-//            if (id != delivery.DeliveryId)
-//                return BadRequest("Delivery ID mismatch");
+        /// <summary>
+        /// DeliveryPerson marks order as delivered
+        /// </summary>
+        [HttpPut("{deliveryId}/delivered")]
+        [Authorize(Roles = "DeliveryPerson")]
+        public async Task<IActionResult> MarkAsDelivered(int deliveryId)
+        {
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-//            if (!ModelState.IsValid)
-//                return BadRequest(ModelState);
+            var activeDelivery = await _deliveryService.GetActiveDeliveryForOrderAsync(deliveryId);
+            if (activeDelivery == null)
+                return NotFoundResponse("Delivery not found.");
 
-//            var existingDelivery = await _deliveryService.GetDeliveryByIdAsync(id);
-//            if (existingDelivery == null)
-//                return NotFound();
+            if (activeDelivery.DeliveryPersonId != currentUserId)
+                return ForbiddenResponse("You can only update your own deliveries.");
 
-//            existingDelivery.Status = delivery.Status;
-//            existingDelivery.StatusChangeTime = delivery.StatusChangeTime;
-//            existingDelivery.DeliveryStartTime = delivery.DeliveryStartTime;
-//            existingDelivery.DeliveryEndTime = delivery.DeliveryEndTime;
-//            existingDelivery.Latitude = delivery.Latitude;
-//            existingDelivery.Longitude = delivery.Longitude;
-//            existingDelivery.Notes = delivery.Notes;
-//            existingDelivery.DeliveryPersonId = delivery.DeliveryPersonId;
-//            existingDelivery.OrderId = delivery.OrderId;
+            var result = await _deliveryService.MarkAsDeliveredAsync(deliveryId);
+            return SuccessResponse(result, "Order marked as delivered");
+        }
 
-//            await _deliveryService.UpdateDeliveryAsync(existingDelivery);
+        /// <summary>
+        /// Cancel an active delivery — Admin, Chef, or the assigned DeliveryPerson
+        /// </summary>
+        [HttpPut("{deliveryId}/cancel")]
+        [Authorize(Roles = "Admin,DeliveryPerson")]
+        public async Task<IActionResult> CancelDelivery(int deliveryId, [FromBody] CancelDeliveryDto dto)
+        {
+            if (!ModelState.IsValid)
+                return ValidationErrorResponse(
+                    ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)));
 
-//            return NoContent();
-//        }
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userRole = User.FindFirstValue(ClaimTypes.Role);
 
-//        // DELETE: api/delivery/5
-//        [HttpDelete("{id}")]
-//        public async Task<IActionResult> Delete(int id)
-//        {
-//            var existingDelivery = await _deliveryService.GetDeliveryByIdAsync(id);
-//            if (existingDelivery == null)
-//                return NotFound();
+            if (userRole == "DeliveryPerson")
+            {
+                var activeDelivery = await _deliveryService.GetActiveDeliveryForOrderAsync(deliveryId);
+                if (activeDelivery == null)
+                    return NotFoundResponse("Delivery not found.");
 
-//            await _deliveryService.DeleteDeliveryAsync(id);
+                if (activeDelivery.DeliveryPersonId != currentUserId)
+                    return ForbiddenResponse("You can only cancel your own deliveries.");
+            }
 
-//            return NoContent();
-//        }
-//    }
-//}
+            var result = await _deliveryService.CancelDeliveryAsync(deliveryId, dto.Reason);
+            return SuccessResponse(result, "Delivery cancelled successfully");
+        }
+
+        /// <summary>
+        /// Get active delivery for a specific order
+        /// </summary>
+        [HttpGet("order/{orderId}/active")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetActiveDeliveryForOrder(int orderId)
+        {
+            var result = await _deliveryService.GetActiveDeliveryForOrderAsync(orderId);
+            if (result == null)
+                return NotFoundResponse("No active delivery found for this order.");
+
+            return SuccessResponse(result, "Active delivery retrieved successfully");
+        }
+
+        /// <summary>
+        /// Get full delivery history for an order
+        /// </summary>
+        [HttpGet("order/{orderId}/history")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetDeliveryHistory(int orderId)
+        {
+            var result = await _deliveryService.GetDeliveryHistoryAsync(orderId);
+            return SuccessResponse(result, "Delivery history retrieved successfully");
+        }
+
+        /// <summary>
+        /// DeliveryPerson gets their own active deliveries
+        /// </summary>
+        [HttpGet("my-deliveries")]
+        [Authorize(Roles = "DeliveryPerson")]
+        public async Task<IActionResult> GetMyDeliveries()
+        {
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var result = await _deliveryService.GetMyDeliveriesAsync(currentUserId!);
+            return SuccessResponse(result, "Your active deliveries retrieved successfully");
+        }
+
+        /// <summary>
+        /// Get all active deliveries in the system — Admin dashboard
+        /// </summary>
+        [HttpGet("active")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetAllActiveDeliveries()
+        {
+            var result = await _deliveryService.GetAllActiveDeliveriesAsync();
+            return SuccessResponse(result, "All active deliveries retrieved successfully");
+        }
+    }
+}
 

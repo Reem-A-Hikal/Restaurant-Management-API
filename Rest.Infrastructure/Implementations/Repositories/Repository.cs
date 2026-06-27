@@ -16,7 +16,7 @@ namespace Rest.Infrastructure.Implementations.Repositories
         {
             return await context.Set<TEntity>().ToListAsync();
         }
-        public async Task<TEntity> GetByIdAsync(int id)
+        public async Task<TEntity?> GetByIdAsync(int id)
         {
             return await context.Set<TEntity>().FindAsync(id);
         }

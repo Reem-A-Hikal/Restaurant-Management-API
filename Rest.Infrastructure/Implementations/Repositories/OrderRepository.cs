@@ -28,7 +28,7 @@ namespace Rest.Infrastructure.Implementations.Repositories
         /// <summary>
         /// Lightweight fetch — no Includes.
         /// </summary>
-        public async Task<Order> GetByIdAsync(int id) => await _repository.GetByIdAsync(id);
+        public async Task<Order?> GetByIdAsync(int id) => await _repository.GetByIdAsync(id);
 
         public async Task<IEnumerable<Order>> GetAllAsync()
         {
@@ -103,17 +103,6 @@ namespace Rest.Infrastructure.Implementations.Repositories
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<Order>> GetPendingDeliveryOrdersAsync()
-        {
-            var pendingStatuses = new[] { OrderStatus.Confirmed, OrderStatus.Preparing, OrderStatus.Ready, OrderStatus.OutForDelivery };
-
-            return await _context.Orders
-                .Where(o => pendingStatuses.Contains(o.Status))
-                .Include(o => o.User)
-                .Include(o => o.DeliveryAddress)
-                .OrderBy(o => o.RequiredTime)
-                .ToListAsync();
-        }
         public async Task<int> GetOrderCountByStatusAsync(OrderStatus status)
         {
             return await _context.Orders

@@ -23,7 +23,6 @@ namespace Rest.Application.Interfaces.IRepositories
         Task<IEnumerable<Order>> GetOrdersByCustomerAsync(string customerId);
         Task<IEnumerable<Order>> GetOrdersByDateRangeAsync(DateTime startDate, DateTime endDate);
         Task<IEnumerable<Order>> GetKitchenQueueAsync();
-        Task<IEnumerable<Order>> GetPendingDeliveryOrdersAsync();
         Task<decimal> GetDailyRevenueAsync(DateTime date);
         Task<int> GetOrderCountByStatusAsync(OrderStatus status);
     }

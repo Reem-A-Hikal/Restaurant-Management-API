@@ -14,9 +14,6 @@ namespace Rest.API.Controllers
     [Authorize]
     public class UserController : BaseController
     {
-        /// <summary>
-        /// Controller for managing user operations including retrieval, updates, and deletion
-        /// </summary>
         private readonly IUserService _userService;
 
         /// <summary>

@@ -1,580 +1,286 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Rest.Application.Dtos.OrderDetailsDtos;
 using Rest.Application.Dtos.OrderDtos;
 using Rest.Application.Interfaces.IServices;
 using Rest.Domain.Entities.Enums;
+using Swashbuckle.AspNetCore.Annotations;
 using System.Security.Claims;
 
 namespace Rest.API.Controllers
 {
+    /// <summary>Controller for managing order operations</summary>
     [Route("api/[controller]")]
     [ApiController]
-    public class OrderController : ControllerBase
+    [Authorize]
+    public class OrderController : BaseController
     {
         private readonly IOrderService _orderService;
-        private readonly ILogger<OrderController> _logger;
 
-        public OrderController(IOrderService orderService, ILogger<OrderController> logger)
+        /// <summary>
+        /// Initializes a new instance of the OrderController
+        /// </summary>
+        public OrderController(IOrderService orderService)
         {
             _orderService = orderService;
-            _logger = logger;
         }
 
-        [HttpPost("create")]
-        [ProducesResponseType(typeof(OrderDto), 201)]
-        [ProducesResponseType(400)]
-        [ProducesResponseType(401)]
-        public async Task<ActionResult<OrderDto>> CreateOrder([FromBody] CreateOrderDto orderDto)
-        { 
-            try
-            {
-                if(!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
-                var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty(currentUserId))
-                {
-                    _logger.LogWarning("Unauthenticated user attempted to create order");
-                    return Unauthorized();
-                }
-                if (orderDto.UserId != currentUserId)
-                {
-                    _logger.LogWarning($"User {currentUserId} attempted to create order for another user");
-                    return Forbid();
-                }
-                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
-
-                if (userRole != "Customer")
-                {
-                    return Unauthorized("Only customers can create orders.");
-                }
-                if (orderDto.OrderDetails == null || orderDto.OrderDetails.Count == 0)
-                {
-                    return BadRequest("Order must contain at least one item.");
-                }
-
-                var order = await _orderService.CreateOrderAsync(orderDto);
-                _logger.LogInformation($"Order {order.OrderId} created successfully by user {currentUserId}");
-
-                return CreatedAtAction(nameof(GetOrderById), new { id = order.OrderId }, order);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning($"Invalid argument in CreateOrder: {ex.Message}");
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating order");
-                return StatusCode(500, "Internal server error occurred" +ex);
-            }
-        }
-
-        [HttpGet("getOrderById/{id}")]
-        [ProducesResponseType(typeof(OrderDto), 200)]
-        [ProducesResponseType(404)]
-        [ProducesResponseType(401)]
-        public async Task<ActionResult<OrderDto>> GetOrderById(int id)
+        /// <summary>Creates a new order for the authenticated customer.</summary>
+        [HttpPost]
+        [Authorize(Roles = "Customer")]
+        [SwaggerOperation(Summary = "Create a new order", Description = "Customer only. UserId is extracted from the JWT token.")]
+        [SwaggerResponse(201, "Order created successfully", typeof(OrderDto))]
+        [SwaggerResponse(400, "Invalid input data")]
+        [SwaggerResponse(403, "Forbidden")]
+        public async Task<IActionResult> CreateOrder([FromBody] CreateOrderDto dto)
         {
-            try
-            {
-                var order = await _orderService.GetOrderByIdAsync(id);
-                if (order == null)
-                {
-                    return NotFound($"Order with ID {id} not found.");
-                }
+            if (!ModelState.IsValid)
+                return ValidationErrorResponse(
+                    ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)));
 
-                var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            var order = await _orderService.CreateOrderAsync(userId, dto);
 
-                if (userRole != "Admin" && userRole != "Chef" && currentUserId != order.CustomerId)
-                    return Forbid("You can only view your own orders");
-
-                return Ok(order);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning($"Order not found: {ex.Message}");
-                return NotFound(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error retrieving order {id}");
-                return StatusCode(500, "Internal server error occurred" + ex);
-            }
+            return CreatedResponse(
+                nameof(GetOrderById),
+                new { id = order.OrderId },
+                order,
+                "Order created successfully");
         }
-        [HttpGet("GetAllOrders")]
+
+        /// <summary>Gets an order by ID.</summary>
+        [HttpGet("{id}")]
+        [SwaggerOperation(Summary = "Get order by ID", Description = "Admin/Chef see any order. Customer sees own orders only.")]
+        [SwaggerResponse(200, "Order retrieved successfully", typeof(OrderDto))]
+        [SwaggerResponse(403, "Forbidden")]
+        [SwaggerResponse(404, "Order not found")]
+        public async Task<IActionResult> GetOrderById(int id)
+        {
+            var order = await _orderService.GetOrderByIdAsync(id);
+
+            if(User.IsInRole("Customer"))
+            {
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (order.CustomerId != userId)
+                    return ForbiddenResponse();
+            }
+
+            return SuccessResponse(order);
+        }
+
+        /// <summary>Gets all orders.</summary>
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        [SwaggerOperation(Summary = "Get all orders", Description = "Admin only.")]
+        [SwaggerResponse(200, "Orders retrieved successfully", typeof(IEnumerable<OrderDto>))]
+        [SwaggerResponse(401, "Unauthorized")]
+        [SwaggerResponse(403, "Forbidden")]
+        public async Task<IActionResult> GetAllOrders()
+        {
+            var orders = await _orderService.GetAllOrdersAsync();
+            return SuccessResponse(orders);
+        }
+
+        /// <summary>Gets orders for a specific customer.</summary>
+        [HttpGet("customer/{customerId}")]
+        [SwaggerOperation(Summary = "Get orders by customer", Description = "Admin sees any customer orders. Customer sees own orders only.")]
+        [SwaggerResponse(200, "Orders retrieved successfully", typeof(IEnumerable<OrderDto>))]
+        [SwaggerResponse(403, "Forbidden")]
+        public async Task<IActionResult> GetOrdersByCustomer(string customerId)
+        {
+            if (User.IsInRole("Customer"))
+            {
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+                if (userId != customerId)
+                    return ForbiddenResponse();
+            }
+
+            var orders = await _orderService.GetOrdersByCustomerAsync(customerId);
+            return SuccessResponse(orders);
+        }
+
+        /// <summary>Gets the authenticated customer's orders.</summary>
+        [HttpGet("my-orders")]
+        [Authorize(Roles = "Customer")]
+        [SwaggerOperation(Summary = "Get my orders", Description = "Returns orders for the authenticated customer.")]
+        [SwaggerResponse(200, "Orders retrieved successfully", typeof(IEnumerable<OrderDto>))]
+        public async Task<IActionResult> GetMyOrders()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            var orders = await _orderService.GetOrdersByCustomerAsync(userId);
+            return SuccessResponse(orders);
+        }
+
+        /// <summary>Gets orders by status.</summary>
+        [HttpGet("status/{status}")]
         [Authorize(Roles = "Admin,Chef")]
-        [ProducesResponseType(typeof(IEnumerable<OrderDto>), 200)]
-        [ProducesResponseType(401)]
-        [ProducesResponseType(403)]
-        public async Task<ActionResult<IEnumerable<OrderDto>>> GetAllOrders()
+        [SwaggerOperation(Summary = "Get orders by status", Description = "Admin sees all statuses. Chef sees Confirmed, Preparing, Ready only.")]
+        [SwaggerResponse(200, "Orders retrieved successfully", typeof(IEnumerable<OrderDto>))]
+        [SwaggerResponse(403, "Forbidden")]
+        public async Task<IActionResult> GetOrdersByStatus(OrderStatus status)
         {
-            try
+            if (User.IsInRole("Chef"))
             {
-                var orders = await _orderService.GetAllOrdersAsync();
-                foreach (var order in orders)
-                {
-                    order.StatusDisplay = order.Status.ToString(); // Assuming you want to display the enum name
-                }
-                return Ok(orders);
+                var allowedStatuses = new[] { OrderStatus.Confirmed, OrderStatus.Preparing, OrderStatus.Ready };
+                if (!allowedStatuses.Contains(status))
+                    return ForbiddenResponse("Chefs can only view Confirmed, Preparing, and Ready orders.");
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving all orders");
-                return StatusCode(500, "Internal server error occurred");
-            }
+
+            var orders = await _orderService.GetOrdersByStatusAsync(status);
+            return SuccessResponse(orders);
         }
 
-        [HttpGet("Bycustomer/{customerId}")]
-        [ProducesResponseType(typeof(IEnumerable<OrderDto>), 200)]
-        [ProducesResponseType(401)]
-        [ProducesResponseType(403)]
-        public async Task<ActionResult<IEnumerable<OrderDto>>> GetOrdersByCustomer(string customerId)
-        {
-            try
-            {
-                var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
-
-                if (userRole != "Admin" && userRole != "Chef" && currentUserId != customerId)
-                    return Forbid("You can only view your own orders");
-
-                var orders = await _orderService.GetOrdersByCustomerAsync(customerId);
-                return Ok(orders);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error retrieving orders for customer {customerId}");
-                return StatusCode(500, "Internal server error occurred");
-            }
-        }
-
-        [HttpGet("Bystatus/{status}")]
-        [Authorize(Roles = "Admin,Chef")]
-        [ProducesResponseType(typeof(IEnumerable<OrderDto>), 200)]
-        [ProducesResponseType(401)]
-        [ProducesResponseType(403)]
-        public async Task<ActionResult<IEnumerable<OrderDto>>> GetOrdersByStatus(OrderStatus status)
-        {
-            try
-            {
-                var orders = await _orderService.GetOrdersByStatusAsync(status);
-                foreach(var order in orders)
-                {
-                    order.StatusDisplay = order.Status.ToString(); // Assuming you want to display the enum name
-                }
-                return Ok(orders);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error retrieving orders with status {status}");
-                return StatusCode(500, "Internal server error occurred");
-            }
-        }
-
-        //[HttpGet("date-range")]
-        //[Authorize(Roles = "Admin,Chef")]
-        //[ProducesResponseType(typeof(IEnumerable<OrderDto>), 200)]
-        //[ProducesResponseType(400)]
-        //[ProducesResponseType(401)]
-        //public async Task<ActionResult<IEnumerable<OrderDto>>> GetOrdersByDateRange(
-        //    [FromQuery] DateTime startDate,
-        //    [FromQuery] DateTime endDate)
-        //{
-        //    try
-        //    {
-        //        if (startDate > endDate)
-        //            return BadRequest("Start date cannot be after end date");
-
-        //        var orders = await _orderService.GetOrdersByDateRangeAsync(startDate, endDate);
-        //        foreach (var order in orders)
-        //        {
-        //            order.StatusDisplay = order.Status.ToString(); // Assuming you want to display the enum name
-        //        }
-        //        return Ok(orders);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, $"Error retrieving orders between {startDate} and {endDate}");
-        //        return StatusCode(500, "Internal server error occurred");
-        //    }
-        //}
-
-        [HttpGet("kitchen-queue")]
-        [Authorize(Roles = "Admin,Chef,Kitchen")]
-        [ProducesResponseType(typeof(IEnumerable<OrderDto>), 200)]
-        [ProducesResponseType(401)]
-        public async Task<ActionResult<IEnumerable<OrderDto>>> GetKitchenQueue()
-        {
-            try
-            {
-                var orders = await _orderService.GetKitchenQueueAsync();
-                foreach (var order in orders)
-                {
-                    order.StatusDisplay = order.Status.ToString(); // Assuming you want to display the enum name
-                }
-                return Ok(orders);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving kitchen queue");
-                return StatusCode(500, "Internal server error occurred");
-            }
-        }
-        [HttpGet("pending-delivery")]
-        [Authorize(Roles = "Admin,Chef,Delivery")]
-        [ProducesResponseType(typeof(IEnumerable<OrderDto>), 200)]
-        [ProducesResponseType(401)]
-        public async Task<ActionResult<IEnumerable<OrderDto>>> GetPendingDeliveryOrders()
-        {
-            try
-            {
-                var orders = await _orderService.GetPendingDeliveryOrdersAsync();
-                return Ok(orders);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving pending delivery orders");
-                return StatusCode(500, "Internal server error occurred");
-            }
-        }
-
+        /// <summary>Confirms an order.</summary>
         [HttpPatch("{id}/confirm")]
         [Authorize(Roles = "Admin,Chef")]
-        [ProducesResponseType(typeof(OrderDto), 200)]
-        [ProducesResponseType(400)]
-        [ProducesResponseType(404)]
-        public async Task<ActionResult<OrderDto>> ConfirmOrder(int id, [FromBody] ConfirmOrderDto confirmDto)
+        [SwaggerOperation(Summary = "Confirm an order", Description = "Admin/Chef only. Transitions order from New to Confirmed.")]
+        [SwaggerResponse(200, "Order confirmed successfully", typeof(OrderDto))]
+        [SwaggerResponse(400, "Invalid transition")]
+        [SwaggerResponse(404, "Order not found")]
+        public async Task<IActionResult> ConfirmOrder(int id, [FromBody] ConfirmOrderDto dto)
         {
-            try
-            {
-                var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var order = await _orderService.ConfirmOrderAsync(id, currentUserId, confirmDto);
+            var confirmedById = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            var order = await _orderService.ConfirmOrderAsync(id, confirmedById, dto);
 
-                _logger.LogInformation($"Order {id} confirmed by user {currentUserId}");
-                order.StatusDisplay = order.Status.ToString(); // Assuming you want to display the enum name
-                return Ok(order);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning($"Order confirmation failed: {ex.Message}");
-                return NotFound(ex.Message);
-            }
-            catch (InvalidOperationException ex)
-            {
-                _logger.LogWarning($"Invalid order confirmation: {ex.Message}");
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error confirming order {id}");
-                return StatusCode(500, "Internal server error occurred");
-            }
+            return SuccessResponse(order, "Order confirmed successfully");
+
         }
-        [HttpPatch("{id}/prepared")]
-        [Authorize(Roles = "Admin,Chef,Kitchen")]
-        [ProducesResponseType(typeof(OrderDto), 200)]
-        [ProducesResponseType(400)]
-        [ProducesResponseType(404)]
-        public async Task<ActionResult<OrderDto>> MarkAsPrepared(int id)
-        {
-            try
-            {
-                var order = await _orderService.MarkAsPreparedAsync(id);
-                order.StatusDisplay = order.Status.ToString(); // Assuming you want to display the enum name
-                _logger.LogInformation($"Order {id} marked as prepared");
 
-                return Ok(order);
-            }
-            catch (ArgumentException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error marking order {id} as prepared");
-                return StatusCode(500, "Internal server error occurred");
-            }
-        }
-        //[HttpPatch("{orderid}/assign-delivery")]
-        //[Authorize(Roles = "Admin,Chef")]
-        //[ProducesResponseType(typeof(OrderDto), 200)]
-        //[ProducesResponseType(400)]
-        //[ProducesResponseType(404)]
-        //public async Task<ActionResult<OrderDto>> AssignDeliveryPerson(int orderId, [FromBody] AssignDeliveryDto assignDto)
-        //{
-        //    try
-        //    {
-        //        //var order = await _orderService.AssignDeliveryPersonAsync(orderId, assignDto.DeliveryPersonId);
-
-        //        //_logger.LogInformation($"Order {orderId} assigned to delivery person {assignDto.DeliveryPersonId}");
-        //        //order.StatusDisplay = order.Status.ToString(); // Assuming you want to display the enum name
-        //        //return Ok(order);
-        //    }
-        //    catch (ArgumentException ex)
-        //    {
-        //        return BadRequest(ex.Message);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return StatusCode(500, $"Internal server error occurred: ${ex.Message}");
-        //    }
-        //}
-
-        //[HttpPatch("{id}/delivered")]
-        //[Authorize(Roles = "Admin,Chef,Delivery")]
-        //[ProducesResponseType(typeof(OrderDto), 200)]
-        //[ProducesResponseType(400)]
-        //[ProducesResponseType(404)]
-        //public async Task<ActionResult<OrderDto>> MarkAsDelivered(int id)
-        //{
-        //    try
-        //    {
-        //        var order = await _orderService.MarkAsDeliveredAsync(id);
-
-        //        _logger.LogInformation($"Order {id} marked as delivered");
-
-        //        return Ok(order);
-        //    }
-        //    catch (ArgumentException ex)
-        //    {
-        //        return NotFound(ex.Message);
-        //    }
-        //    catch (InvalidOperationException ex)
-        //    {
-        //        return BadRequest(ex.Message);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, $"Error marking order {id} as delivered");
-        //        return StatusCode(500, "Internal server error occurred");
-        //    }
-        //}
-
+        /// <summary>Cancels an order.</summary>
         [HttpPatch("{id}/cancel")]
-        [ProducesResponseType(typeof(OrderDto), 200)]
-        [ProducesResponseType(400)]
-        [ProducesResponseType(404)]
-        public async Task<ActionResult<OrderDto>> CancelOrder(int id, [FromBody] string cancellationReason)
+        [Authorize(Roles = "Admin,Customer")]
+        [SwaggerOperation(Summary = "Cancel an order", Description = "Admin cancels any order. Customer cancels own orders only.")]
+        [SwaggerResponse(200, "Order cancelled successfully", typeof(OrderDto))]
+        [SwaggerResponse(400, "Invalid transition")]
+        [SwaggerResponse(403, "Forbidden")]
+        [SwaggerResponse(404, "Order not found")]
+        public async Task<IActionResult> CancelOrder(int id, [FromBody] CancelOrderDto dto)
         {
-            try
+            var isCustomer = User.IsInRole("Customer");
+            if (isCustomer)
             {
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
                 var order = await _orderService.GetOrderByIdAsync(id);
-                var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
-
-                if (userRole != "Admin" && userRole != "Chef" && currentUserId != order.CustomerId)
-                    return Forbid("You can only cancel your own orders");
-
-                var cancelledOrder = await _orderService.CancelOrderAsync(id, cancellationReason);
-
-                _logger.LogInformation($"Order {id} cancelled by user {currentUserId}");
-
-                return Ok(cancelledOrder);
+                if (order.CustomerId != userId)
+                    return ForbiddenResponse();
             }
-            catch (ArgumentException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error cancelling order {id}");
-                return StatusCode(500, "Internal server error occurred");
-            }
+
+            var cancelledOrder = await _orderService.CancelOrderAsync(id, dto.CancellationReason, isCustomer);
+            return SuccessResponse(cancelledOrder, "Order cancelled successfully");
         }
+
+        /// <summary>Marks an order as preparing.</summary>
+        [HttpPatch("{id}/preparing")]
+        [Authorize(Roles = "Admin,Chef")]
+        [SwaggerOperation(Summary = "Mark order as preparing", Description = "Transitions order from Confirmed to Preparing.")]
+        [SwaggerResponse(200, "Order is now being prepared", typeof(OrderDto))]
+        [SwaggerResponse(400, "Invalid transition")]
+        [SwaggerResponse(404, "Order not found")]
+        public async Task<IActionResult> MarkAsPreparing(int id)
+        {
+            var order = await _orderService.MarkAsPreparingAsync(id);
+            return SuccessResponse(order, "Order is now being prepared");
+        }
+
+        /// <summary>Marks an order as prepared/ready.</summary>
+        [HttpPatch("{id}/prepared")]
+        [Authorize(Roles = "Admin,Chef")]
+        [SwaggerOperation(Summary = "Mark order as prepared", Description = "Transitions order from Preparing to Ready.")]
+        [SwaggerResponse(200, "Order is ready for delivery", typeof(OrderDto))]
+        [SwaggerResponse(400, "Invalid transition")]
+        [SwaggerResponse(404, "Order not found")]
+        public async Task<IActionResult> MarkAsPrepared(int id)
+        {
+            var order = await _orderService.MarkAsPreparedAsync(id);
+            return SuccessResponse(order, "Order is ready for delivery");
+        }
+
+        /// <summary>Gets the kitchen queue.</summary>
+        [HttpGet("kitchen-queue")]
+        [Authorize(Roles = "Admin,Chef")]
+        [SwaggerOperation(Summary = "Get kitchen queue", Description = "Returns Confirmed and Preparing orders ordered by date.")]
+        [SwaggerResponse(200, "Kitchen queue retrieved successfully", typeof(IEnumerable<OrderDto>))]
+        public async Task<IActionResult> GetKitchenQueue()
+        {
+            var orders = await _orderService.GetKitchenQueueAsync();
+            return SuccessResponse(orders);
+        }
+
+        /// <summary>Adds an item to an order.</summary>
         [HttpPost("{id}/items")]
-        [ProducesResponseType(typeof(OrderDto), 200)]
-        [ProducesResponseType(400)]
-        [ProducesResponseType(404)]
-        public async Task<ActionResult<OrderDto>> AddOrderItem(int id, [FromBody] CreateOrderDetailDto itemDto)
+        [Authorize(Roles = "Customer")]
+        [SwaggerOperation(Summary = "Add item to order", Description = "Customer only. Order must be in New status.")]
+        [SwaggerResponse(200, "Item added successfully", typeof(OrderDto))]
+        [SwaggerResponse(400, "Invalid operation")]
+        [SwaggerResponse(403, "Forbidden")]
+        [SwaggerResponse(404, "Order or product not found")]
+        public async Task<IActionResult> AddOrderItem(int id, [FromBody] CreateOrderDetailDto dto)
         {
-            try
-            {
-                if (!ModelState.IsValid)
-                    return BadRequest(ModelState);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            var order = await _orderService.GetOrderByIdAsync(id);
+            if (order.CustomerId != userId)
+                return ForbiddenResponse();
 
-                
-                var order = await _orderService.GetOrderByIdAsync(id);
-                var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
-
-                if (userRole != "Admin" && userRole != "Chef" && currentUserId != order.CustomerId)
-                    return Forbid("You can only modify your own orders");
-
-                var updatedOrder = await _orderService.AddOrderItemAsync(id, itemDto);
-
-                _logger.LogInformation($"Item added to order {id} by user {currentUserId}");
-
-                return Ok(updatedOrder);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error adding item to order {id}");
-                return StatusCode(500, "Internal server error occurred");
-            }
+            var updatedOrder = await _orderService.AddOrderItemAsync(id, dto);
+            return SuccessResponse(updatedOrder, "Item added successfully");
         }
 
+        /// <summary>Removes an item from an order.</summary>
         [HttpDelete("{id}/items/{productId}")]
-        [ProducesResponseType(typeof(OrderDto), 200)]
-        [ProducesResponseType(400)]
-        [ProducesResponseType(404)]
-        public async Task<ActionResult<OrderDto>> RemoveOrderItem(int id, int productId)
+        [Authorize(Roles = "Customer")]
+        [SwaggerOperation(Summary = "Remove item from order", Description = "Customer only. Order must be in New status.")]
+        [SwaggerResponse(200, "Item removed successfully", typeof(OrderDto))]
+        [SwaggerResponse(400, "Invalid operation")]
+        [SwaggerResponse(403, "Forbidden")]
+        [SwaggerResponse(404, "Order or product not found")]
+        public async Task<IActionResult> RemoveOrderItem(int id, int productId)
         {
-            try
-            {
-                var order = await _orderService.GetOrderByIdAsync(id);
-                var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            var order = await _orderService.GetOrderByIdAsync(id);
+            if (order.CustomerId != userId)
+                return ForbiddenResponse();
 
-                if (userRole != "Admin" && userRole != "Chef" && currentUserId != order.CustomerId)
-                    return Forbid("You can only modify your own orders");
-
-                var updatedOrder = await _orderService.RemoveOrderItemAsync(id, productId);
-
-                _logger.LogInformation($"Item {productId} removed from order {id} by user {currentUserId}");
-
-                return Ok(updatedOrder);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error removing item from order {id}");
-                return StatusCode(500, "Internal server error occurred");
-            }
-        }
-        //[HttpPost("{id}/payment")]
-        //[ProducesResponseType(200)]
-        //[ProducesResponseType(400)]
-        //[ProducesResponseType(404)]
-        //public async Task<IActionResult> ProcessPayment(int id, [FromBody] PaymentMethod payment)
-        //{
-        //    try
-        //    {
-        //        if (!ModelState.IsValid)
-        //            return BadRequest(ModelState);
-
-        //        var order = await _orderService.GetOrderByIdAsync(id);
-        //        var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        //        var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
-
-        //        if (userRole != "Admin" && userRole != "Chef" && currentUserId != order.CustomerId)
-        //            return Forbid("You can only process payment for your own orders");
-
-        //        await _orderService.ProcessPaymentAsync(id, payment);
-
-        //        _logger.LogInformation($"Payment processed for order {id} by user {currentUserId}");
-
-        //        return Ok(new { message = "Payment processed successfully" });
-        //    }
-        //    catch (ArgumentException ex)
-        //    {
-        //        return BadRequest(ex.Message);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, $"Error processing payment for order {id}");
-        //        return StatusCode(500, "Internal server error occurred");
-        //    }
-        //}
-
-        //[HttpPut("{id}")]
-        //[ProducesResponseType(200)]
-        //[ProducesResponseType(400)]
-        //[ProducesResponseType(404)]
-        //public async Task<IActionResult> UpdateOrder(int id, [FromBody] UpdateOrderDto orderDto)
-        //{
-        //    try
-        //    {
-        //        if (!ModelState.IsValid)
-        //            return BadRequest(ModelState);
-
-        //        var order = await _orderService.GetOrderByIdAsync(id);
-        //        var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        //        var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
-
-        //        if (userRole != "Admin" && userRole != "Chef" && currentUserId != order.CustomerId)
-        //            return Forbid("You can only update your own orders");
-
-        //        await _orderService.UpdateOrderAsync(id, orderDto);
-
-        //        _logger.LogInformation($"Order {id} updated by user {currentUserId}");
-
-        //        return Ok(new { message = "Order updated successfully" });
-        //    }
-        //    catch (ArgumentException ex)
-        //    {
-        //        return NotFound(ex.Message);
-        //    }
-        //    catch (InvalidOperationException ex)
-        //    {
-        //        return BadRequest(ex.Message);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, $"Error updating order {id}");
-        //        return StatusCode(500, "Internal server error occurred");
-        //    }
-        //}
-
-        [HttpGet("stats/count/{status}")]
-        [Authorize(Roles = "Admin")]
-        [ProducesResponseType(typeof(int), 200)]
-        [ProducesResponseType(401)]
-        public async Task<ActionResult<int>> GetOrderCountByStatus(OrderStatus status)
-        {
-            try
-            {
-                var count = await _orderService.GetOrderCountByStatusAsync(status);
-                return Ok(count);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error getting order count for status {status}");
-                return StatusCode(500, "Internal server error occurred");
-            }
+            var updatedOrder = await _orderService.RemoveOrderItemAsync(id, productId);
+            return SuccessResponse(updatedOrder, "Item removed successfully");
         }
 
-        [HttpGet("stats/revenue/{date}")]
+        /// <summary>Gets orders within a date range.</summary>
+        [HttpGet("date-range")]
         [Authorize(Roles = "Admin")]
-        [ProducesResponseType(typeof(decimal), 200)]
-        [ProducesResponseType(401)]
-        public async Task<ActionResult<decimal>> GetDailyRevenue(DateTime date)
+        [SwaggerOperation(Summary = "Get orders by date range", Description = "Admin only. Returns orders between startDate and endDate.")]
+        [SwaggerResponse(200, "Orders retrieved successfully", typeof(IEnumerable<OrderDto>))]
+        [SwaggerResponse(400, "Invalid date range")]
+        public async Task<IActionResult> GetOrdersByDateRange(
+            [FromQuery] DateTime startDate,
+            [FromQuery] DateTime endDate)
         {
-            try
-            {
-                var revenue = await _orderService.GetDailyRevenueAsync(date);
-                return Ok(revenue);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error getting daily revenue for {date}");
-                return StatusCode(500, "Internal server error occurred");
-            }
+            if (startDate > endDate)
+                return ValidationErrorResponse(new[] { "Start date cannot be after end date" });
+
+            var orders = await _orderService.GetOrdersByDateRangeAsync(startDate, endDate);
+            return SuccessResponse(orders);
+        }
+
+        /// <summary>Gets daily revenue for a specific date.</summary>
+        [HttpGet("revenue/{date}")]
+        [Authorize(Roles = "Admin")]
+        [SwaggerOperation(Summary = "Get daily revenue", Description = "Admin only. Returns total revenue for the specified date.")]
+        [SwaggerResponse(200, "Revenue retrieved successfully", typeof(decimal))]
+        public async Task<IActionResult> GetDailyRevenue(DateTime date)
+        {
+            var revenue = await _orderService.GetDailyRevenueAsync(date);
+            return SuccessResponse(revenue);
+        }
+
+        /// <summary>Gets order count by status.</summary>
+        [HttpGet("count/{status}")]
+        [Authorize(Roles = "Admin")]
+        [SwaggerOperation(Summary = "Get order count by status", Description = "Admin only. Returns count of orders with the specified status.")]
+        [SwaggerResponse(200, "Count retrieved successfully", typeof(int))]
+        public async Task<IActionResult> GetOrderCountByStatus(OrderStatus status)
+        {
+            var count = await _orderService.GetOrderCountByStatusAsync(status);
+            return SuccessResponse(count);
         }
     }
 }

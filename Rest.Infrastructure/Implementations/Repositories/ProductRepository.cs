@@ -102,7 +102,7 @@ namespace Rest.Infrastructure.Implementations.Repositories
         /// </summary>
         /// <param name="id"> Product ID</param>
         /// <returns> Product with the specified ID</returns>
-        public async Task<Product> GetByIdAsync(int id) => await _repository.GetByIdAsync(id);
+        public async Task<Product?> GetByIdAsync(int id) => await _repository.GetByIdAsync(id);
 
         /// <summary>
         /// Adds a new product

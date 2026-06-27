@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Rest.Application.Dtos.OrderDetailsDtos;
 using Rest.Application.Dtos.OrderDtos;
 using Rest.Application.Interfaces;
 using Rest.Application.Interfaces.IServices;
@@ -37,10 +38,10 @@ namespace Rest.Application.Services
         }
         #endregion
 
-        public async Task<OrderDto> CreateOrderAsync(CreateOrderDto orderDto)
+        public async Task<OrderDto> CreateOrderAsync(string userId,CreateOrderDto orderDto)
         {
-            User customer = await _unitOfWork.UserRepository.GetByIdAsync(orderDto.UserId)
-                ?? throw new NotFoundException("Customer", orderDto.UserId);
+            User customer = await _unitOfWork.UserRepository.GetByIdAsync(userId)
+                ?? throw new NotFoundException("Customer", userId);
 
             Address deliveryAddress = await ValidateCustomerAddressAsync(customer.Id, orderDto.DeliveryAddressId);
 
@@ -87,7 +88,7 @@ namespace Rest.Application.Services
             return _mapper.Map<OrderDto>(order);
         }
 
-        public async Task<OrderDto> CancelOrderAsync(int orderId, string cancellationReason)
+        public async Task<OrderDto> CancelOrderAsync(int orderId, string cancellationReason, bool isCustomer = false)
         {
             var order = await _unitOfWork.OrderRepository.GetByIdWithDetailsAsync(orderId)
                 ?? throw new NotFoundException("Order", orderId);
@@ -165,10 +166,9 @@ namespace Rest.Application.Services
             return _mapper.Map<OrderDto[]>(orders);
         }
 
-        public async Task<IEnumerable<OrderDto>> GetPendingDeliveryOrdersAsync()
+        public async Task<IEnumerable<OrderDto>> GetOrdersByDateRangeAsync(DateTime startDate, DateTime endDate)
         {
-            var orders = await _unitOfWork.OrderRepository.GetPendingDeliveryOrdersAsync() ?? [];
-
+            var orders = await _unitOfWork.OrderRepository.GetOrdersByDateRangeAsync(startDate, endDate) ?? [];
             return _mapper.Map<OrderDto[]>(orders);
         }
 
@@ -201,19 +201,6 @@ namespace Rest.Application.Services
                 ?? throw new NotFoundException("Order", orderId);
 
             order.TransitionTo(OrderStatus.Ready);
-
-            _unitOfWork.OrderRepository.Update(order);
-            await _unitOfWork.SaveChangesAsync();
-
-            return _mapper.Map<OrderDto>(order);
-        }
-
-        public async Task<OrderDto> MarkAsOutForDeliveryAsync(int orderId)
-        {
-            var order = await _unitOfWork.OrderRepository.GetByIdAsync(orderId)
-                ?? throw new NotFoundException("Order", orderId);
-
-            order.TransitionTo(OrderStatus.OutForDelivery);
 
             _unitOfWork.OrderRepository.Update(order);
             await _unitOfWork.SaveChangesAsync();

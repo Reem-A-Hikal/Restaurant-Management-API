@@ -81,12 +81,12 @@ namespace Rest.Domain.Entities
             {
                 if (!Payments.Any())
                     return PaymentStatus.Pending;
+                
+                if (Payments.Any(p => p.Status == PaymentStatus.Refunded))
+                    return PaymentStatus.Refunded;
 
                 if (Payments.Any(p => p.Status == PaymentStatus.Completed))
                     return PaymentStatus.Completed;
-
-                if (Payments.Any(p => p.Status == PaymentStatus.Refunded))
-                    return PaymentStatus.Refunded;
 
                 if (Payments.All(p => p.Status == PaymentStatus.Failed))
                     return PaymentStatus.Failed;
@@ -208,16 +208,28 @@ namespace Rest.Domain.Entities
                 StaffNotes = staffNotes;
         }
 
-        public void Cancel(string cancellationReason)
+        public void Cancel(string cancellationReason, bool isCustomer = false)
         {
             if (string.IsNullOrWhiteSpace(cancellationReason))
                 throw new ValidationException("Cancellation reason is required.");
 
             TransitionTo(OrderStatus.Canceled);
 
-            StaffNotes = string.IsNullOrWhiteSpace(StaffNotes)
-                ? $"Cancellation Reason: {cancellationReason}"
-                : $"{StaffNotes}\nCancellation Reason: {cancellationReason}";
+            if (isCustomer)
+                CustomerNotes = string.IsNullOrWhiteSpace(CustomerNotes)
+                    ? $"Cancellation Reason: {cancellationReason}"
+                    : $"{CustomerNotes}\nCancellation Reason: {cancellationReason}";
+            else
+                StaffNotes = string.IsNullOrWhiteSpace(StaffNotes)
+                    ? $"Cancellation Reason: {cancellationReason}"
+                    : $"{StaffNotes}\nCancellation Reason: {cancellationReason}";
+        }
+
+        public void RevertToReadyAfterDeliveryCancel()
+        {
+            if (Status != OrderStatus.OutForDelivery)
+                throw new BusinessException("Can only revert to Ready from OutForDelivery.");
+            Status = OrderStatus.Ready;
         }
         #endregion
 

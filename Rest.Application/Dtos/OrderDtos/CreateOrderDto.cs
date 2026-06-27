@@ -1,12 +1,10 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Rest.Application.Dtos.OrderDetailsDtos;
+using System.ComponentModel.DataAnnotations;
 
 namespace Rest.Application.Dtos.OrderDtos
 {
     public class CreateOrderDto
     {
-        [Required]
-        public string UserId { get; set; }
-
         [Required]
         public int DeliveryAddressId { get; set; }
 

@@ -1,4 +1,5 @@
-﻿using Rest.Domain.Entities.Enums;
+﻿using Rest.Application.Dtos.OrderDetailsDtos;
+using Rest.Domain.Entities.Enums;
 
 namespace Rest.Application.Dtos.OrderDtos
 {
@@ -9,7 +10,7 @@ namespace Rest.Application.Dtos.OrderDtos
         /// <summary>
         /// Gets or sets the order number.
         /// </summary>
-        public string OrderNumber { get; set; } // Auto-generated
+        public string OrderNumber { get; set; }
 
         /// <summary>
         /// Gets or sets the date and time when the order was placed.
@@ -19,7 +20,7 @@ namespace Rest.Application.Dtos.OrderDtos
         /// <summary>
         /// Gets or sets the status of the order.
         /// </summary>
-        public OrderStatus Status { get; set; } = OrderStatus.New; // New, Confirmed, Preparing, Ready, OutForDelivery, Delivered, Canceled
+        public OrderStatus Status { get; set; } = OrderStatus.New;
         public string StatusDisplay { get; set; }
         /// <summary>
         /// Items total before fees/discounts
@@ -56,9 +57,8 @@ namespace Rest.Application.Dtos.OrderDtos
 
         public string? CustomerAddress { get; set; }
 
-        /// <summary>
-        /// Gets or sets the delivery person assigned to the order.
-        /// </summary>
-        public string? DeliveryPersonName { get; set; }
+        public string? CustomerNotes { get; set; }
+        public string? StaffNotes { get; set; }
+        public List<OrderDetailDto> OrderDetails { get; set; } = new();
     }
 }

@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Rest.Application.Dtos.OrderDtos
+namespace Rest.Application.Dtos.OrderDetailsDtos
 {
     public class CreateOrderDetailDto
     {

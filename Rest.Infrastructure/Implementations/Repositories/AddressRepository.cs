@@ -71,7 +71,7 @@ namespace Rest.Infrastructure.Implementations.Repositories
 
         public Task<IEnumerable<Address>> GetAllAsync() => _repository.GetAllAsync();
 
-        public Task<Address> GetByIdAsync(int id) => _repository.GetByIdAsync(id);
+        public Task<Address?> GetByIdAsync(int id) => _repository.GetByIdAsync(id);
 
 
         public async Task SaveChangesAsync() => await _repository.SaveChangesAsync();

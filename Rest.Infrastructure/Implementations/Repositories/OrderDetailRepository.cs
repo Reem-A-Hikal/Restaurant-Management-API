@@ -26,7 +26,7 @@ namespace Rest.Infrastructure.Implementations.Repositories
         /// Lightweight fetch by Id — no Includes. Intended for internal use
         /// (e.g. editing a line item already known to belong to a loaded Order).
         /// </summary>
-        public async Task<OrderDetail> GetByIdAsync(int id) => await _repository.GetByIdAsync(id);
+        public async Task<OrderDetail?> GetByIdAsync(int id) => await _repository.GetByIdAsync(id);
         
         public async Task<IEnumerable<OrderDetail>> GetAllAsync()
         {

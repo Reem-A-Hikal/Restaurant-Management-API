@@ -19,7 +19,7 @@ namespace Rest.Domain.Entities
         public int OrderId { get; set; }
 
         // Navigation properties
-        public virtual User? DeliveryPerson { get; set; }
+        public virtual DeliveryPerson? DeliveryPerson { get; set; }
         public virtual Order? Order { get; set; }
 
         #region State Machine
@@ -69,6 +69,17 @@ namespace Rest.Domain.Entities
             Notes = string.IsNullOrWhiteSpace(Notes)
                 ? $"Cancellation Reason: {reason}"
                 : $"{Notes}\nCancellation Reason: {reason}";
+        }
+        #endregion
+
+        #region Domain Method
+        public void UpdateLocation(decimal latitude,  decimal longitude)
+        {
+            if (Status != DeliveryStatus.Assigned && Status != DeliveryStatus.PickedUp)
+                throw new BusinessException("Cannot update location for a completed or cancelled delivery");
+
+            Latitude = latitude;
+            Longitude = longitude;
         }
         #endregion
     }

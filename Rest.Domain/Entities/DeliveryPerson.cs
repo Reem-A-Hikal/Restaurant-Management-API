@@ -20,5 +20,8 @@ namespace Rest.Domain.Entities
         /// 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? IsAvailable { get; set; }
+
+        public virtual ICollection<Delivery> Deliveries { get; set; } = [];
+
     }
 }

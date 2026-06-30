@@ -28,8 +28,8 @@ namespace Rest.Infrastructure.Implementations.Repositories
         public async Task<Delivery?> GetByIdAsync(int id)
         {
             return await _context.Deliveries
-                .Include(d => d.Order)
                 .Include(d => d.DeliveryPerson)
+                .Include(d => d.Order)
                 .FirstOrDefaultAsync(d => d.DeliveryId == id);
         }
 
@@ -63,6 +63,7 @@ namespace Rest.Infrastructure.Implementations.Repositories
         public async Task<Delivery?> GetActiveDeliveryByOrderIdAsync(int orderId)
         {
             return await _context.Deliveries
+                .Include(d => d.DeliveryPerson)
                 .Where(d => d.OrderId == orderId
                     && (d.Status == DeliveryStatus.Assigned || d.Status == DeliveryStatus.PickedUp))
                 .OrderByDescending(d => d.StatusChangeTime)

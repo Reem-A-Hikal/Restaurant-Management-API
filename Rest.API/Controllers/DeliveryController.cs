@@ -38,11 +38,11 @@ namespace Rest.API.Controllers
         {
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            var activeDelivery = await _deliveryService.GetActiveDeliveryForOrderAsync(deliveryId);
-            if (activeDelivery == null)
+            var delivery = await _deliveryService.GetDeliveryByIdAsync(deliveryId);
+            if (delivery == null)
                 return NotFoundResponse("Delivery not found.");
 
-            if (activeDelivery.DeliveryPersonId != currentUserId)
+            if (delivery.DeliveryPersonId != currentUserId)
                 return ForbiddenResponse("You can only update your own deliveries.");
 
             var result = await _deliveryService.MarkAsPickedUpAsync(deliveryId);
@@ -58,11 +58,11 @@ namespace Rest.API.Controllers
         {
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            var activeDelivery = await _deliveryService.GetActiveDeliveryForOrderAsync(deliveryId);
-            if (activeDelivery == null)
+            var delivery = await _deliveryService.GetDeliveryByIdAsync(deliveryId);
+            if (delivery == null)
                 return NotFoundResponse("Delivery not found.");
 
-            if (activeDelivery.DeliveryPersonId != currentUserId)
+            if (delivery.DeliveryPersonId != currentUserId)
                 return ForbiddenResponse("You can only update your own deliveries.");
 
             var result = await _deliveryService.MarkAsDeliveredAsync(deliveryId);
@@ -85,11 +85,11 @@ namespace Rest.API.Controllers
 
             if (userRole == "DeliveryPerson")
             {
-                var activeDelivery = await _deliveryService.GetActiveDeliveryForOrderAsync(deliveryId);
-                if (activeDelivery == null)
+                var delivery = await _deliveryService.GetDeliveryByIdAsync(deliveryId);
+                if (delivery == null)
                     return NotFoundResponse("Delivery not found.");
 
-                if (activeDelivery.DeliveryPersonId != currentUserId)
+                if (delivery.DeliveryPersonId != currentUserId)
                     return ForbiddenResponse("You can only cancel your own deliveries.");
             }
 
@@ -105,8 +105,8 @@ namespace Rest.API.Controllers
         public async Task<IActionResult> GetActiveDeliveryForOrder(int orderId)
         {
             var result = await _deliveryService.GetActiveDeliveryForOrderAsync(orderId);
-            if (result == null)
-                return NotFoundResponse("No active delivery found for this order.");
+            //if (result == null)
+            //    return NotFoundResponse("No active delivery found for this order.");
 
             return SuccessResponse(result, "Active delivery retrieved successfully");
         }
@@ -143,6 +143,21 @@ namespace Rest.API.Controllers
         {
             var result = await _deliveryService.GetAllActiveDeliveriesAsync();
             return SuccessResponse(result, "All active deliveries retrieved successfully");
+        }
+
+        /// <summary>
+        /// DeliveryPerson updates their current location
+        /// </summary>
+        /// <param name="deliveryId"></param>
+        /// <param name="dto"></param>
+        /// <returns></returns>
+        [HttpPut("{deliveryId}/location")]
+        [Authorize(Roles = "DeliveryPerson")]
+        public async Task<IActionResult> UpdateLocation(int deliveryId, [FromBody] UpdateLocationDto dto)
+        {
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var result = await _deliveryService.UpdateLocationAsync(deliveryId, currentUserId!, dto);
+            return SuccessResponse(result, "Location updated successfully");
         }
     }
 }

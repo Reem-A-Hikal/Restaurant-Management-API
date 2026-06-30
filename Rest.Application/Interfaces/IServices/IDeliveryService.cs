@@ -11,11 +11,6 @@ namespace Rest.Application.Interfaces.IServices
         /// </summary>
         Task<DeliveryDto> AssignDeliveryAsync(int orderId, AssignDeliveryDto dto);
 
-        ///// <summary>
-        ///// Manual override — Admin only
-        ///// </summary>
-        //Task<DeliveryDto> ReassignDeliveryAsync(int deliveryId, string newDeliveryPersonId);
-
         /// <summary>
         /// Marks the specified delivery as PickedUp (only if its current status is Assigned).
         /// Verifies that the caller is the assigned delivery person.
@@ -42,6 +37,8 @@ namespace Rest.Application.Interfaces.IServices
         /// </summary>
         Task<IEnumerable<DeliveryDto>> GetDeliveryHistoryAsync(int orderId);
 
+        Task<DeliveryDto?> GetDeliveryByIdAsync(int deliveryId);
+
         /// <summary>
         /// Returns all active deliveries assigned to a specific person.
         /// </summary>
@@ -56,5 +53,7 @@ namespace Rest.Application.Interfaces.IServices
         /// Returns all active deliveries in the system (for dashboards).
         /// </summary>
         Task<IEnumerable<DeliveryDto>> GetAllActiveDeliveriesAsync();
+
+        Task<DeliveryDto> UpdateLocationAsync(int deliveryId, string deliveryPersonId, UpdateLocationDto dto);
     }
 }

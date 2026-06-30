@@ -59,7 +59,7 @@ namespace Rest.Infrastructure.Data.Configurations
                    .HasDatabaseName("IX_Deliveries_OrderId_ActiveOnly");
 
             builder.HasOne(d => d.DeliveryPerson)
-                   .WithMany(u => u.Deliveries)
+                   .WithMany(dp => dp.Deliveries)
                    .HasForeignKey(d => d.DeliveryPersonId)
                    .OnDelete(DeleteBehavior.Restrict)
                    .IsRequired();

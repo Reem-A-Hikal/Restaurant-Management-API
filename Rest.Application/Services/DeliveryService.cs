@@ -57,8 +57,13 @@ namespace Rest.Application.Services
             await _unitOfWork.DeliveryRepository.AddAsync(delivery);
 
             order.TransitionTo(OrderStatus.OutForDelivery);
-
+            
             _unitOfWork.OrderRepository.Update(order);
+            
+            var deliveryPerson = await _unitOfWork.DeliveryPersonRepository.GetDeliveryPersonByIdAsync(deliveryPersonId)
+                ?? throw new NotFoundException("DeliveryPerson", deliveryPersonId);
+            deliveryPerson.IsAvailable = false;
+
             await _unitOfWork.SaveChangesAsync();
 
             var result = await _unitOfWork.DeliveryRepository.GetByIdAsync(delivery.DeliveryId);
@@ -90,8 +95,26 @@ namespace Rest.Application.Services
             
             order.TransitionTo(OrderStatus.Delivered);
 
+            if(order.PaymentStatus != PaymentStatus.Completed)
+            {
+                var payment = new Payment
+                {
+                    OrderId = order.OrderId,
+                    Order = order,
+                    Amount = order.TotalAmount,
+                    Method = PaymentMethod.Cash
+                };
+                payment.Complete();
+                await _unitOfWork.PaymentRepository.AddAsync(payment);
+            }
+
             _unitOfWork.DeliveryRepository.Update(delivery);
             _unitOfWork.OrderRepository.Update(order);
+
+            var deliveryPerson = await _unitOfWork.DeliveryPersonRepository.GetDeliveryPersonByIdAsync(delivery.DeliveryPersonId)
+                ?? throw new NotFoundException("DeliveryPerson", delivery.DeliveryPersonId);
+            deliveryPerson.IsAvailable = true;
+
             await _unitOfWork.SaveChangesAsync();
 
             return _mapper.Map<DeliveryDto>(delivery);
@@ -109,6 +132,11 @@ namespace Rest.Application.Services
 
             order.RevertToReadyAfterDeliveryCancel();
 
+            var deliveryPerson = await _unitOfWork.DeliveryPersonRepository.GetDeliveryPersonByIdAsync(delivery.DeliveryPersonId)
+                ?? throw new NotFoundException("DeliveryPerson", delivery.DeliveryPersonId);
+
+            deliveryPerson.IsAvailable = true;
+
             _unitOfWork.DeliveryRepository.Update(delivery);
             _unitOfWork.OrderRepository.Update(order);
             await _unitOfWork.SaveChangesAsync();
@@ -120,6 +148,12 @@ namespace Rest.Application.Services
         {
             var deliveries = await _unitOfWork.DeliveryRepository.GetActiveDeliveriesByPersonIdAsync(deliveryPersonId);
             return _mapper.Map<DeliveryDto[]>(deliveries);
+        }
+
+        public async Task<DeliveryDto?> GetDeliveryByIdAsync(int deliveryId)
+        {
+            var delivery = await _unitOfWork.DeliveryRepository.GetByIdAsync(deliveryId);
+            return delivery == null ? null : _mapper.Map<DeliveryDto>(delivery);
         }
 
         public async Task<DeliveryDto?> GetActiveDeliveryForOrderAsync(int orderId)
@@ -143,6 +177,22 @@ namespace Rest.Application.Services
         public async Task<bool> HasActiveDeliveryAsync(string deliveryPersonId)
         {
             return await _unitOfWork.DeliveryRepository.HasActiveDeliveryAsync(deliveryPersonId);
+        }
+
+        public async Task<DeliveryDto> UpdateLocationAsync(int deliveryId, string deliveryPersonId, UpdateLocationDto dto)
+        {
+            var delivery = await _unitOfWork.DeliveryRepository.GetByIdAsync(deliveryId)
+                ?? throw new NotFoundException("Delivery", deliveryId);
+
+            if (delivery.DeliveryPersonId != deliveryPersonId)
+                throw new ForbiddenException("You can only update your own delivery location");
+
+            delivery.UpdateLocation(dto.Latitude, dto.Longitude);
+
+            _unitOfWork.DeliveryRepository.Update(delivery);
+            await _unitOfWork.SaveChangesAsync();
+
+            return _mapper.Map<DeliveryDto>(delivery);
         }
     }
 }

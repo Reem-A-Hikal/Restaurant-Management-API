@@ -21,7 +21,7 @@ namespace Rest.Infrastructure.Implementations
         private IDeliveryRepository? _deliveryRepository;
         private IPaymentRepository? _paymentRepository;
 
-        private IRepository<Review>? _reviewRepository;
+        private IReviewRepository? _reviewRepository;
 
 
         public UnitOfWork(
@@ -59,8 +59,8 @@ namespace Rest.Infrastructure.Implementations
 
         public IPaymentRepository PaymentRepository =>
             _paymentRepository ??= new PaymentRepository(_context, new Repository<Payment>(_context));
-        public IRepository<Review> ReviewRepository =>
-        _reviewRepository ??= new Repository<Review>(_context);
+        public IReviewRepository ReviewRepository =>
+            _reviewRepository ??= new ReviewRepository(_context, new Repository<Review>(_context));
 
         public async Task<int> SaveChangesAsync() => await _context.SaveChangesAsync();
 

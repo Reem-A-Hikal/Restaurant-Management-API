@@ -19,7 +19,7 @@ namespace Rest.Infrastructure.Data.Configurations
 
             builder.Property(o => o.OrderNumber)
                    .IsRequired()
-                   .HasMaxLength(20);
+                   .HasMaxLength(50);
 
             builder.Property(o => o.OrderDate)
                     .IsRequired()

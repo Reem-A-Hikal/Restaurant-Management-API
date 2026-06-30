@@ -8,7 +8,7 @@ namespace Rest.Application.Interfaces.IRepositories
         Task<IEnumerable<Address>> GetUserAddressesAsync(string userId);
         Task<Address?> GetUserAddressAsync(string userId, int addressId);
         Task<Address?> GetUserDefaultAddressAsync(string userId);
-        Task<bool> SetDefaultAddressAsync(string userId, int addressId);
+        Task SetDefaultAddressAsync(string userId, int addressId);
         Task<bool> HasAddressAsync(int addressId, string userId);
     }
 }

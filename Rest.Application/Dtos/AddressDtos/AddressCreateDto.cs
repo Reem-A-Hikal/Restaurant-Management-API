@@ -35,6 +35,7 @@ namespace Rest.Application.Dtos.AddressDtos
         [Required(ErrorMessage = "City is required")]
         [StringLength(100, ErrorMessage = "City cannot exceed 100 characters")]
         public string City { get; set; }
+        public string Governorate { get; set; }
 
         /// <summary>
         /// Latitude of the address location (optional).

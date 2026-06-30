@@ -11,6 +11,7 @@ using Rest.Application.Interfaces.IServices.StrategyFactory;
 using Rest.Application.Profiles;
 using Rest.Application.Services;
 using Rest.Domain.Entities;
+using Rest.Domain.Entities.Enums;
 using Rest.Infrastructure.Data;
 using Rest.Infrastructure.Implementations;
 using Rest.Infrastructure.Implementations.Repositories;
@@ -209,12 +210,41 @@ namespace Rest.API
                 var roleManager = scope.ServiceProvider
                     .GetRequiredService<RoleManager<IdentityRole>>();
                 var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
-                
+
                 string[] roles = ["Admin", "Chef", "DeliveryPerson", "Customer"];
                 foreach (var role in roles)
                 {
                     if (!await roleManager.RoleExistsAsync(role))
                         await roleManager.CreateAsync(new IdentityRole(role));
+                }
+
+                string adminEmail = "admin@restora.com";
+                string adminPassword = "Admin@123456";
+
+                var adminUser = await userManager.FindByEmailAsync(adminEmail);
+                if (adminUser == null)
+                {
+                    adminUser = new User
+                    {
+                        UserName = adminEmail,
+                        Email = adminEmail,
+                        FullName = "System Administrator",
+                        Status = UserStatus.Active,
+                        JoinDate = DateTime.UtcNow,
+                        EmailConfirmed = true,
+                        PhoneNumberConfirmed = true
+                    };
+
+                    var createResult = await userManager.CreateAsync(adminUser, adminPassword);
+                    if (createResult.Succeeded)
+                    {
+                        await userManager.AddToRoleAsync(adminUser, "Admin");
+                    }
+                    else
+                    {
+                        var errors = string.Join(", ", createResult.Errors.Select(e => e.Description));
+                        Console.WriteLine($"? Failed to seed admin: {errors}");
+                    }
                 }
             }
 

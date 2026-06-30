@@ -298,9 +298,6 @@ namespace Rest.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderId"));
 
-                    b.Property<int?>("AddressId")
-                        .HasColumnType("int");
-
                     b.Property<DateTime?>("CancellationTime")
                         .HasColumnType("datetime2");
 
@@ -336,8 +333,8 @@ namespace Rest.Infrastructure.Migrations
 
                     b.Property<string>("OrderNumber")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<DateTime?>("PreparationStartTime")
                         .HasColumnType("datetime2");
@@ -376,8 +373,6 @@ namespace Rest.Infrastructure.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.HasKey("OrderId");
-
-                    b.HasIndex("AddressId");
 
                     b.HasIndex("ConfirmedById");
 
@@ -607,7 +602,14 @@ namespace Rest.Infrastructure.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("Reviews", (string)null);
+                    b.ToTable("Reviews", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Reviews_DeliveryRating", "[DeliveryRating] >= 1 AND [DeliveryRating] <= 5 OR [DeliveryRating] IS NULL");
+
+                            t.HasCheckConstraint("CK_Reviews_FoodRating", "[FoodRating] >= 1 AND [FoodRating] <= 5 OR [FoodRating] IS NULL");
+
+                            t.HasCheckConstraint("CK_Reviews_Rating", "[Rating] >= 1 AND [Rating] <= 5");
+                        });
                 });
 
             modelBuilder.Entity("Rest.Domain.Entities.User", b =>
@@ -794,7 +796,7 @@ namespace Rest.Infrastructure.Migrations
 
             modelBuilder.Entity("Rest.Domain.Entities.Delivery", b =>
                 {
-                    b.HasOne("Rest.Domain.Entities.User", "DeliveryPerson")
+                    b.HasOne("Rest.Domain.Entities.DeliveryPerson", "DeliveryPerson")
                         .WithMany("Deliveries")
                         .HasForeignKey("DeliveryPersonId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -813,10 +815,6 @@ namespace Rest.Infrastructure.Migrations
 
             modelBuilder.Entity("Rest.Domain.Entities.Order", b =>
                 {
-                    b.HasOne("Rest.Domain.Entities.Address", null)
-                        .WithMany("Orders")
-                        .HasForeignKey("AddressId");
-
                     b.HasOne("Rest.Domain.Entities.User", "ConfirmedBy")
                         .WithMany()
                         .HasForeignKey("ConfirmedById")
@@ -926,11 +924,6 @@ namespace Rest.Infrastructure.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Rest.Domain.Entities.Address", b =>
-                {
-                    b.Navigation("Orders");
-                });
-
             modelBuilder.Entity("Rest.Domain.Entities.Category", b =>
                 {
                     b.Navigation("Products");
@@ -960,9 +953,12 @@ namespace Rest.Infrastructure.Migrations
 
                     b.Navigation("CustomerOrders");
 
-                    b.Navigation("Deliveries");
-
                     b.Navigation("Reviews");
+                });
+
+            modelBuilder.Entity("Rest.Domain.Entities.DeliveryPerson", b =>
+                {
+                    b.Navigation("Deliveries");
                 });
 #pragma warning restore 612, 618
         }

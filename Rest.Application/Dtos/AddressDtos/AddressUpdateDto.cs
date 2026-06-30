@@ -16,6 +16,7 @@ namespace Rest.Application.Dtos.AddressDtos
 
         [StringLength(100, ErrorMessage = "City cannot exceed 100 characters")]
         public string? City { get; set; }
+        public string? Governorate { get; set; }
 
         [Range(-90, 90, ErrorMessage = "Latitude must be between -90 and 90")]
         public double? Latitude { get; set; }

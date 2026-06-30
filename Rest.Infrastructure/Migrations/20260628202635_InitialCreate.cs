@@ -32,10 +32,9 @@ namespace Rest.Infrastructure.Migrations
                     Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     FullName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     ProfileImageUrl = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(20)", nullable: false),
                     JoinDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Specialization = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    VehicleNumber = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    LastLoginDate = table.Column<DateTime>(type: "datetime2", nullable: true),
                     UserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     NormalizedUserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     Email = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
@@ -63,9 +62,7 @@ namespace Rest.Infrastructure.Migrations
                     CategoryId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    Image = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(20)", nullable: false),
                     DisplayOrder = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
@@ -103,6 +100,7 @@ namespace Rest.Infrastructure.Migrations
                     AddressLine1 = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
                     AddressLine2 = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
                     City = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Governorate = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     Latitude = table.Column<double>(type: "float", nullable: true),
                     Longitude = table.Column<double>(type: "float", nullable: true),
                     AddressType = table.Column<string>(type: "nvarchar(20)", nullable: false),
@@ -206,6 +204,43 @@ namespace Rest.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Chefs",
+                columns: table => new
+                {
+                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Specialization = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Chefs", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Chefs_AspNetUsers_Id",
+                        column: x => x.Id,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DeliveryPersons",
+                columns: table => new
+                {
+                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    VehicleNumber = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    IsAvailable = table.Column<bool>(type: "bit", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DeliveryPersons", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DeliveryPersons_AspNetUsers_Id",
+                        column: x => x.Id,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Products",
                 columns: table => new
                 {
@@ -214,10 +249,10 @@ namespace Rest.Infrastructure.Migrations
                     Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     Description = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
-                    Image = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    ImageUrl = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
                     PreparationTime = table.Column<int>(type: "int", nullable: false),
                     Calories = table.Column<int>(type: "int", nullable: true),
-                    IsAvailable = table.Column<bool>(type: "bit", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(20)", nullable: false),
                     IsPromoted = table.Column<bool>(type: "bit", nullable: false),
                     DiscountPercent = table.Column<decimal>(type: "decimal(5,2)", nullable: false),
                     AllowedDiscountPercent = table.Column<decimal>(type: "decimal(5,2)", nullable: false),
@@ -226,6 +261,8 @@ namespace Rest.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Products", x => x.ProductId);
+                    table.CheckConstraint("CK_Products_Discount", "[DiscountPercent] <= [AllowedDiscountPercent]");
+                    table.CheckConstraint("CK_Products_Price", "[Price] > 0");
                     table.ForeignKey(
                         name: "FK_Products_Categories_CategoryId",
                         column: x => x.CategoryId,
@@ -240,30 +277,25 @@ namespace Rest.Infrastructure.Migrations
                 {
                     OrderId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    OrderNumber = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    OrderNumber = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     OrderDate = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
                     RequiredTime = table.Column<DateTime>(type: "datetime2", nullable: true),
                     ConfirmationTime = table.Column<DateTime>(type: "datetime2", nullable: true),
                     PreparationStartTime = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    DeliveryStartTime = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    DeliveryEndTime = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CancellationTime = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    Status = table.Column<int>(type: "int", nullable: false),
-                    ConfirmedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    ConfirmedById = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true),
                     SubTotal = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     DeliveryFee = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     Tax = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Discount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    TotalAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Discount = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0.00m),
+                    TotalAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false, computedColumnSql: "[SubTotal] + [DeliveryFee] + [Tax] - [Discount]", stored: true),
                     EstimatedDeliveryTime = table.Column<int>(type: "int", nullable: true),
-                    PaymentMethod = table.Column<int>(type: "int", nullable: true),
-                    PaymentStatus = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    TransactionId = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    Notes = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
-                    Source = table.Column<int>(type: "int", nullable: false),
-                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    CustomerNotes = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
+                    StaffNotes = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
+                    Source = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    UserId = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: false),
                     DeliveryAddressId = table.Column<int>(type: "int", nullable: false),
-                    DeliveryPersonId = table.Column<string>(type: "nvarchar(450)", nullable: true),
                     AddressId = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
@@ -281,8 +313,8 @@ namespace Rest.Infrastructure.Migrations
                         principalColumn: "AddressId",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_Orders_AspNetUsers_DeliveryPersonId",
-                        column: x => x.DeliveryPersonId,
+                        name: "FK_Orders_AspNetUsers_ConfirmedById",
+                        column: x => x.ConfirmedById,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -301,24 +333,24 @@ namespace Rest.Infrastructure.Migrations
                     DeliveryId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     StatusChangeTime = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Status = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     DeliveryStartTime = table.Column<DateTime>(type: "datetime2", nullable: true),
                     DeliveryEndTime = table.Column<DateTime>(type: "datetime2", nullable: true),
                     Latitude = table.Column<decimal>(type: "decimal(9,6)", nullable: true),
                     Longitude = table.Column<decimal>(type: "decimal(9,6)", nullable: true),
                     Notes = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    DeliveryPersonId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    DeliveryPersonId = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: false),
                     OrderId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Deliveries", x => x.DeliveryId);
                     table.ForeignKey(
-                        name: "FK_Deliveries_AspNetUsers_DeliveryPersonId",
+                        name: "FK_Deliveries_DeliveryPersons_DeliveryPersonId",
                         column: x => x.DeliveryPersonId,
-                        principalTable: "AspNetUsers",
+                        principalTable: "DeliveryPersons",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Deliveries_Orders_OrderId",
                         column: x => x.OrderId,
@@ -335,14 +367,16 @@ namespace Rest.Infrastructure.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     OrderId = table.Column<int>(type: "int", nullable: false),
                     ProductId = table.Column<int>(type: "int", nullable: false),
-                    Quantity = table.Column<int>(type: "int", nullable: false),
+                    Quantity = table.Column<int>(type: "int", nullable: false, defaultValue: 1),
                     UnitPrice = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Subtotal = table.Column<decimal>(type: "decimal(18,2)", nullable: false, computedColumnSql: "Quantity * UnitPrice"),
+                    Subtotal = table.Column<decimal>(type: "decimal(18,2)", nullable: false, computedColumnSql: "[Quantity] * [UnitPrice]", stored: true),
                     SpecialInstructions = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_OrderDetails", x => x.OrderDetailId);
+                    table.CheckConstraint("CK_OrderDetails_Quantity", "[Quantity] >= 1");
+                    table.CheckConstraint("CK_OrderDetails_UnitPrice", "[UnitPrice] > 0");
                     table.ForeignKey(
                         name: "FK_OrderDetails_Orders_OrderId",
                         column: x => x.OrderId,
@@ -354,6 +388,33 @@ namespace Rest.Infrastructure.Migrations
                         column: x => x.ProductId,
                         principalTable: "Products",
                         principalColumn: "ProductId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Payments",
+                columns: table => new
+                {
+                    PaymentId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    OrderId = table.Column<int>(type: "int", nullable: false),
+                    Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Method = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    TransactionId = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    GatewayResponse = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    PaidAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Payments", x => x.PaymentId);
+                    table.CheckConstraint("CK_Payments_Amount", "[Amount] > 0");
+                    table.ForeignKey(
+                        name: "FK_Payments_Orders_OrderId",
+                        column: x => x.OrderId,
+                        principalTable: "Orders",
+                        principalColumn: "OrderId",
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -376,6 +437,9 @@ namespace Rest.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Reviews", x => x.ReviewId);
+                    table.CheckConstraint("CK_Reviews_DeliveryRating", "[DeliveryRating] >= 1 AND [DeliveryRating] <= 5 OR [DeliveryRating] IS NULL");
+                    table.CheckConstraint("CK_Reviews_FoodRating", "[FoodRating] >= 1 AND [FoodRating] <= 5 OR [FoodRating] IS NULL");
+                    table.CheckConstraint("CK_Reviews_Rating", "[Rating] >= 1 AND [Rating] <= 5");
                     table.ForeignKey(
                         name: "FK_Reviews_AspNetUsers_CustomerId",
                         column: x => x.CustomerId,
@@ -454,15 +518,22 @@ namespace Rest.Infrastructure.Migrations
                 filter: "[NormalizedUserName] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Categories_Name",
+                table: "Categories",
+                column: "Name",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Deliveries_DeliveryPersonId",
                 table: "Deliveries",
                 column: "DeliveryPersonId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Deliveries_OrderId",
+                name: "IX_Deliveries_OrderId_ActiveOnly",
                 table: "Deliveries",
                 column: "OrderId",
-                unique: true);
+                unique: true,
+                filter: "[Status] IN ('Assigned', 'PickedUp')");
 
             migrationBuilder.CreateIndex(
                 name: "IX_OrderDetails_OrderId",
@@ -480,14 +551,25 @@ namespace Rest.Infrastructure.Migrations
                 column: "AddressId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Orders_ConfirmedById",
+                table: "Orders",
+                column: "ConfirmedById");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Orders_DeliveryAddressId",
                 table: "Orders",
                 column: "DeliveryAddressId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Orders_DeliveryPersonId",
+                name: "IX_Orders_OrderNumber",
                 table: "Orders",
-                column: "DeliveryPersonId");
+                column: "OrderNumber",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Orders_Status",
+                table: "Orders",
+                column: "Status");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Orders_UserId",
@@ -495,9 +577,22 @@ namespace Rest.Infrastructure.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Payments_OrderId_CompletedOnly",
+                table: "Payments",
+                column: "OrderId",
+                unique: true,
+                filter: "[Status] = 'Completed'");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Products_CategoryId",
                 table: "Products",
                 column: "CategoryId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Products_Name_CategoryId",
+                table: "Products",
+                columns: new[] { "Name", "CategoryId" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Reviews_CustomerId",
@@ -535,16 +630,25 @@ namespace Rest.Infrastructure.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
+                name: "Chefs");
+
+            migrationBuilder.DropTable(
                 name: "Deliveries");
 
             migrationBuilder.DropTable(
                 name: "OrderDetails");
 
             migrationBuilder.DropTable(
+                name: "Payments");
+
+            migrationBuilder.DropTable(
                 name: "Reviews");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");
+
+            migrationBuilder.DropTable(
+                name: "DeliveryPersons");
 
             migrationBuilder.DropTable(
                 name: "Orders");

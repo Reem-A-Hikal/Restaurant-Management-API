@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Rest.Application.Interfaces.IRepositories;
 using Rest.Domain.Entities;
+using Rest.Domain.Exceptions;
 using Rest.Infrastructure.Data;
 
 namespace Rest.Infrastructure.Implementations.Repositories
@@ -36,30 +37,29 @@ namespace Rest.Infrastructure.Implementations.Repositories
                 .FirstOrDefaultAsync(a => a.UserId == userId && a.IsDefault);
         }
 
-        public async Task<bool> SetDefaultAddressAsync(string userId, int addressId)
+        public async Task SetDefaultAddressAsync(string userId, int addressId)
         {
             await using var transaction = await _context.Database.BeginTransactionAsync();
 
-            try
+            var addresses = await _context.Addresses
+                .Where(a => a.UserId == userId)
+                .ToListAsync();
+
+            var targetAddress = addresses.FirstOrDefault(a => a.AddressId == addressId)
+                ?? throw new NotFoundException("Address", addressId);
+
+            foreach (var address in addresses)
             {
-                await _context.Addresses
-                    .Where(a => a.UserId == userId && a.IsDefault)
-                    .ExecuteUpdateAsync(a => a.SetProperty(x => x.IsDefault, false));
-
-                await _context.Addresses
-                    .Where(a => a.UserId == userId && a.AddressId == addressId)
-                    .ExecuteUpdateAsync(a => a.SetProperty(x => x.IsDefault, true));
-
-                await transaction.CommitAsync();
-                return true;
+                if (address.AddressId == addressId)
+                    address.SetAsDefault();
+                else
+                    address.UnsetDefault();
             }
-            catch(Exception ex)
-            {
 
-                return false;
-
-            }
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
         }
+
         public async Task<bool> HasAddressAsync(int addressId, string userId)
         {
             return await _context.Addresses

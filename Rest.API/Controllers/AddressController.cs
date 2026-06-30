@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Rest.Application.Dtos.AddressDtos;
 using Rest.Application.Interfaces.IServices;
+using Swashbuckle.AspNetCore.Annotations;
 using System.Security.Claims;
 
 namespace Rest.API.Controllers
@@ -10,199 +12,165 @@ namespace Rest.API.Controllers
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
-    public class AddressController : ControllerBase
+    [Authorize]
+    public class AddressController : BaseController
     {
         private readonly IAddressService _addressService;
-        private readonly ILogger<AddressController> _logger;
-        private readonly IUserService _userService;
 
         /// <summary>
-        /// Constructor for AddressController.
+        /// Initializes a new instance of the AddressController
         /// </summary>
-        /// <param name="address"></param>
-        /// <param name="logger"></param>
-        /// <param name="userService"></param>
         public AddressController(IAddressService address, ILogger<AddressController> logger, IUserService userService)
         {
             _addressService = address;
-            _logger = logger;
-            _userService = userService;
         }
 
         /// <summary>
-        /// Creates a new address for the user.
+        /// Gets all addresses for the currently authenticated user
         /// </summary>
-        /// <returns> The created address.</returns>
-        [HttpGet("UserAddressesSelf")]
-        public async Task<IActionResult> GetUserAddressesforhimSelf()
+        [HttpGet("my-addresses")]
+        [SwaggerOperation(Summary = "Get my addresses", Description = "Returns all addresses belonging to the currently authenticated user.")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Returns list of addresses")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> GetMyAddresses()
         {
-            try
-            {
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                var addresses = await _addressService.GetUserAddresses(userId);
-                if (addresses == null || !addresses.Any())
-                {
-                    return NotFound("No addresses found for the user.");
-                }
-                return Ok(addresses);
-            }
-            catch(Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred while retrieving user addresses.");
-                return StatusCode(500, "An error occurred while retrieving user addresses." + ex);
-            }
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var addresses = await _addressService.GetUserAddresses(userId!);
+            return SuccessResponse(addresses, "Addresses retrieved successfully");
         }
 
-        [HttpGet("UserAddressesAdmin/{userid}")]
-        public async Task<IActionResult> GetUserAddressesAdmin(string userid)
-        {
-            try
-            {
-                var addresses = await _addressService.GetUserAddresses(userid);
-                if (addresses == null || !addresses.Any())
-                {
-                    return NotFound("No addresses found for the user.");
-                }
-                return Ok(addresses);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred while retrieving user addresses.");
-                return StatusCode(500, "An error occurred while retrieving user addresses." + ex);
-            }
-        }
         /// <summary>
-        /// Get a specific address by ID
+        /// Gets all addresses for a specific user (Admin only)
+        /// </summary>
+        /// <param name="userId">The ID of the user whose addresses to retrieve</param>
+        [HttpGet("user/{userId}")]
+        [Authorize(Roles = "Admin")]
+        [SwaggerOperation(Summary = "Get user addresses (Admin)", Description = "Requires Admin role. Returns all addresses for the specified user.")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Returns list of addresses")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized)]
+        [SwaggerResponse(StatusCodes.Status403Forbidden)]
+        public async Task<IActionResult> GetUserAddresses(string userId)
+        {
+            var addresses = await _addressService.GetUserAddresses(userId);
+            return SuccessResponse(addresses, "Addresses retrieved successfully");
+        }
+
+        /// <summary>
+        /// Gets a specific address belonging to the current user
         /// </summary>
         /// <param name="id">Address ID</param>
-        /// <returns>Address details</returns>
-        [HttpGet("UserAddress/{id}")]
-        public async Task<IActionResult> GetUserAddress(int id)
+        [HttpGet("{id}")]
+        [SwaggerOperation(Summary = "Get address by ID", Description = "Returns a specific address belonging to the currently authenticated user.")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Returns the requested address")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "Address not found")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> GetAddress(int id)
         {
-            try
-            {
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                var address = await _addressService.GetUserAddress(userId, id);
-                if (address == null)
-                {
-                    return NotFound("Address not found.");
-                }
-                return Ok(address);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred while retrieving the address.");
-                return StatusCode(500, "An error occurred while retrieving the address.");
-            }
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var address = await _addressService.GetUserAddress(userId!, id);
+
+            if (address == null)
+                return NotFoundResponse("Address not found.");
+
+            return SuccessResponse(address, "Address retrieved successfully");
         }
 
         /// <summary>
-        /// Get the user's default address
+        /// Gets the default address for the currently authenticated user
         /// </summary>
-        /// <returns>Default address details</returns>
-        [HttpGet("DefaultAddress")]
-        public async Task<IActionResult> GetUserDefaultAddress()
+        [HttpGet("default")]
+        [SwaggerOperation(Summary = "Get default address", Description = "Returns the default address for the currently authenticated user.")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Returns the default address")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "No default address found")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> GetDefaultAddress()
         {
-            try
-            {
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                var address = await _addressService.GetUserDefaultAddress(userId);
-                if (address == null)
-                {
-                    return NotFound("Default address not found.");
-                }
-                return Ok(address);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred while retrieving the default address.");
-                return StatusCode(500, "An error occurred while retrieving the default address.");
-            }
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var address = await _addressService.GetUserDefaultAddress(userId!);
+
+            if (address == null)
+                return NotFoundResponse("No default address found.");
+
+            return SuccessResponse(address, "Default address retrieved successfully");
         }
 
         /// <summary>
-        /// Create a new address
+        /// Creates a new address for the currently authenticated user
         /// </summary>
-        /// <param name="addressDto">Address data</param>
-        /// <returns>Created address</returns>
-        [HttpPost("create")]
-        public async Task<IActionResult> CreateAddress([FromBody] AddressCreateDto addressDto)
+        /// <param name="dto">Address data</param>
+        [HttpPost]
+        [SwaggerOperation(Summary = "Create address", Description = "Creates a new address for the currently authenticated user. The first address created is automatically set as default.")]
+        [SwaggerResponse(StatusCodes.Status201Created, "Address created successfully")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid address data")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> CreateAddress([FromBody] AddressCreateDto dto)
         {
-            try
-            {
-                if(!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
+            if (!ModelState.IsValid)
+                return ValidationErrorResponse(
+                    ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)));
 
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                var CreatedAddress = await _addressService.CreateAddress(userId, addressDto);
-                if (CreatedAddress == null)
-                {
-                    return BadRequest("Failed to create address.");
-                }
-                return CreatedAtAction(nameof(GetUserAddress), new { id = CreatedAddress.AddressId }, CreatedAddress);
-            }
-            catch(Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred while creating the address.");
-                return StatusCode(500, "An error occurred while creating the address.");
-            }
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var created = await _addressService.CreateAddress(userId!, dto);
+
+            return CreatedResponse(nameof(GetAddress), new { id = created.AddressId }, created, "Address created successfully");
         }
 
         /// <summary>
-        /// Update an existing address
+        /// Updates an existing address belonging to the current user
         /// </summary>
         /// <param name="id">Address ID</param>
-        /// <param name="addressDto">Updated address data</param>
-        /// <returns>Update result</returns>
-        [HttpPut("update/{id}")]
-        public async Task<IActionResult> UpdateAddress(int id, [FromBody] AddressUpdateDto addressDto)
+        /// <param name="dto">Updated address data</param>
+        [HttpPut("{id}")]
+        [SwaggerOperation(Summary = "Update address", Description = "Updates an existing address belonging to the currently authenticated user.")]
+        [SwaggerResponse(StatusCodes.Status204NoContent, "Address updated successfully")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid address data")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "Address not found")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> UpdateAddress(int id, [FromBody] AddressUpdateDto dto)
         {
-            try
-            {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                var result = await _addressService.UpdateAddress(userId, id, addressDto);
-                if (!result)
-                {
-                    return NotFound("Address not found.");
-                }
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred while updating the address.");
-                return StatusCode(500, "An error occurred while updating the address.");
-            }
+            if (!ModelState.IsValid)
+                return ValidationErrorResponse(
+                    ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)));
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            await _addressService.UpdateAddress(userId!, id, dto);
+
+            return NoContent();
         }
 
         /// <summary>
-        /// Delete an address
+        /// Sets an address as the default address for the current user
+        /// </summary>
+        /// <param name="id">Address ID to set as default</param>
+        [HttpPatch("{id}/set-default")]
+        [SwaggerOperation(Summary = "Set default address", Description = "Sets the specified address as the default address. Unsets any previously default address.")]
+        [SwaggerResponse(StatusCodes.Status204NoContent, "Default address set successfully")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "Address not found")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> SetDefaultAddress(int id)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            await _addressService.SetDefaultAddress(userId!, id);
+
+            return NoContent();
+        }
+
+
+        /// <summary>
+        /// Deletes an address belonging to the current user
         /// </summary>
         /// <param name="id">Address ID</param>
-        /// <returns>Delete result</returns>
-        [HttpDelete("delete/{id}")]
+        [HttpDelete("{id}")]
+        [SwaggerOperation(Summary = "Delete address", Description = "Deletes an address belonging to the currently authenticated user. If the deleted address was the default, another address is automatically set as default.")]
+        [SwaggerResponse(StatusCodes.Status204NoContent, "Address deleted successfully")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "Address not found")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> DeleteAddress(int id)
         {
-            try
-            {
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                var result = await _addressService.DeleteAddressAsync(userId, id);
-                if (!result)
-                {
-                    return NotFound("Address not found.");
-                }
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred while deleting the address.");
-                return StatusCode(500, "An error occurred while deleting the address.");
-            }
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            await _addressService.DeleteAddressAsync(userId!, id);
+
+            return NoContent();
         }
     }
 }

@@ -28,6 +28,7 @@ namespace Rest.Application.Dtos.AddressDtos
         [Required]
         [StringLength(100)]
         public string City { get; set; }
+        public string Governorate { get; set; }
 
         /// <summary>
         /// Gets or sets latitude of the address.

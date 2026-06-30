@@ -15,7 +15,7 @@ namespace Rest.Application.Interfaces
         IOrderDetailRepository OrderDetailRepository { get; }
         IPaymentRepository PaymentRepository { get; }
         IDeliveryRepository DeliveryRepository { get; }
-        IRepository<Review> ReviewRepository { get; }
+        IReviewRepository ReviewRepository { get; }
 
         Task<int> SaveChangesAsync();
     }

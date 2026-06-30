@@ -25,7 +25,7 @@ namespace Rest.Infrastructure.Implementations.Repositories
 
         public async Task SaveChangesAsync() => await _repository.SaveChangesAsync();
 
-        public async Task<Payment> GetByIdAsync(int id) => await _repository.GetByIdAsync(id);
+        public async Task<Payment?> GetByIdAsync(int id) => await _repository.GetByIdAsync(id);
 
         public async Task<IEnumerable<Payment>> GetAllAsync()
         {

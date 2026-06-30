@@ -1,73 +1,67 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Rest.Application.Interfaces.IRepositories;
+using Rest.Application.Utilities;
 using Rest.Domain.Entities;
 using Rest.Infrastructure.Data;
+using Rest.Infrastructure.Helpers;
+using System.Threading.Tasks;
 
 namespace Rest.Infrastructure.Implementations.Repositories
 {
     public class ReviewRepository : IReviewRepository
     {
+        private readonly IRepository<Review> _repository;
         private readonly RestDbContext _context;
 
-        public ReviewRepository(RestDbContext context)
+        public ReviewRepository(RestDbContext context, IRepository<Review> repository)
         {
             _context = context;
-        }
-        public async Task<IEnumerable<Review>> GetAllAsync()
-        {
-            return await _context.Reviews
-                .Include(r => r.Customer)
-                .Include(r => r.Order)
-                .Include(r => r.Product)
-                .ToListAsync();
+            _repository = repository;
         }
 
         public async Task<Review?> GetByIdAsync(int id)
         {
             return await _context.Reviews
                 .Include(r => r.Customer)
-                .Include(r => r.Order)
                 .Include(r => r.Product)
                 .FirstOrDefaultAsync(r => r.ReviewId == id);
         }
-        public async Task AddAsync(Review entity)
+        public async Task<Review?> GetByOrderIdAsync(int orderId)
         {
-            await _context.Reviews.AddAsync(entity);
+            return await _context.Reviews
+                .Include(r => r.Customer)
+                .Include(r => r.Product)
+                .FirstOrDefaultAsync(r => r.OrderId == orderId);
         }
 
-        public async Task DeleteAsync(int id)
-        {
-            await _context.Reviews
-                .Where(r => r.ReviewId == id)
-                .ExecuteDeleteAsync();
-        }
-
-
-
-        public async Task<IEnumerable<Review>> GetReviewsByCustomerIdAsync(string customerId)
+        public async Task<IEnumerable<Review>> GetByCustomerIdAsync(string customerId)
         {
             return await _context.Reviews
                 .Where(r => r.CustomerId == customerId)
                 .Include(r => r.Product)
+                .OrderByDescending(r => r.ReviewDate)
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<Review>> GetReviewsByProductIdAsync(int productId)
+        public async Task<PaginatedList<Review>> GetPaginatedAsync(int productId, int pageIndex, int pageSize)
         {
-            return await _context.Reviews
+            var query = GetByProductIdQueryable(productId);
+            return await PaginationHelper.CreateAsync(query, pageIndex, pageSize);
+        }
+
+        public IQueryable<Review> GetByProductIdQueryable(int productId)
+        {
+            return _context.Reviews
                 .Where(r => r.ProductId == productId)
                 .Include(r => r.Customer)
-                .ToListAsync();
+                .OrderByDescending(r => r.ReviewDate)
+                .AsQueryable();
         }
 
-        public async Task SaveChangesAsync()
-        {
-            await _context.SaveChangesAsync();
-        }
-
-        public void Update(Review entity)
-        {
-            _context.Reviews.Update(entity);
-        }
+        public async Task<IEnumerable<Review>> GetAllAsync() => await _repository.GetAllAsync();
+        public async Task AddAsync(Review entity) => await _repository.AddAsync(entity);
+        public void Update(Review entity) => _repository.Update(entity);
+        public async Task DeleteAsync(int id) => await _repository.DeleteAsync(id);
+        public Task SaveChangesAsync() => _repository.SaveChangesAsync();
     }
 }

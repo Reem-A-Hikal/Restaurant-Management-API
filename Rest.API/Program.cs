@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -71,10 +71,12 @@ namespace Rest.API
             builder.Services.AddScoped<ICategoryService, CategoryService>();
             builder.Services.AddScoped<IAddressService, AddressService>();
             builder.Services.AddScoped<IOrderService, OrderService>();
-            builder.Services.AddScoped<IRepository<Delivery>, Repository<Delivery>>();
             builder.Services.AddScoped<IDeliveryService, DeliveryService>();
             builder.Services.AddScoped<IOrderDetailService, OrderDetailService>();
             builder.Services.AddScoped<IReviewService, ReviewService>();
+            builder.Services.AddScoped<IPaymentService, PaymentService>();
+            builder.Services.AddScoped<IImageUploadService>(
+                sp => new ImageUploadService( builder.Environment.WebRootPath));
 
             // Role Strategies
             builder.Services.AddScoped<IRoleStrategy, ChefStrategy>();
@@ -220,20 +222,17 @@ namespace Rest.API
 
                 string adminEmail = "admin@restora.com";
                 string adminPassword = "Admin@123456";
+                string adminUserName = adminEmail.Split('@')[0];
 
                 var adminUser = await userManager.FindByEmailAsync(adminEmail);
                 if (adminUser == null)
                 {
-                    adminUser = new User
-                    {
-                        UserName = adminEmail,
-                        Email = adminEmail,
-                        FullName = "System Administrator",
-                        Status = UserStatus.Active,
-                        JoinDate = DateTime.UtcNow,
-                        EmailConfirmed = true,
-                        PhoneNumberConfirmed = true
-                    };
+                    adminUser = User.Create(
+                        adminEmail,
+                        adminUserName,
+                        "System Administrator",
+                        "01065235485",
+                        "1.png");
 
                     var createResult = await userManager.CreateAsync(adminUser, adminPassword);
                     if (createResult.Succeeded)
@@ -243,7 +242,7 @@ namespace Rest.API
                     else
                     {
                         var errors = string.Join(", ", createResult.Errors.Select(e => e.Description));
-                        Console.WriteLine($"? Failed to seed admin: {errors}");
+                        Console.WriteLine($"❌ Failed to seed admin: {errors}");
                     }
                 }
             }
@@ -260,6 +259,7 @@ namespace Rest.API
 
             app.UseHttpsRedirection();
             app.UseCors(txt);
+            app.UseStaticFiles();
             app.UseAuthentication();
             app.UseAuthorization();
             app.MapControllers();

@@ -4,7 +4,6 @@ using Rest.Application.Interfaces.IRepositories;
 using Rest.Application.Utilities;
 using Rest.Domain.Constants;
 using Rest.Domain.Entities;
-using Rest.Domain.Entities.Enums;
 using Rest.Infrastructure.Data;
 using Rest.Infrastructure.Helpers;
 
@@ -21,7 +20,13 @@ namespace Rest.Infrastructure.Implementations.Repositories
 
         public IQueryable<User> GetFilteredUsers(string? searchTerm, string? selectedRole = "All")
         {
+            var adminUserIds = from ur in _context.UserRoles
+                               join r in _context.Roles on ur.RoleId equals r.Id
+                               where r.Name == AppRoles.Admin
+                               select ur.UserId;
+
             var query = _context.Users
+                .Where(u => !adminUserIds.Contains(u.Id))
                 .AsQueryable();
 
             if (!string.IsNullOrEmpty(selectedRole) && selectedRole != "All")
@@ -48,10 +53,9 @@ namespace Rest.Infrastructure.Implementations.Repositories
             return await PaginationHelper.CreateAsync(query, pageIndex, pageSize);
         }
 
-        public async Task<User> GetByIdAsync(string id)
+        public async Task<User?> GetByIdAsync(string id)
         {
-            return await _context.Users.FirstOrDefaultAsync(u => u.Id == id)
-                ?? throw new KeyNotFoundException("User not found");
+            return await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
         }
         
         public async Task<Dictionary<string, string>> GetUsersRolesDictAsync(IEnumerable<string> userIds)
@@ -112,8 +116,17 @@ namespace Rest.Infrastructure.Implementations.Repositories
                 }
             }
         }
-        public async Task<IEnumerable<User>> GetAllAsync() => await _context.Users.ToListAsync();
-        
+        public async Task<IEnumerable<User>> GetAllAsync() 
+        {
+            var adminUserIds = await (from ur in _context.UserRoles
+                                      join r in _context.Roles on ur.RoleId equals r.Id
+                                      where r.Name == AppRoles.Admin
+                                      select ur.UserId).ToListAsync();
+
+            return await _context.Users
+                .Where(u => !adminUserIds.Contains(u.Id))
+                .ToListAsync();
+        }
         public async Task AddAsync(User entity) => await _context.Users.AddAsync(entity);
         public void Update(User entity) => _context.Users.Update(entity);
         public async Task SaveChangesAsync() => await _context.SaveChangesAsync();

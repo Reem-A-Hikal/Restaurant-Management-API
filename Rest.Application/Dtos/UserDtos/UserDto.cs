@@ -1,6 +1,5 @@
 ﻿using Rest.Application.Dtos.AddressDtos;
 using Rest.Domain.Entities.Enums;
-using System.Text.Json.Serialization;
 
 namespace Rest.Application.Dtos.UserDtos
 {
@@ -17,16 +16,12 @@ namespace Rest.Application.Dtos.UserDtos
         public bool IsActive => Status == UserStatus.Active;
         public string Role { get; set; }
 
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? Specialization { get; set; } // For Chef role
 
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? VehicleNumber { get; set; } // For DeliveryPerson role
 
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? IsAvailable { get; set; } = true; // For DeliveryPerson role
 
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public List<AddressDto> Addresses { get; set; } = [];
 
     }

@@ -1,27 +1,35 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.Text.Json.Serialization;
+﻿using Rest.Domain.Exceptions;
 
 namespace Rest.Domain.Entities
 {
     public class DeliveryPerson :User
     {
-        /// <summary>
-        /// Delivery person's vehicle number (visible only for DeliveryPerson role)
-        /// </summary>
-        /// <example>ABC-1234</example>
-        [Required]
-        [StringLength(20, ErrorMessage = "Vehicle number cannot exceed 20 characters")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string VehicleNumber { get; set; }
+        public string VehicleNumber { get; private set; } = null!;
 
-        /// <summary>
-        /// Indicates if the delivery person is currently available (visible only for DeliveryPerson role)
-        /// </summary>
-        /// 
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public bool? IsAvailable { get; set; }
+        public bool? IsAvailable { get; private set; } = true;
 
         public virtual ICollection<Delivery> Deliveries { get; set; } = [];
 
+        public static DeliveryPerson Create(
+            string email, string userName, string fullName,
+            string? phoneNumber, string? profileImageUrl, string vehicleNumber)
+        {
+            var dp = InitializeBase(new DeliveryPerson(), email, userName, fullName, phoneNumber, profileImageUrl);
+            dp.SetVehicleNumber(vehicleNumber);
+            dp.IsAvailable = true;
+            return dp;
+        }
+
+        public void SetVehicleNumber(string vehicleNumber)
+        {
+            if (string.IsNullOrWhiteSpace(vehicleNumber))
+                throw new ValidationException("Vehicle number is required for a Delivery Person.");
+
+            VehicleNumber = vehicleNumber;
+        }
+
+        public void MarkAvailable() => IsAvailable = true;
+        public void MarkBusy() => IsAvailable = false;
+        public void SetAvailability(bool isAvailable) => IsAvailable = isAvailable;
     }
 }

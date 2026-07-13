@@ -23,4 +23,8 @@
     <ProjectReference Include="..\Rest.Application\Rest.Application.csproj" />
     <ProjectReference Include="..\Rest.Infrastructure\Rest.Infrastructure.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="wwwroot\images\" />
+  </ItemGroup>
 </Project>

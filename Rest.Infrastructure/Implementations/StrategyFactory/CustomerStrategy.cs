@@ -8,16 +8,10 @@ namespace Rest.Infrastructure.Implementations.StrategyFactory
 {
     public class CustomerStrategy : IRoleStrategy
     {
-        private readonly IMapper _mapper;
-
-        public CustomerStrategy(IMapper mapper)
-        {
-            _mapper = mapper;
-        }
         public string RoleName => AppRoles.Customer;
 
-        public User CreateUserEntity(CreateUserDto dto) => _mapper.Map<User>(dto);
-
+        public User CreateUserEntity(CreateUserDto dto) 
+            => User.Create(dto.Email, dto.UserName, dto.FullName, dto.PhoneNumber, dto.ProfileImageUrl);
         public Task EnrichDtoAsync(UserDto dto) => Task.CompletedTask;
 
         public Task UpdateRoleDataAsync(string userId, AdminUpdateUserDto dto)

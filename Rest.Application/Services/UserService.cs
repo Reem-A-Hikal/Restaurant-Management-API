@@ -5,6 +5,7 @@ using Rest.Application.Interfaces.IRepositories;
 using Rest.Application.Interfaces.IServices;
 using Rest.Application.Interfaces.IServices.StrategyFactory;
 using Rest.Application.Utilities;
+using Rest.Domain.Constants;
 using Rest.Domain.Entities;
 using Rest.Domain.Entities.Enums;
 using Rest.Domain.Exceptions;
@@ -19,19 +20,22 @@ namespace Rest.Application.Services
         private readonly IRoleStrategyResolver _roleResolver;
         private readonly UserCreationHelper _creationHelper;
         private readonly IMapper _mapper;
+        private readonly IImageUploadService _imageUploadService;
 
         public UserService(
             UserManager<User> userManager,
             IRoleStrategyResolver roleResolver,
             IUserRepository userRepository,
             UserCreationHelper userCreationHelper,
-            IMapper mapper)
+            IMapper mapper,
+            IImageUploadService imageUploadService)
         {
             _userManager = userManager;
             _userRepository = userRepository;
             _roleResolver = roleResolver;
             _creationHelper = userCreationHelper;
             _mapper = mapper;
+            _imageUploadService = imageUploadService;
         }
         public async Task<IEnumerable<UserDto>> GetAllUsersAsync()
         {
@@ -106,9 +110,7 @@ namespace Rest.Application.Services
 
             if(dto.Status.HasValue)
             {
-                if (dto.Status == UserStatus.Deleted)
-                    throw new BusinessException("Cannot set status to Deleted. Use the Delete Button instead.");
-                user.Status = dto.Status.Value;
+                user.ChangeStatus(dto.Status.Value);
 
                 var result = await _userManager.UpdateAsync(user);
                 if (!result.Succeeded)
@@ -119,34 +121,30 @@ namespace Rest.Application.Services
             var primaryRole = roles.FirstOrDefault();
             if (primaryRole == null) return;
 
-            try
-            {
-                var strategy = _roleResolver.Resolve(primaryRole);
-                await strategy.UpdateRoleDataAsync(userId, dto);
-            }
-            catch (BusinessException ex)
-            {
-                throw new BusinessException($"Failed to update role-specific data: {ex.Message}");
-            }
+            var strategy = _roleResolver.Resolve(primaryRole);
+            await strategy.UpdateRoleDataAsync(userId, dto);
+            
         }
 
         public async Task UpdateUserProfileAsync(string userId, UpdateProfileDto dto)
         {
-            var user = await _userRepository.GetByIdAsync(userId) 
+            var user = await _userRepository.GetByIdAsync(userId)
                 ?? throw new NotFoundException("User", userId);
 
-            if (!string.IsNullOrWhiteSpace(dto.FullName))
-                user.FullName = dto.FullName;
+            var oldImageUrl = user.ProfileImageUrl;
 
-            if (!string.IsNullOrWhiteSpace(dto.PhoneNumber))
-                user.PhoneNumber = dto.PhoneNumber;
-
-            if (!string.IsNullOrWhiteSpace(dto.ProfileImageUrl))
-                user.ProfileImageUrl = dto.ProfileImageUrl;
+            user.UpdateProfile(dto.FullName, dto.PhoneNumber, dto.ProfileImageUrl);
 
             var result = await _userManager.UpdateAsync(user);
             if (!result.Succeeded)
-                throw new ValidationException( result.Errors.Select(e => e.Description));
+                throw new ValidationException(result.Errors.Select(e => e.Description));
+
+            if (!string.IsNullOrWhiteSpace(dto.ProfileImageUrl)
+            && dto.ProfileImageUrl != oldImageUrl
+            && !string.IsNullOrWhiteSpace(oldImageUrl))
+            {
+                _imageUploadService.Delete(oldImageUrl);
+            }
         }
 
         public async Task DeleteUser(string userId)
@@ -155,23 +153,22 @@ namespace Rest.Application.Services
                 ?? throw new NotFoundException("User", userId);
 
             var roles = await _userManager.GetRolesAsync(user);
-            if(roles.Contains("Admin"))
+            if(roles.Contains(AppRoles.Admin))
             {
-                var adminCount = (await _userManager.GetUsersInRoleAsync("Admin")).Count;
+                var adminCount = (await _userManager.GetUsersInRoleAsync(AppRoles.Admin)).Count;
                 if(adminCount <= 1)
                     throw new BusinessException("Cannot delete the last admin user");
             }
 
-            user.Status = UserStatus.Deleted;
-            user.Email = $"deleted_{user.Id}@deleted.com";
-            user.FullName = $"deleted_{user.Id}";
-            user.UserName = $"deleted_{user.Id}";
-            user.PhoneNumber = null;
-            user.ProfileImageUrl = null;
+            var imageToDelete = user.ProfileImageUrl;
+
+            user.MarkAsDeleted();
 
             var result = await _userManager.UpdateAsync(user);
             if (!result.Succeeded)
                 throw new ValidationException(result.Errors.Select(e => e.Description));
+
+            _imageUploadService.Delete(imageToDelete);
         }
     }
 }

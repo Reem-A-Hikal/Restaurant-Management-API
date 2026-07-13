@@ -19,15 +19,6 @@ namespace Rest.Application.Profiles
                 .ForMember(dest => dest.TotalItems,
                     opt => opt.MapFrom(src => src.Products != null ? src.Products.Count : 0));
 
-            CreateMap<CategoryCreateDto, Category>()
-                .ForMember(dest => dest.Products, opt => opt.Ignore());
-
-
-            CreateMap<CategoryUpdateDto, Category>()
-                .ForMember(dest => dest.Products, opt => opt.Ignore())
-                .ForAllMembers(opt => opt.Condition(
-                    (src, dest, srcMember) => srcMember != null));
-
             CreateMap<Category, SimpleCategoryDto>();
         }
     }

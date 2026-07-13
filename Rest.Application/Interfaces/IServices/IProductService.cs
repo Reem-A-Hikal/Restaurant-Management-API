@@ -44,7 +44,7 @@ namespace Rest.Application.Interfaces.IServices
         /// <param name="id"> The ID of the product to update</param>
         /// <param name="productDto"> The product data transfer object containing the updated product details</param>
         /// <returns> The updated product</returns>
-        Task UpdateProductAsync(int id, ProductDto productDto);
+        Task UpdateProductAsync(int id, ProductUpdateDto productDto);
 
         /// <summary>
         /// Deletes a product by its ID

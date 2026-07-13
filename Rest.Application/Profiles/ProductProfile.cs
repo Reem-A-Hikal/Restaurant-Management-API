@@ -17,11 +17,6 @@ namespace Rest.Application.Profiles
         {
             CreateMap<Product, ProductDto>();
 
-            CreateMap<ProductCreateDto, Product>()
-                .ForMember(dest => dest.OrderDetails, opt => opt.Ignore())
-                .ForMember(dest => dest.Reviews, opt => opt.Ignore())
-                .ForMember(dest => dest.Category, opt => opt.Ignore());
-
             CreateMap<Product, SimpleProductDto>();
         }
     }

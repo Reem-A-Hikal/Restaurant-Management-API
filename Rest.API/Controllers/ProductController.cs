@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Rest.Application.Dtos.ProductDtos;
 using Rest.Application.Interfaces.IServices;
+using Rest.Infrastructure.Implementations.Services;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace Rest.API.Controllers
@@ -14,14 +15,16 @@ namespace Rest.API.Controllers
     public class ProductController : BaseController
     {
         private readonly IProductService productService;
+        private readonly IImageUploadService _imageUploadService;
 
         /// <summary>
         /// Initializes a new instance of the ProductController
         /// </summary>
         /// <param name="productService"></param>
-        public ProductController(IProductService productService)
+        public ProductController(IProductService productService, IImageUploadService imageUploadService)
         {
             this.productService = productService;
+            _imageUploadService = imageUploadService;
         }
 
         /// <summary>
@@ -107,14 +110,19 @@ namespace Rest.API.Controllers
                 return ValidationErrorResponse(ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)));
 
             var productId = await productService.CreateProductAsync(productDto);
-            return CreatedResponse(nameof(GetProductById), new { id = productId }, productDto, "Product created successfully");
+
+            return CreatedResponse(
+                nameof(GetProductById),
+                new { id = productId },
+                new { productId },
+                "Product created successfully");
         }
 
         /// <summary>
         /// Updates an existing product
         /// </summary>
         /// <param name="id">Product ID</param>
-        /// <param name="productDto">ProductDto</param>
+        /// <param name="dto">ProductDto</param>
         [HttpPut("EditProduct/{id}")]
         [Authorize(Roles = "Admin")]
         [SwaggerOperation(Summary = "Update an existing product")]
@@ -124,12 +132,12 @@ namespace Rest.API.Controllers
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized")]
         [SwaggerResponse(StatusCodes.Status403Forbidden, "Forbidden - Admin role required")]
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal server error")]
-        public async Task<IActionResult> UpdateProduct(int id, ProductDto productDto)
+        public async Task<IActionResult> UpdateProduct(int id, ProductUpdateDto dto)
         {
             if (!ModelState.IsValid)
                 return ValidationErrorResponse(ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)));
 
-            await productService.UpdateProductAsync(id, productDto);
+            await productService.UpdateProductAsync(id, dto);
             return SuccessResponse(id, "Product updated successfully");
         }
 
@@ -149,6 +157,20 @@ namespace Rest.API.Controllers
         {
             await productService.DeleteProductAsync(id);
             return SuccessResponse(id, "Product archived successfully");
+        }
+
+        /// <summary>
+        /// Deletes a previously uploaded image. Used for cleanup when the
+        /// associated entity save fails after a successful upload.
+        /// </summary>
+        [HttpDelete("image")]
+        [Authorize(Roles = "Admin")]
+        [SwaggerOperation(Summary = "Delete an uploaded image")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Image deleted successfully")]
+        public IActionResult DeleteImage([FromQuery] string url)
+        {
+            _imageUploadService.Delete(url);
+            return SuccessResponse<string>(null, "Image deleted successfully");
         }
     }
 }

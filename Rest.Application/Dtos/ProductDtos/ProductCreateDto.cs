@@ -33,11 +33,6 @@
         public int? Calories { get; set; }
 
         /// <summary>
-        /// Indicates if the product is available
-        /// </summary>
-        public bool IsAvailable { get; set; } = true;
-
-        /// <summary>
         /// Indicates if the product is promoted
         /// </summary>
         public bool IsPromoted { get; set; } = false;

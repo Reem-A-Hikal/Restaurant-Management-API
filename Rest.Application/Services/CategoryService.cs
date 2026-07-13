@@ -36,7 +36,9 @@ namespace Rest.Application.Services
             if (dto == null)
                 throw new ValidationException("Category data is required");
 
-            var category = _mapper.Map<Category>(dto);
+            var category = Category.Create(
+                dto.Name, dto.DisplayOrder, dto.Status);
+
             await _categoryRepository.AddAsync(category);
             await _categoryRepository.SaveChangesAsync();
 
@@ -52,13 +54,7 @@ namespace Rest.Application.Services
             var category = await _categoryRepository.GetByIdAsync(id)
                  ?? throw new NotFoundException("Category", id);
 
-            if (category.Status == CategoryStatus.Archived)
-                throw new BusinessException("Category is already archived");
-
-            category.Status = CategoryStatus.Archived;
-
-            foreach (var product in category.Products)
-                product.Status = ProductStatus.Unavailable;
+            category.Archive();
 
             await _categoryRepository.SaveChangesAsync();
         }
@@ -107,14 +103,23 @@ namespace Rest.Application.Services
             var existingCategory = await _categoryRepository.GetByIdAsync(id)
                  ?? throw new NotFoundException("Category", id);
 
-            if (!string.IsNullOrWhiteSpace(dto.Name))
-                existingCategory.Name = dto.Name;
+            existingCategory.UpdateDetails(dto.Name, dto.DisplayOrder);
 
             if (dto.Status.HasValue)
-                existingCategory.Status = dto.Status.Value;
-
-            if (dto.DisplayOrder.HasValue)
-                existingCategory.DisplayOrder = dto.DisplayOrder.Value;
+            {
+                switch (dto.Status.Value)
+                {
+                    case CategoryStatus.Active:
+                        existingCategory.Activate();
+                        break;
+                    case CategoryStatus.Inactive:
+                        existingCategory.Deactivate();
+                        break;
+                    case CategoryStatus.Archived:
+                        existingCategory.Archive();
+                        break;
+                }
+            }
 
             _categoryRepository.Update(existingCategory);
             await _categoryRepository.SaveChangesAsync();

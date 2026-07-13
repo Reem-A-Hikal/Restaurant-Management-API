@@ -24,6 +24,6 @@ namespace Rest.Application.Interfaces.IRepositories
         /// </summary>
         Task<IEnumerable<Delivery>> GetDeliveryHistoryByOrderIdAsync(int orderId);
         Task<bool> HasActiveDeliveryAsync(string deliveryPersonId);
-        Task<string?> GetAvailableDeliveryPersonAsync();
+        Task<IEnumerable<DeliveryPerson>> GetAvailableDeliveryPersonsAsync();
     }
 }

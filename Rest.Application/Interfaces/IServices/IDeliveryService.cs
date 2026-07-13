@@ -53,6 +53,7 @@ namespace Rest.Application.Interfaces.IServices
         /// Returns all active deliveries in the system (for dashboards).
         /// </summary>
         Task<IEnumerable<DeliveryDto>> GetAllActiveDeliveriesAsync();
+        Task<IEnumerable<AvailableDeliveryPersonDto>> GetAvailableDeliveryPersonsAsync();
 
         Task<DeliveryDto> UpdateLocationAsync(int deliveryId, string deliveryPersonId, UpdateLocationDto dto);
     }

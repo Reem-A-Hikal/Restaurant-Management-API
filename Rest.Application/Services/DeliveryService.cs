@@ -43,8 +43,13 @@ namespace Rest.Application.Services
             }
             else
             {
-                deliveryPersonId = await _unitOfWork.DeliveryRepository.GetAvailableDeliveryPersonAsync()
-                    ?? throw new BusinessException("No delivery persons are available at the moment.");
+                var availableDeliveryPersons = await _unitOfWork.DeliveryRepository.GetAvailableDeliveryPersonsAsync();
+
+                if (availableDeliveryPersons is null || !availableDeliveryPersons.Any())
+                    throw new BusinessException("No delivery persons are available at the moment.");
+
+
+                deliveryPersonId = availableDeliveryPersons.First().Id;
             }
 
             var delivery = new Delivery
@@ -62,7 +67,8 @@ namespace Rest.Application.Services
             
             var deliveryPerson = await _unitOfWork.DeliveryPersonRepository.GetDeliveryPersonByIdAsync(deliveryPersonId)
                 ?? throw new NotFoundException("DeliveryPerson", deliveryPersonId);
-            deliveryPerson.IsAvailable = false;
+            
+            deliveryPerson.MarkBusy();
 
             await _unitOfWork.SaveChangesAsync();
 
@@ -113,7 +119,8 @@ namespace Rest.Application.Services
 
             var deliveryPerson = await _unitOfWork.DeliveryPersonRepository.GetDeliveryPersonByIdAsync(delivery.DeliveryPersonId)
                 ?? throw new NotFoundException("DeliveryPerson", delivery.DeliveryPersonId);
-            deliveryPerson.IsAvailable = true;
+            
+            deliveryPerson.MarkAvailable();
 
             await _unitOfWork.SaveChangesAsync();
 
@@ -135,7 +142,7 @@ namespace Rest.Application.Services
             var deliveryPerson = await _unitOfWork.DeliveryPersonRepository.GetDeliveryPersonByIdAsync(delivery.DeliveryPersonId)
                 ?? throw new NotFoundException("DeliveryPerson", delivery.DeliveryPersonId);
 
-            deliveryPerson.IsAvailable = true;
+            deliveryPerson.MarkAvailable();
 
             _unitOfWork.DeliveryRepository.Update(delivery);
             _unitOfWork.OrderRepository.Update(order);
@@ -193,6 +200,12 @@ namespace Rest.Application.Services
             await _unitOfWork.SaveChangesAsync();
 
             return _mapper.Map<DeliveryDto>(delivery);
+        }
+
+        public async Task<IEnumerable<AvailableDeliveryPersonDto>> GetAvailableDeliveryPersonsAsync()
+        {
+            var deliveryPersons = await _unitOfWork.DeliveryRepository.GetAvailableDeliveryPersonsAsync();
+            return _mapper.Map<IEnumerable<AvailableDeliveryPersonDto>>(deliveryPersons);
         }
     }
 }

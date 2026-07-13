@@ -159,6 +159,17 @@ namespace Rest.API.Controllers
             var result = await _deliveryService.UpdateLocationAsync(deliveryId, currentUserId!, dto);
             return SuccessResponse(result, "Location updated successfully");
         }
+
+        /// <summary>
+        /// Gets all DeliveryPersons currently available for manual assignment
+        /// </summary>
+        [HttpGet("available-persons")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetAvailableDeliveryPersons()
+        {
+            var result = await _deliveryService.GetAvailableDeliveryPersonsAsync();
+            return SuccessResponse(result, "Available delivery persons retrieved successfully");
+        }
     }
 }
 

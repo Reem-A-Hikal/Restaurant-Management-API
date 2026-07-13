@@ -9,14 +9,16 @@ namespace Rest.Application.Dtos.DeliveryDtos
         public string OrderNumber { get; set; }
 
         public DeliveryStatus Status { get; set; }
-
         public string StatusDisplay => Status.ToString();
 
         public string DeliveryPersonId { get; set; }
         public string DeliveryPersonName { get; set; }
+
+        public DateTime AssignedAt { get; set; }
         public DateTime StatusChangeTime { get; set; }
         public DateTime? DeliveryStartTime { get; set; }
         public DateTime? DeliveryEndTime { get; set; }
+        public DateTime? CancelledAt { get; set; }
         public string? Notes { get; set; }
 
         public string CustomerAddress { get; set; }

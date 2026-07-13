@@ -8,8 +8,14 @@ namespace Rest.Domain.Entities
         public int DeliveryId { get; set; }
         public DateTime StatusChangeTime { get; set; } = DateTime.UtcNow;
         public DeliveryStatus Status { get; private set; } = DeliveryStatus.Assigned;
+
+        /// <summary>
+        /// Captured once, at creation — NOT overwritten by TransitionTo().
+        /// </summary>
+        public DateTime AssignedAt { get; private set; } = DateTime.UtcNow;
         public DateTime? DeliveryStartTime { get; private set; }
         public DateTime? DeliveryEndTime { get; private set; }
+        public DateTime? CancelledAt { get; private set; }
 
         public decimal? Latitude { get; set; }
 

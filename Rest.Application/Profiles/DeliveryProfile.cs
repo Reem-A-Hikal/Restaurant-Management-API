@@ -17,6 +17,8 @@ namespace Rest.Application.Profiles
                     opt => opt.MapFrom(src => src.Order != null && src.Order.DeliveryAddress != null
                         ? $"{src.Order.DeliveryAddress.AddressLine1}, {src.Order.DeliveryAddress.City}"
                         : string.Empty));
+
+            CreateMap<DeliveryPerson, AvailableDeliveryPersonDto>();
         }
     }
 }

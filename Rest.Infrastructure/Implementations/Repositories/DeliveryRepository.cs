@@ -81,7 +81,7 @@ namespace Rest.Infrastructure.Implementations.Repositories
                 .ToListAsync();
         }
 
-        public async Task<string?> GetAvailableDeliveryPersonAsync()
+        public async Task<IEnumerable<DeliveryPerson>> GetAvailableDeliveryPersonsAsync()
         {
             var busyPersonIds = await _context.Deliveries
                 .Where(d => d.Status == DeliveryStatus.Assigned || d.Status == DeliveryStatus.PickedUp)
@@ -91,8 +91,8 @@ namespace Rest.Infrastructure.Implementations.Repositories
 
             return await _context.DeliveryPersons
                 .Where(dp => dp.IsAvailable == true && !busyPersonIds.Contains(dp.Id))
-                .Select(dp => dp.Id)
-                .FirstOrDefaultAsync();
+                .OrderBy(dp => dp.Deliveries.Count(d => d.Status == DeliveryStatus.Delivered))
+                .ToListAsync();
         }
 
         public async Task<bool> HasActiveDeliveryAsync(string deliveryPersonId)

@@ -26,6 +26,11 @@ namespace Rest.Infrastructure.Data.Configurations
                    .HasMaxLength(20)
                    .IsRequired();
 
+            builder.Property(d => d.AssignedAt)
+                   .IsRequired();
+
+            builder.Property(d => d.CancelledAt);
+
             builder.Property(d => d.DeliveryStartTime);
             builder.Property(d => d.DeliveryEndTime);
 

@@ -56,6 +56,8 @@ namespace Rest.Application.Dtos.ProductDtos
         /// </summary>
         public decimal DiscountPercent { get; set; }
 
+        public decimal DiscountedPrice { get; set; }
+
         /// <summary>
         /// Maximum allowed discount percentage for the product
         /// </summary>

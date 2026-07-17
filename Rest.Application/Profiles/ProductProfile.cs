@@ -15,7 +15,9 @@ namespace Rest.Application.Profiles
         /// </summary>
         public ProductProfile()
         {
-            CreateMap<Product, ProductDto>();
+            CreateMap<Product, ProductDto>()
+                .ForMember(dest => dest.DiscountedPrice,
+                    opt => opt.MapFrom(src => src.GetDiscountedPrice()));
 
             CreateMap<Product, SimpleProductDto>();
         }

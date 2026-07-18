@@ -3,6 +3,7 @@ using Rest.Application.Dtos.OrderDetailsDtos;
 using Rest.Application.Dtos.OrderDtos;
 using Rest.Application.Interfaces;
 using Rest.Application.Interfaces.IServices;
+using Rest.Domain.Constants;
 using Rest.Domain.Entities;
 using Rest.Domain.Entities.Enums;
 using Rest.Domain.Exceptions;
@@ -153,6 +154,30 @@ namespace Rest.Application.Services
             return _mapper.Map<OrderDto[]>(orders);
         }
 
+        public IEnumerable<OrderStatus> GetAllowedStatusesForRole(string role)
+        {
+            if (role == AppRoles.Admin)
+                return Enum.GetValues<OrderStatus>();
+
+            return _roleVisibleStatuses.TryGetValue(role, out var statuses)
+                ? statuses
+                : [];
+        }
+
+        public async Task<IEnumerable<OrderDto>> GetOrdersVisibleToRoleAsync(string role)
+        {
+            if (role == AppRoles.Admin)
+                return await GetAllOrdersAsync();
+
+            if(_roleVisibleStatuses.TryGetValue(role, out var allowedStatuses))
+            {
+                var orders = await _unitOfWork.OrderRepository.GetOrdersByStatusesAsync(allowedStatuses);
+                return _mapper.Map<OrderDto[]>(orders);
+            }
+
+            throw new ForbiddenException($"Role '{role}' is not permitted to view orders.");
+        }
+
         public async Task<IEnumerable<OrderDto>> GetAllOrdersAsync()
         {
             var orders = await _unitOfWork.OrderRepository.GetAllAsync() ?? [];
@@ -207,5 +232,10 @@ namespace Rest.Application.Services
 
             return _mapper.Map<OrderDto>(order);
         }
+
+        private static readonly Dictionary<string, OrderStatus[]> _roleVisibleStatuses = new()
+        {
+            [AppRoles.Chef] = new[] { OrderStatus.Confirmed, OrderStatus.Preparing, OrderStatus.Ready },
+        };
     }
 }

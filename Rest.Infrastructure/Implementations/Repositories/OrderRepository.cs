@@ -72,6 +72,17 @@ namespace Rest.Infrastructure.Implementations.Repositories
                 .ToListAsync();
         }
 
+        public async Task<IEnumerable<Order>> GetOrdersByStatusesAsync(IEnumerable<OrderStatus> statuses)
+        {
+            return await _context.Orders
+                .Where(o => statuses.Contains(o.Status))
+                .Include(o => o.User)
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.Product)
+                .OrderByDescending(o => o.OrderDate)
+                .ToListAsync();
+        }
+
         public async Task<IEnumerable<Order>> GetOrdersByCustomerAsync(string customerId)
         {
             return await _context.Orders

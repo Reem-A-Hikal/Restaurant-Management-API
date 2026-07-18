@@ -20,6 +20,12 @@ namespace Rest.Application.Interfaces.IRepositories
         Task<Order?> GetByIdFullAsync(int id);
 
         Task<IEnumerable<Order>> GetOrdersByStatusAsync(OrderStatus status);
+
+        /// <summary>
+        /// Gets orders matching any of the given statuses. Used for
+        /// role-scoped views (e.g. Chef sees Confirmed/Preparing/Ready only)
+        /// </summary>
+        Task<IEnumerable<Order>> GetOrdersByStatusesAsync(IEnumerable<OrderStatus> statuses);
         Task<IEnumerable<Order>> GetOrdersByCustomerAsync(string customerId);
         Task<IEnumerable<Order>> GetOrdersByDateRangeAsync(DateTime startDate, DateTime endDate);
         Task<IEnumerable<Order>> GetKitchenQueueAsync();

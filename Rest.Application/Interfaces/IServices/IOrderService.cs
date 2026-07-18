@@ -17,6 +17,19 @@ namespace Rest.Application.Interfaces.IServices
         Task<OrderDto> MarkAsPreparedAsync(int orderId);
 
         Task<IEnumerable<OrderDto>> GetOrdersByStatusAsync(OrderStatus status);
+
+        /// <summary>
+        /// Returns the order statuses the given role is allowed to filter by.
+        /// Frontend uses this to build the status filter dropdown dynamically -
+        /// no status list is ever hardcoded on the client.
+        /// </summary>
+        IEnumerable<OrderStatus> GetAllowedStatusesForRole(string role);
+
+        // <summary>
+        /// Returns orders scoped to what the given role is allowed to see.
+        /// Admin sees everything; Chef sees only Confirmed/Preparing/Ready.
+        /// </summary>
+        Task<IEnumerable<OrderDto>> GetOrdersVisibleToRoleAsync(string role);
         Task<IEnumerable<OrderDto>> GetOrdersByCustomerAsync(string customerId);
         Task<IEnumerable<OrderDto>> GetKitchenQueueAsync();
 

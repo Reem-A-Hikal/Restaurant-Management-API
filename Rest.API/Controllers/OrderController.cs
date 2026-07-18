@@ -68,16 +68,19 @@ namespace Rest.API.Controllers
             return SuccessResponse(order);
         }
 
-        /// <summary>Gets all orders.</summary>
+        /// <summary>Gets orders scoped to the caller's role.</summary>
         [HttpGet]
-        [Authorize(Roles = "Admin")]
-        [SwaggerOperation(Summary = "Get all orders", Description = "Admin only.")]
+        [Authorize(Roles = "Admin, Chef")]
+        [SwaggerOperation(
+            Summary = "Get orders (role-scoped)",
+            Description = "Admin sees all orders. Chef sees only Confirmed, Preparing, and Ready orders.")]
         [SwaggerResponse(200, "Orders retrieved successfully", typeof(IEnumerable<OrderDto>))]
         [SwaggerResponse(401, "Unauthorized")]
         [SwaggerResponse(403, "Forbidden")]
         public async Task<IActionResult> GetAllOrders()
         {
-            var orders = await _orderService.GetAllOrdersAsync();
+            var role = User.FindFirstValue(ClaimTypes.Role)!;
+            var orders = await _orderService.GetOrdersVisibleToRoleAsync(role);
             return SuccessResponse(orders);
         }
 
@@ -109,6 +112,20 @@ namespace Rest.API.Controllers
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
             var orders = await _orderService.GetOrdersByCustomerAsync(userId);
             return SuccessResponse(orders);
+        }
+
+        /// <summary>Gets the order statuses the caller's role is allowed to filter by.</summary>
+        [HttpGet("allowed-statuses")]
+        [Authorize(Roles = "Admin,Chef")]
+        [SwaggerOperation(
+            Summary = "Get allowed order statuses for current role",
+            Description = "Used by the frontend to build the status filter dropdown dynamically.")]
+        [SwaggerResponse(200, "Statuses retrieved successfully", typeof(IEnumerable<OrderStatus>))]
+        public IActionResult GetAllowedStatuses()
+        {
+            var role = User.FindFirstValue(ClaimTypes.Role)!;
+            var statuses = _orderService.GetAllowedStatusesForRole(role);
+            return SuccessResponse(statuses);
         }
 
         /// <summary>Gets orders by status.</summary>

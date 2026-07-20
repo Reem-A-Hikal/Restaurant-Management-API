@@ -77,6 +77,7 @@ namespace Rest.API
             builder.Services.AddScoped<IPaymentService, PaymentService>();
             builder.Services.AddScoped<IImageUploadService>(
                 sp => new ImageUploadService( builder.Environment.WebRootPath));
+            builder.Services.AddScoped<IDashboardService, DashboardService>();
 
             // Role Strategies
             builder.Services.AddScoped<IRoleStrategy, ChefStrategy>();

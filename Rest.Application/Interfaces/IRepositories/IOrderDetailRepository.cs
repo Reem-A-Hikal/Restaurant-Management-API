@@ -1,4 +1,5 @@
-﻿using Rest.Domain.Entities;
+﻿using Rest.Application.Dtos.DashboardDtos;
+using Rest.Domain.Entities;
 
 namespace Rest.Application.Interfaces.IRepositories
 {
@@ -15,5 +16,11 @@ namespace Rest.Application.Interfaces.IRepositories
         /// Used by OrderService to decide whether to merge quantities or add a new line.
         /// </summary>
         Task<OrderDetail?> GetByOrderIdAndProductIdAsync(int orderId, int productId);
+
+        /// <summary>
+        /// Top N dishes by quantity sold across all orders — used for the dashboard
+        /// "top sellers" bar chart.
+        /// </summary>
+        Task<List<TopDishDto>> GetTopSellingDishesAsync(int topN);
     }
 }

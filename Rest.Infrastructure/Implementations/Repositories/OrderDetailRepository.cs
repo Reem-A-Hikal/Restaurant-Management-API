@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Rest.Application.Dtos.DashboardDtos;
 using Rest.Application.Interfaces.IRepositories;
 using Rest.Domain.Entities;
 using Rest.Infrastructure.Data;
@@ -48,6 +49,23 @@ namespace Rest.Infrastructure.Implementations.Repositories
         {
             return await _context.OrderDetails
                 .FirstOrDefaultAsync(od => od.OrderId == orderId && od.ProductId == productId);
+        }
+
+        public async Task<List<TopDishDto>> GetTopSellingDishesAsync(int topN)
+        {
+            return await _context.OrderDetails
+                .GroupBy(od => new { od.ProductId, od.Product.Name, od.Product.ImageUrl })
+                .Select(g => new TopDishDto
+                {
+                    ProductId = g.Key.ProductId,
+                    Name = g.Key.Name,
+                    QuantitySold = g.Sum(od => od.Quantity),
+                    Revenue = g.Sum(od => od.Subtotal),
+                    ImageUrl = g.Key.ImageUrl ?? string.Empty,
+                })
+                .OrderByDescending(d => d.QuantitySold)
+                .Take(topN)
+                .ToListAsync();
         }
     }
 }

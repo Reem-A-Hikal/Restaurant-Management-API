@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Rest.Application.Dtos.DashboardDtos;
 using Rest.Application.Interfaces.IRepositories;
 using Rest.Domain.Entities;
 using Rest.Domain.Entities.Enums;
@@ -130,6 +131,53 @@ namespace Rest.Infrastructure.Implementations.Repositories
                             o.OrderDate < endDate)
                 .Where(o => o.Payments.Any(p => p.Status == PaymentStatus.Completed))
                 .SumAsync(o => o.TotalAmount);
+        }
+
+        public async Task<Dictionary<OrderStatus, int>> GetOrderCountsByStatusAsync()
+        {
+            return await _context.Orders
+                .GroupBy(o => o.Status)
+                .Select(g => new { Status = g.Key, Count = g.Count()})
+                .ToDictionaryAsync(x => x.Status, x => x.Count);
+        }
+
+        public async Task<List<RevenueTrendPointDto>> GetRevenueTrendAsync(int days)
+        {
+            var startDate = DateTime.UtcNow.Date.AddDays(-(days - 1));
+            var today = DateTime.UtcNow.Date;
+
+            var grouped = await _context.Orders
+                .Where(o => o.OrderDate >= startDate)
+                .Where(o => o.Payments.Any(p => p.Status == PaymentStatus.Completed))
+                .GroupBy(o => o.OrderDate.Date)
+                .Select(g => new { Date = g.Key, Revenue = g.Sum(o => o.TotalAmount) })
+                .ToListAsync();
+
+            var result = new List<RevenueTrendPointDto>();
+            for (var date = startDate; date<= today; date = date.AddDays(1))
+            {
+                var match = grouped.FirstOrDefault(g => g.Date == date);
+                result.Add(new RevenueTrendPointDto
+                {
+                    Date = date,
+                    Revenue = match?.Revenue ?? 0
+                });
+            }
+            return result;
+        }
+
+        public async Task<List<RecentOrderDto>> GetRecentOrdersAsync(int count)
+        {
+            return await _context.Orders
+                .OrderByDescending(o => o.OrderDate)
+                .Take(count)
+                .Select(o => new RecentOrderDto
+                {
+                    OrderNumber = o.OrderNumber,
+                    StatusDisplay = o.Status.ToString(),
+                    CustomerName = o.User.FullName,
+                    TotalAmount = o.TotalAmount
+                }).ToListAsync();
         }
     }
 }

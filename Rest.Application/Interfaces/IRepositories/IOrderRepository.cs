@@ -1,4 +1,5 @@
-﻿using Rest.Domain.Entities;
+﻿using Rest.Application.Dtos.DashboardDtos;
+using Rest.Domain.Entities;
 using Rest.Domain.Entities.Enums;
 
 namespace Rest.Application.Interfaces.IRepositories
@@ -31,5 +32,19 @@ namespace Rest.Application.Interfaces.IRepositories
         Task<IEnumerable<Order>> GetKitchenQueueAsync();
         Task<decimal> GetDailyRevenueAsync(DateTime date);
         Task<int> GetOrderCountByStatusAsync(OrderStatus status);
+
+        /// <summary>
+        /// Counts of orders grouped by status, in one query — used for the dashboard
+        /// status-breakdown donut chart instead of calling GetOrderCountByStatusAsync per status.
+        /// </summary>
+        Task<Dictionary<OrderStatus, int>> GetOrderCountsByStatusAsync();
+
+        /// <summary>
+        /// Daily revenue for the last N days (including zero-revenue days), ordered
+        /// chronologically. Used for the dashboard revenue trend line chart.
+        /// </summary>
+        Task<List<RevenueTrendPointDto>> GetRevenueTrendAsync(int days);
+
+        Task<List<RecentOrderDto>> GetRecentOrdersAsync(int count);
     }
 }

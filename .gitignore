@@ -18,3 +18,4 @@ appsettings.*.json
 .vscode/
 *.tmp
 *.bak
+Rest.API/wwwroot/images/

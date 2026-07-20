@@ -1,3 +1,4 @@
+@ -1,116 +1 @@
 # 🍽️ Restro — Restaurant Management System (Backend API)
 
 > A production-style restaurant management platform backend, built with **ASP.NET Core 9**
@@ -10,9 +11,9 @@
 
 Actively developed. Core modules (Users, Categories, Products, Orders, Payments,
 Delivery, Reviews, Addresses, Dashboard) are functionally complete and wired to a real
-Angular frontend. See [Roadmap](#-roadmap--known-issues) below for what's next.
+Angular frontend. See [Roadmap](#roadmap--known-issues) below for what's next.
 
-## 🧱 Tech Stack
+## Tech Stack
 
 | Layer        | Technology                                                 |
 | ------------ | ---------------------------------------------------------- |
@@ -95,11 +96,11 @@ external concern.
 - 📊 **Aggregated dashboard endpoint** — KPIs, order status breakdown, revenue trend,
   and top-selling dishes, computed server-side in one call for the Admin dashboard
 
-## 🗺️ Roadmap / Known Issues
+## Roadmap / Known Issues
 
 - [ ] Add refresh-token support (currently any 401 forces a full re-login)
 
-## 🚀 Running Locally
+## Running Locally
 
 ```bash
 dotnet restore
@@ -114,3 +115,4 @@ Default seeded admin account: `admin@restora.com` / `Admin@123456`
 ## 🔗 Related
 
 Frontend (Angular 19): see the companion `Restaurant-Management-UI` repository.
+# Restaurant Management API

@@ -9,6 +9,7 @@ namespace Rest.Application.Dtos.AccountDtos
     public class LoginResponse
     {
         public required string Token { get; set; }
+        public required string RefreshToken { get; set; }
         public required string UserId { get; set; }
         public required string FullName { get; set; }
         public required string Email { get; set; }

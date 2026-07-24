@@ -21,5 +21,13 @@ namespace Rest.Application.Interfaces.IServices
         /// <param name="loginDto">The login credentials.</param>
         /// <returns>A task representing the asynchronous operation, containing the authentication token.</returns>
         Task<LoginResponse> LoginAsync(LoginDto loginDto);
+
+        /// <summary>
+        /// Exchanges a valid refresh token for a new access + refresh token pair.
+        /// </summary>
+        Task<LoginResponse> RefreshTokenAsync(string refreshToken);
+
+        /// <summary>Revokes the given refresh token.</summary>
+        Task LogoutAsync(string refreshToken);
     }
 }

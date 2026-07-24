@@ -21,6 +21,7 @@ namespace Rest.Application.Services
         private readonly UserCreationHelper _creationHelper;
         private readonly IMapper _mapper;
         private readonly IImageUploadService _imageUploadService;
+        private readonly IAuthService _authService;
 
         public UserService(
             UserManager<User> userManager,
@@ -28,7 +29,8 @@ namespace Rest.Application.Services
             IUserRepository userRepository,
             UserCreationHelper userCreationHelper,
             IMapper mapper,
-            IImageUploadService imageUploadService)
+            IImageUploadService imageUploadService,
+            IAuthService authService)
         {
             _userManager = userManager;
             _userRepository = userRepository;
@@ -36,6 +38,7 @@ namespace Rest.Application.Services
             _creationHelper = userCreationHelper;
             _mapper = mapper;
             _imageUploadService = imageUploadService;
+            _authService = authService;
         }
         public async Task<IEnumerable<UserDto>> GetAllUsersAsync()
         {
@@ -115,6 +118,9 @@ namespace Rest.Application.Services
                 var result = await _userManager.UpdateAsync(user);
                 if (!result.Succeeded)
                     throw new ValidationException(result.Errors.Select(e => e.Description));
+
+                if(dto.Status.Value is UserStatus.Suspended or UserStatus.Inactive)
+                    await _authService.RevokeAllUserRefreshTokensAsync(userId);
             }
 
             var roles = await _userManager.GetRolesAsync(user);
@@ -168,6 +174,7 @@ namespace Rest.Application.Services
             if (!result.Succeeded)
                 throw new ValidationException(result.Errors.Select(e => e.Description));
 
+            await _authService.RevokeAllUserRefreshTokensAsync(userId);
             _imageUploadService.Delete(imageToDelete);
         }
     }

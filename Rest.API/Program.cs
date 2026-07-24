@@ -1,9 +1,12 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Rest.API.Middleware;
+using Rest.API.Responses;
 using Rest.Application.Interfaces;
 using Rest.Application.Interfaces.IRepositories;
 using Rest.Application.Interfaces.IServices;
@@ -17,9 +20,13 @@ using Rest.Infrastructure.Implementations;
 using Rest.Infrastructure.Implementations.Repositories;
 using Rest.Infrastructure.Implementations.Services;
 using Rest.Infrastructure.Implementations.StrategyFactory;
+using System.Collections.Concurrent;
+using System.Net.Http;
 using System.Reflection;
 using System.Security.Claims;
 using System.Text;
+using System.Threading;
+using System.Threading.RateLimiting;
 
 namespace Rest.API
 {
@@ -59,6 +66,7 @@ namespace Rest.API
             builder.Services.AddScoped<IOrderRepository, OrderRepository>();
             builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
             builder.Services.AddScoped<IDeliveryRepository, DeliveryRepository>();
+            builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
             // Unit of Work
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -78,6 +86,38 @@ namespace Rest.API
             builder.Services.AddScoped<IImageUploadService>(
                 sp => new ImageUploadService( builder.Environment.WebRootPath));
             builder.Services.AddScoped<IDashboardService, DashboardService>();
+
+            builder.Services.AddRateLimiter(options =>
+            {
+                options.AddPolicy("AuthPolicy", httpContext =>
+                    RateLimitPartition.GetFixedWindowLimiter(
+                        partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                        factory: _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = 5,
+                            Window = TimeSpan.FromMinutes(1),
+                            QueueLimit = 0,
+                            QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+                        }));
+
+                options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+                options.OnRejected = async (context, cancellationToken) =>
+                {
+                    context.HttpContext.Response.ContentType = "application/json";
+                    var response = ApiResponse<string>.FailResponse(
+                        new List<string> { "Too many attempts. Please try again later." },
+                        "Rate limit exceeded");
+
+                    await context.HttpContext.Response.WriteAsync(
+                        System.Text.Json.JsonSerializer.Serialize(response,
+                            new System.Text.Json.JsonSerializerOptions
+                            {
+                                PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+                            }),
+                        cancellationToken);
+                };
+            });
 
             // Role Strategies
             builder.Services.AddScoped<IRoleStrategy, ChefStrategy>();
@@ -116,7 +156,7 @@ namespace Rest.API
 
             //JWT Configuration
             var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-            var secretKey = jwtSettings["SecretKey"];
+            var secretKey = jwtSettings["SecretKey"]!;
             var key = Encoding.ASCII.GetBytes(secretKey);
 
             builder.Services.AddAuthentication(options =>
@@ -263,6 +303,7 @@ namespace Rest.API
             app.UseStaticFiles();
             app.UseAuthentication();
             app.UseAuthorization();
+            app.UseRateLimiter();
             app.MapControllers();
 
             app.Run();

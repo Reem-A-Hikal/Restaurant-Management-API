@@ -9,10 +9,12 @@ namespace Rest.API.Controllers
 {
     /// <summary>
     /// Controller for managing user addresses.
+    /// All routes are nested under the owning user and protected by the
+    /// SelfOrAdmin policy: the user themselves or an Admin acting on their behalf.
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    [Authorize(Policy = "SelfOrAdmin")]
     public class AddressController : BaseController
     {
         private readonly IAddressService _addressService;
@@ -26,26 +28,12 @@ namespace Rest.API.Controllers
         }
 
         /// <summary>
-        /// Gets all addresses for the currently authenticated user
+        /// Gets all addresses for a specific user
         /// </summary>
-        [HttpGet("my-addresses")]
-        [SwaggerOperation(Summary = "Get my addresses", Description = "Returns all addresses belonging to the currently authenticated user.")]
-        [SwaggerResponse(StatusCodes.Status200OK, "Returns list of addresses")]
-        [SwaggerResponse(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> GetMyAddresses()
-        {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var addresses = await _addressService.GetUserAddresses(userId!);
-            return SuccessResponse(addresses, "Addresses retrieved successfully");
-        }
-
-        /// <summary>
-        /// Gets all addresses for a specific user (Admin only)
-        /// </summary>
-        /// <param name="userId">The ID of the user whose addresses to retrieve</param>
+        /// <param name="userId">The ID of the address owner</param>
         [HttpGet("user/{userId}")]
-        [Authorize(Roles = "Admin")]
-        [SwaggerOperation(Summary = "Get user addresses (Admin)", Description = "Requires Admin role. Returns all addresses for the specified user.")]
+        [Authorize(Policy = "SelfOrAdmin")]
+        [SwaggerOperation(Summary = "Get user addresses", Description = "Returns all addresses for the specified user.")]
         [SwaggerResponse(StatusCodes.Status200OK, "Returns list of addresses")]
         [SwaggerResponse(StatusCodes.Status401Unauthorized)]
         [SwaggerResponse(StatusCodes.Status403Forbidden)]
@@ -58,16 +46,18 @@ namespace Rest.API.Controllers
         /// <summary>
         /// Gets a specific address belonging to the current user
         /// </summary>
-        /// <param name="id">Address ID</param>
-        [HttpGet("{id}")]
-        [SwaggerOperation(Summary = "Get address by ID", Description = "Returns a specific address belonging to the currently authenticated user.")]
+        /// <param name="userId">The ID of the address owner</param>
+        /// <param name="addressId">Address ID</param>
+        [HttpGet("user/{userId}/{addressId}")]
+        [Authorize(Policy = "SelfOrAdmin")]
+        [SwaggerOperation(Summary = "Get address by ID", Description = "Returns a specific address belonging to the specified user.")]
         [SwaggerResponse(StatusCodes.Status200OK, "Returns the requested address")]
         [SwaggerResponse(StatusCodes.Status404NotFound, "Address not found")]
         [SwaggerResponse(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> GetAddress(int id)
+        [SwaggerResponse(StatusCodes.Status403Forbidden)]
+        public async Task<IActionResult> GetAddress(string userId,int addressId)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var address = await _addressService.GetUserAddress(userId!, id);
+            var address = await _addressService.GetUserAddress(userId, addressId);
 
             if (address == null)
                 return NotFoundResponse("Address not found.");
@@ -76,16 +66,18 @@ namespace Rest.API.Controllers
         }
 
         /// <summary>
-        /// Gets the default address for the currently authenticated user
+        /// Gets the default address for the specified user.
         /// </summary>
-        [HttpGet("default")]
+        /// <param name="userId">The ID of the address owner</param>
+        [HttpGet("user/{userId}/default")]
+        [Authorize(Policy = "SelfOrAdmin")]
         [SwaggerOperation(Summary = "Get default address", Description = "Returns the default address for the currently authenticated user.")]
         [SwaggerResponse(StatusCodes.Status200OK, "Returns the default address")]
         [SwaggerResponse(StatusCodes.Status404NotFound, "No default address found")]
         [SwaggerResponse(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> GetDefaultAddress()
+        [SwaggerResponse(StatusCodes.Status403Forbidden)]
+        public async Task<IActionResult> GetDefaultAddress(string userId)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var address = await _addressService.GetUserDefaultAddress(userId!);
 
             if (address == null)
@@ -95,80 +87,92 @@ namespace Rest.API.Controllers
         }
 
         /// <summary>
-        /// Creates a new address for the currently authenticated user
+        /// Creates a new address for the specified user.
         /// </summary>
+        /// <param name="userId">The ID of the address owner</param>
         /// <param name="dto">Address data</param>
-        [HttpPost]
+        [HttpPost("user/{userId}")]
+        [Authorize(Policy = "SelfOrAdmin")]
         [SwaggerOperation(Summary = "Create address", Description = "Creates a new address for the currently authenticated user. The first address created is automatically set as default.")]
         [SwaggerResponse(StatusCodes.Status201Created, "Address created successfully")]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid address data")]
         [SwaggerResponse(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> CreateAddress([FromBody] AddressCreateDto dto)
+        [SwaggerResponse(StatusCodes.Status403Forbidden)]
+        public async Task<IActionResult> CreateAddress(string userId, [FromBody] AddressCreateDto dto)
         {
             if (!ModelState.IsValid)
                 return ValidationErrorResponse(
                     ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)));
 
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var created = await _addressService.CreateAddress(userId!, dto);
+            var created = await _addressService.CreateAddress(userId, dto);
 
-            return CreatedResponse(nameof(GetAddress), new { id = created.AddressId }, created, "Address created successfully");
+            return CreatedResponse(
+                nameof(GetAddress),
+                new { userId, addressId = created.AddressId },
+                created,
+                "Address created successfully");
         }
 
         /// <summary>
-        /// Updates an existing address belonging to the current user
+        /// Updates an existing address belonging to the specified user.
         /// </summary>
-        /// <param name="id">Address ID</param>
+        /// <param name="userId">The ID of the address owner</param>
+        /// <param name="addressId">Address ID</param>
         /// <param name="dto">Updated address data</param>
-        [HttpPut("{id}")]
-        [SwaggerOperation(Summary = "Update address", Description = "Updates an existing address belonging to the currently authenticated user.")]
+        [HttpPut("user/{userId}/{addressId}")]
+        [Authorize(Policy = "SelfOrAdmin")]
+        [SwaggerOperation(Summary = "Update address", Description = "Updates an existing address belonging to the specified user.")]
         [SwaggerResponse(StatusCodes.Status204NoContent, "Address updated successfully")]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid address data")]
         [SwaggerResponse(StatusCodes.Status404NotFound, "Address not found")]
         [SwaggerResponse(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> UpdateAddress(int id, [FromBody] AddressUpdateDto dto)
+        [SwaggerResponse(StatusCodes.Status403Forbidden)]
+        public async Task<IActionResult> UpdateAddress(string userId, int addressId, [FromBody] AddressUpdateDto dto)
         {
             if (!ModelState.IsValid)
                 return ValidationErrorResponse(
                     ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)));
 
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            await _addressService.UpdateAddress(userId!, id, dto);
+            await _addressService.UpdateAddress(userId!, addressId, dto);
 
             return NoContent();
         }
 
         /// <summary>
-        /// Sets an address as the default address for the current user
+        /// Sets an address as the default address for the specified user.
         /// </summary>
-        /// <param name="id">Address ID to set as default</param>
-        [HttpPatch("{id}/set-default")]
+        /// <param name="userId">The ID of the address owner</param>
+        /// <param name="addressId">Address ID to set as default</param>
+        [HttpPatch("user/{userId}/{addressId}/set-default")]
+        [Authorize(Policy = "SelfOrAdmin")]
         [SwaggerOperation(Summary = "Set default address", Description = "Sets the specified address as the default address. Unsets any previously default address.")]
         [SwaggerResponse(StatusCodes.Status204NoContent, "Default address set successfully")]
         [SwaggerResponse(StatusCodes.Status404NotFound, "Address not found")]
         [SwaggerResponse(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> SetDefaultAddress(int id)
+        [SwaggerResponse(StatusCodes.Status403Forbidden)]
+        public async Task<IActionResult> SetDefaultAddress(string userId, int addressId)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            await _addressService.SetDefaultAddress(userId!, id);
+            await _addressService.SetDefaultAddress(userId!, addressId);
 
             return NoContent();
         }
 
 
         /// <summary>
-        /// Deletes an address belonging to the current user
+        /// Deletes an address belonging to the specified user.
         /// </summary>
-        /// <param name="id">Address ID</param>
-        [HttpDelete("{id}")]
-        [SwaggerOperation(Summary = "Delete address", Description = "Deletes an address belonging to the currently authenticated user. If the deleted address was the default, another address is automatically set as default.")]
+        /// <param name="userId">The ID of the address owner</param>
+        /// <param name="addressId">Address ID</param>
+        [HttpDelete("user/{userId}/{addressId}")]
+        [Authorize(Policy = "SelfOrAdmin")]
+        [SwaggerOperation(Summary = "Delete address", Description = "Deletes an address belonging to the specified user. If the deleted address was the default, another address is automatically set as default.")]
         [SwaggerResponse(StatusCodes.Status204NoContent, "Address deleted successfully")]
         [SwaggerResponse(StatusCodes.Status404NotFound, "Address not found")]
         [SwaggerResponse(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> DeleteAddress(int id)
+        [SwaggerResponse(StatusCodes.Status403Forbidden)]
+        public async Task<IActionResult> DeleteAddress(string userId, int addressId)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            await _addressService.DeleteAddressAsync(userId!, id);
+            await _addressService.DeleteAddressAsync(userId, addressId);
 
             return NoContent();
         }

@@ -4,7 +4,7 @@ namespace Rest.Application.Interfaces.IServices
 {
     public interface IAddressService
     {
-        Task<AddressCreateDto> CreateAddress(string userId, AddressCreateDto addressDto);
+        Task<AddressDto> CreateAddress(string userId, AddressCreateDto addressDto);
         Task UpdateAddress(string userId, int addressId, AddressUpdateDto addressDto);
         Task DeleteAddressAsync(string userId, int addressId);
         Task<AddressDto?> GetUserAddress(string userId, int addressId);

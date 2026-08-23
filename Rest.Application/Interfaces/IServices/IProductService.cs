@@ -36,7 +36,7 @@ namespace Rest.Application.Interfaces.IServices
         /// </summary>
         /// <param name="productDto"> The product data transfer object containing the product details</param>
         /// <returns> The created product</returns>
-        Task<int> CreateProductAsync(ProductCreateDto productDto);
+        Task<ProductDto> CreateProductAsync(ProductCreateDto productDto);
 
         /// <summary>
         /// Updates an existing product

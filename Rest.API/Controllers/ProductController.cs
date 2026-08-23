@@ -109,12 +109,12 @@ namespace Rest.API.Controllers
             if (!ModelState.IsValid)
                 return ValidationErrorResponse(ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)));
 
-            var productId = await productService.CreateProductAsync(productDto);
+            var product = await productService.CreateProductAsync(productDto);
 
             return CreatedResponse(
                 nameof(GetProductById),
-                new { id = productId },
-                new { productId },
+                new { id = product.ProductId },
+                product,
                 "Product created successfully");
         }
 

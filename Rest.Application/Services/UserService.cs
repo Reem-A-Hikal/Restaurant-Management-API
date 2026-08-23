@@ -93,7 +93,7 @@ namespace Rest.Application.Services
             return userDto;
         }
 
-        public async Task<string> AddUser(CreateUserDto userDto)
+        public async Task<UserDto> AddUser(CreateUserDto userDto)
         {
             var validRoles = new[] { "Admin", "Chef", "DeliveryPerson", "Customer" };
             if(!validRoles.Contains(userDto.UserRole))
@@ -103,7 +103,12 @@ namespace Rest.Application.Services
             var user = strategy.CreateUserEntity(userDto);
 
             await _creationHelper.CreateAndAssignRoleAsync(user, userDto.Password, userDto.UserRole);
-            return user.Id;
+
+            var dto = _mapper.Map<UserDto>(user);
+            dto.Role = userDto.UserRole;
+            await strategy.EnrichDtoAsync(dto);
+
+            return dto;
         }
 
         public async Task AdminUpdateUserAsync(string userId, AdminUpdateUserDto dto)

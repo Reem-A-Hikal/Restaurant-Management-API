@@ -15,7 +15,7 @@ namespace Rest.Application.Interfaces.IServices
         /// <summary>
         /// Creates a new user - Role is set here and CANNOT be changed later
         /// </summary>
-        Task<string> AddUser(CreateUserDto userDto);
+        Task<UserDto> AddUser(CreateUserDto userDto);
 
         /// <summary>
         /// Admin update - ONLY IsActive and role-specific data

@@ -103,11 +103,11 @@ namespace Rest.API.Controllers
                 return ValidationErrorResponse(
                     ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)));
 
-            var id = await _userService.AddUser(model);
+            var user = await _userService.AddUser(model);
             return CreatedResponse(
                 nameof(GetUserById),
-                new { userId = id },
-                new { userId = id },
+                new { userId = user.Id },
+                user,
                 "User created successfully");
         }
 

@@ -30,7 +30,7 @@ namespace Rest.Application.Services
         /// <param name="userId"> The ID of the user.</param>
         /// <param name="addressDto"> The address data transfer object containing the address details.</param>
         /// <returns> A task representing the asynchronous operation.</returns>
-        public async Task<AddressCreateDto> CreateAddress(string userId, AddressCreateDto addressDto)
+        public async Task<AddressDto> CreateAddress(string userId, AddressCreateDto addressDto)
         {
             var userAddresses = await _addressRepository.GetUserAddressesAsync(userId);
             var isFirstAddress = !userAddresses.Any();
@@ -52,7 +52,7 @@ namespace Rest.Application.Services
             if (addressDto.IsDefault && !isFirstAddress)
                 await _addressRepository.SetDefaultAddressAsync(userId, address.AddressId);
 
-            return addressDto;
+            return _mapper.Map<AddressDto>(address);
         }
 
         /// <summary>

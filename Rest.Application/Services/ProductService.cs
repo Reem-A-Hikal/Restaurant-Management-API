@@ -80,7 +80,7 @@ namespace Rest.Application.Services
         /// </summary>
         /// <param name="dto"> The product data transfer object containing the product details</param>
         /// <returns> The created product</returns>
-        public async Task<int> CreateProductAsync(ProductCreateDto dto)
+        public async Task<ProductDto> CreateProductAsync(ProductCreateDto dto)
         {
             if (dto.DiscountPercent > dto.AllowedDiscountPercent)
                 throw new ValidationException("Discount percent cannot exceed allowed discount percent.");
@@ -100,7 +100,7 @@ namespace Rest.Application.Services
             await _unitOfWork.ProductRepository.AddAsync(product);
             await _unitOfWork.SaveChangesAsync();
 
-            return product.ProductId;
+            return _mapper.Map<ProductDto>(product);
         }
 
         /// <summary>

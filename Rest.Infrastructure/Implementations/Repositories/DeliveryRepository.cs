@@ -75,6 +75,8 @@ namespace Rest.Infrastructure.Implementations.Repositories
             return await _context.Deliveries
                 .Include(d => d.Order)
                     .ThenInclude( o => o!.DeliveryAddress)
+                .Include(d => d.Order)
+                    .ThenInclude(o => o!.User)
                 .Where(d => d.DeliveryPersonId == deliveryPersonId
                     && (d.Status == DeliveryStatus.Assigned || d.Status == DeliveryStatus.PickedUp))
                 .OrderBy(d => d.StatusChangeTime)

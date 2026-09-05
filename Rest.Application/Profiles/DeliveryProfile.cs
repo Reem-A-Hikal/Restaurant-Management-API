@@ -16,7 +16,15 @@ namespace Rest.Application.Profiles
                 .ForMember(dest => dest.CustomerAddress,
                     opt => opt.MapFrom(src => src.Order != null && src.Order.DeliveryAddress != null
                         ? $"{src.Order.DeliveryAddress.AddressLine1}, {src.Order.DeliveryAddress.City}"
-                        : string.Empty));
+                        : string.Empty))
+                 .ForMember(dest => dest.CustomerName,
+                    opt => opt.MapFrom(src => src.Order != null && src.Order.User != null
+                        ? src.Order.User.FullName
+                        : null))
+                .ForMember(dest => dest.CustomerPhone,
+                    opt => opt.MapFrom(src => src.Order != null && src.Order.User != null
+                        ? src.Order.User.PhoneNumber
+                        : null));
 
             CreateMap<DeliveryPerson, AvailableDeliveryPersonDto>();
         }

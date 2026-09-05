@@ -127,10 +127,11 @@ namespace Rest.Infrastructure.Implementations.Repositories
             var endDate = startDate.AddDays(1);
 
             return await _context.Orders
-                .Where(o => o.OrderDate >= startDate &&
-                            o.OrderDate < endDate)
-                .Where(o => o.Payments.Any(p => p.Status == PaymentStatus.Completed))
-                .SumAsync(o => o.TotalAmount);
+               .SelectMany(o => o.Payments)
+               .Where(p => p.Status == PaymentStatus.Completed
+                        && p.PaidAt >= startDate
+                        && p.PaidAt < endDate)
+                .SumAsync(p => p.Amount);
         }
 
         public async Task<Dictionary<OrderStatus, int>> GetOrderCountsByStatusAsync()
@@ -147,10 +148,12 @@ namespace Rest.Infrastructure.Implementations.Repositories
             var today = DateTime.UtcNow.Date;
 
             var grouped = await _context.Orders
-                .Where(o => o.OrderDate >= startDate)
-                .Where(o => o.Payments.Any(p => p.Status == PaymentStatus.Completed))
-                .GroupBy(o => o.OrderDate.Date)
-                .Select(g => new { Date = g.Key, Revenue = g.Sum(o => o.TotalAmount) })
+                .SelectMany(o => o.Payments)
+                .Where(p => p.Status == PaymentStatus.Completed
+                            && p.PaidAt >= startDate
+                            && p.PaidAt < today.AddDays(1))
+                .GroupBy(p => p.PaidAt!.Value.Date)
+                .Select(g => new { Date = g.Key, Revenue = g.Sum(p => p.Amount) })
                 .ToListAsync();
 
             var result = new List<RevenueTrendPointDto>();

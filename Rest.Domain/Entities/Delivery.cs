@@ -71,6 +71,7 @@ namespace Rest.Domain.Entities
                 throw new ValidationException("Cancellation reason is required.");
 
             TransitionTo(DeliveryStatus.Cancelled);
+            CancelledAt = DateTime.UtcNow;
 
             Notes = string.IsNullOrWhiteSpace(Notes)
                 ? $"Cancellation Reason: {reason}"

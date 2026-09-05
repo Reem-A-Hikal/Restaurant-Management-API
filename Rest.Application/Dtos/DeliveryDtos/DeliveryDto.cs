@@ -22,6 +22,7 @@ namespace Rest.Application.Dtos.DeliveryDtos
         public string? Notes { get; set; }
 
         public string CustomerAddress { get; set; }
-
+        public string? CustomerName { get; set; }
+        public string? CustomerPhone { get; set; }
     }
 }

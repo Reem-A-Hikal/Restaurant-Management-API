@@ -14,7 +14,7 @@ namespace Rest.Application.Interfaces.IServices
         Task<OrderDto> ConfirmOrderAsync(int orderId, string confirmedBy, ConfirmOrderDto confirmDto);
         Task<OrderDto> CancelOrderAsync(int orderId, string cancellationReason, bool isCustomer = false);
         Task<OrderDto> MarkAsPreparingAsync(int orderId);
-        Task<OrderDto> MarkAsPreparedAsync(int orderId);
+        Task<OrderDto> MarkAsReadyAsync(int orderId);
 
         Task<IEnumerable<OrderDto>> GetOrdersByStatusAsync(OrderStatus status);
 

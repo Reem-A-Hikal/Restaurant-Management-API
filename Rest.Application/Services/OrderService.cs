@@ -220,7 +220,7 @@ namespace Rest.Application.Services
             return _mapper.Map<OrderDto>(order);
         }
 
-        public async Task<OrderDto> MarkAsPreparedAsync(int orderId)
+        public async Task<OrderDto> MarkAsReadyAsync(int orderId)
         {
             var order = await _unitOfWork.OrderRepository.GetByIdAsync(orderId)
                 ?? throw new NotFoundException("Order", orderId);

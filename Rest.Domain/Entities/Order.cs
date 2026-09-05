@@ -157,13 +157,13 @@ namespace Rest.Domain.Entities
         #region Start Machine
         private static readonly Dictionary<OrderStatus, OrderStatus[]> _allowedTransitions = new()
         {
-            [OrderStatus.New] = new[] {OrderStatus.Confirmed, OrderStatus.Canceled},
-            [OrderStatus.Confirmed] = new[] {OrderStatus.Preparing, OrderStatus.Canceled},
-            [OrderStatus.Preparing] = new[] { OrderStatus.Ready, OrderStatus.Canceled },
-            [OrderStatus.Ready] = new[] { OrderStatus.OutForDelivery, OrderStatus.Canceled },
+            [OrderStatus.New] = new[] {OrderStatus.Confirmed, OrderStatus.Cancelled},
+            [OrderStatus.Confirmed] = new[] {OrderStatus.Preparing, OrderStatus.Cancelled},
+            [OrderStatus.Preparing] = new[] { OrderStatus.Ready, OrderStatus.Cancelled },
+            [OrderStatus.Ready] = new[] { OrderStatus.OutForDelivery, OrderStatus.Cancelled },
             [OrderStatus.OutForDelivery] = new[] { OrderStatus.Delivered },
             [OrderStatus.Delivered] = Array.Empty<OrderStatus>(),
-            [OrderStatus.Canceled] = Array.Empty<OrderStatus>(),
+            [OrderStatus.Cancelled] = Array.Empty<OrderStatus>(),
         };
 
         public bool CanTransitionTo(OrderStatus newStatus)
@@ -189,7 +189,7 @@ namespace Rest.Domain.Entities
                 case OrderStatus.Preparing:
                     PreparationStartTime = DateTime.UtcNow;
                     break;
-                case OrderStatus.Canceled:
+                case OrderStatus.Cancelled:
                     CancellationTime = DateTime.UtcNow;
                     break;
             }
@@ -213,7 +213,7 @@ namespace Rest.Domain.Entities
             if (string.IsNullOrWhiteSpace(cancellationReason))
                 throw new ValidationException("Cancellation reason is required.");
 
-            TransitionTo(OrderStatus.Canceled);
+            TransitionTo(OrderStatus.Cancelled);
 
             if (isCustomer)
                 CustomerNotes = string.IsNullOrWhiteSpace(CustomerNotes)

@@ -5,7 +5,7 @@
         public int TotalOrders { get; set; }
         public int PendingOrders { get; set; }
         public int ConfirmedOrders { get; set; }
-        public int PreparedOrders { get; set; }
+        public int ReadyOrders { get; set; }
         public int OutForDeliveryOrders { get; set; }
         public int DeliveredOrders { get; set; }
         public int CancelledOrders { get; set; }

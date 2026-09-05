@@ -8,6 +8,6 @@
         Ready,
         OutForDelivery,
         Delivered,
-        Canceled
+        Cancelled
     }
 }

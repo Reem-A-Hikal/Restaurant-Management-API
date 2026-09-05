@@ -190,25 +190,25 @@ namespace Rest.API.Controllers
         [HttpPatch("{id}/preparing")]
         [Authorize(Roles = "Admin,Chef")]
         [SwaggerOperation(Summary = "Mark order as preparing", Description = "Transitions order from Confirmed to Preparing.")]
-        [SwaggerResponse(200, "Order is now being prepared", typeof(OrderDto))]
+        [SwaggerResponse(200, "Order is now being preparing", typeof(OrderDto))]
         [SwaggerResponse(400, "Invalid transition")]
         [SwaggerResponse(404, "Order not found")]
         public async Task<IActionResult> MarkAsPreparing(int id)
         {
             var order = await _orderService.MarkAsPreparingAsync(id);
-            return SuccessResponse(order, "Order is now being prepared");
+            return SuccessResponse(order, "Order is now being preparing");
         }
 
-        /// <summary>Marks an order as prepared/ready.</summary>
-        [HttpPatch("{id}/prepared")]
+        /// <summary>Marks an order as ready.</summary>
+        [HttpPatch("{id}/ready")]
         [Authorize(Roles = "Admin,Chef")]
-        [SwaggerOperation(Summary = "Mark order as prepared", Description = "Transitions order from Preparing to Ready.")]
+        [SwaggerOperation(Summary = "Mark order as ready", Description = "Transitions order from Preparing to Ready.")]
         [SwaggerResponse(200, "Order is ready for delivery", typeof(OrderDto))]
         [SwaggerResponse(400, "Invalid transition")]
         [SwaggerResponse(404, "Order not found")]
-        public async Task<IActionResult> MarkAsPrepared(int id)
+        public async Task<IActionResult> MarkAsReady(int id)
         {
-            var order = await _orderService.MarkAsPreparedAsync(id);
+            var order = await _orderService.MarkAsReadyAsync(id);
             return SuccessResponse(order, "Order is ready for delivery");
         }
 

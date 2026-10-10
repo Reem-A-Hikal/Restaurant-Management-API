@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Rest.Application.Dtos.CategoryDtos;
 using Rest.Application.Interfaces.IServices;
@@ -31,7 +32,6 @@ namespace Rest.API.Controllers
         /// <returns></returns>
         [HttpGet("all")]
         [SwaggerOperation(Summary = "Get all categories")]
-        [AllowAnonymous]
         public async Task<IActionResult> GetAll()
         {
             var categories = await _categoryService.GetAllAsync();

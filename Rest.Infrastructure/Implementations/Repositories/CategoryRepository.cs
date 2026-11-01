@@ -40,7 +40,8 @@ namespace Rest.Infrastructure.Implementations.Repositories
             }
 
             if (!string.IsNullOrEmpty(searchTerm))
-                query = query.Where(c => c.Name.Contains(searchTerm));
+                query = query.Where(c => c.Name.Contains(searchTerm)
+                                    || (c.NameAr != null && c.NameAr.Contains(searchTerm)));
 
             return query.OrderByDescending(c => c.DisplayOrder);
         }

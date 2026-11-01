@@ -8,8 +8,10 @@ namespace Rest.Domain.Entities
     {
         public int ProductId { get; private set; }
         public string Name { get; private set; }
+        public string? NameAr { get; private set; }
         public decimal Price { get; private set; }
         public string? Description { get; private set; }
+        public string? DescriptionAr { get; private set; }
         public string? ImageUrl { get; private set; }
         public int PreparationTime { get; private set; }
         public int? Calories { get; private set; }
@@ -35,7 +37,9 @@ namespace Rest.Domain.Entities
             int? calories = null,
             decimal allowedDiscountPercent = 0,
             decimal discountPercent = 0,
-            bool isPromoted = false)
+            bool isPromoted = false,
+            string? nameAr = null,
+            string? descriptionAr = null)
         {
             ValidateName(name);
             ValidatePrice(price);
@@ -44,8 +48,10 @@ namespace Rest.Domain.Entities
             return new Product
             {
                 Name = name,
+                NameAr = NormalizeOptional(nameAr, NameMaxLength, "Arabic product name"),
                 Price = price,
                 Description = description,
+                DescriptionAr = NormalizeOptional(descriptionAr, DescriptionMaxLength, "Arabic product description"),
                 ImageUrl = imageUrl,
                 PreparationTime = preparationTime,
                 Calories = calories,
@@ -65,7 +71,9 @@ namespace Rest.Domain.Entities
             string? imageUrl,
             int? preparationTime,
             int? calories,
-            int? categoryId)
+            int? categoryId,
+            string? nameAr = null,
+            string? descriptionAr = null)
         {
             if (!string.IsNullOrWhiteSpace(name))
             {
@@ -78,6 +86,11 @@ namespace Rest.Domain.Entities
             if (preparationTime.HasValue) PreparationTime = preparationTime.Value;
             if (calories.HasValue) Calories = calories.Value;
             if (categoryId.HasValue) CategoryId = categoryId.Value;
+
+            if (nameAr != null)
+                NameAr = NormalizeOptional(nameAr, NameMaxLength, "Arabic product name");
+            if (descriptionAr != null)
+                DescriptionAr = NormalizeOptional(descriptionAr, DescriptionMaxLength, "Arabic product description");
         }
 
         public void UpdatePrice(decimal price)
@@ -129,12 +142,26 @@ namespace Rest.Domain.Entities
         public bool IsArchived => Status == ProductStatus.Archived;
 
         #region Validation
+        private const int NameMaxLength = 100;
+        private const int DescriptionMaxLength = 1000;
+
         private static void ValidateName(string name)
         {
             if (string.IsNullOrWhiteSpace(name))
                 throw new ValidationException("Product name is required.");
-            if (name.Length > 100)
+            if (name.Length > NameMaxLength)
                 throw new ValidationException("Product name cannot exceed 100 characters.");
+        }
+
+        private static string? NormalizeOptional(string? value, int maxLength, string fieldName)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return null;
+
+            var trimmed = value.Trim();
+            if (trimmed.Length > maxLength)
+                throw new ValidationException($"{fieldName} cannot exceed {maxLength} characters.");
+
+            return trimmed;
         }
 
         private static void ValidatePrice(decimal price)

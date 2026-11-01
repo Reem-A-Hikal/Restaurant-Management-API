@@ -41,7 +41,8 @@ namespace Rest.Infrastructure.Implementations.Repositories
             }
             if(!string.IsNullOrEmpty(searchTerm))
             {
-                query = query.Where(p => p.Name.Contains(searchTerm));
+                query = query.Where(p => p.Name.Contains(searchTerm)
+                                || (p.NameAr != null && p.NameAr.Contains(searchTerm)));
             }
             return query.OrderByDescending(p => p.ProductId);
         }

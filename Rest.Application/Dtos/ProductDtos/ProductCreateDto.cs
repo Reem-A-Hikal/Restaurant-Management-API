@@ -6,6 +6,7 @@
         /// Name of the product
         /// </summary>
         public string Name { get; set; }
+        public string? NameAr { get; set; }
 
         /// <summary>
         /// Price of the product
@@ -16,6 +17,7 @@
         /// Description of the product
         /// </summary>
         public string? Description { get; set; }
+        public string? DescriptionAr { get; set; }
 
         /// <summary>
         /// Image URL of the product

@@ -16,6 +16,7 @@ namespace Rest.Application.Dtos.CategoryDtos
         /// Category Name
         /// </summary>
         public string? Name { get; set; }
+        public string? NameAr { get; set; }
 
         /// <summary>
         /// Is the category active?

@@ -15,6 +15,7 @@ namespace Rest.Application.Dtos.ProductDtos
         /// The unique identifier for the product
         /// </summary>
         public string Name { get; set; }
+        public string? NameAr { get; set; }
 
         /// <summary>
         /// The price of the product
@@ -25,6 +26,7 @@ namespace Rest.Application.Dtos.ProductDtos
         /// The description of the product
         /// </summary>
         public string? Description { get; set; }
+        public string? DescriptionAr { get; set; }
 
         /// <summary>
         /// The image URL of the product

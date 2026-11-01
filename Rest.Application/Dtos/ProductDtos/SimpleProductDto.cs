@@ -15,6 +15,7 @@ namespace Rest.Application.Dtos.ProductDtos
         /// The name of the product.
         /// </summary>
         public string Name { get; set; }
+        public string? NameAr { get; set; }
 
         /// <summary>
         /// The price of the product.

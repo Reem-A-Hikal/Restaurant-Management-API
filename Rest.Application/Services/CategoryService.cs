@@ -37,7 +37,7 @@ namespace Rest.Application.Services
                 throw new ValidationException("Category data is required");
 
             var category = Category.Create(
-                dto.Name, dto.DisplayOrder, dto.Status);
+                dto.Name, dto.DisplayOrder, dto.Status, dto.NameAr);
 
             await _categoryRepository.AddAsync(category);
             await _categoryRepository.SaveChangesAsync();
@@ -103,7 +103,7 @@ namespace Rest.Application.Services
             var existingCategory = await _categoryRepository.GetByIdAsync(id)
                  ?? throw new NotFoundException("Category", id);
 
-            existingCategory.UpdateDetails(dto.Name, dto.DisplayOrder);
+            existingCategory.UpdateDetails(dto.Name, dto.DisplayOrder, dto.NameAr);
 
             if (dto.Status.HasValue)
             {

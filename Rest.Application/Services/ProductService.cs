@@ -95,7 +95,9 @@ namespace Rest.Application.Services
                 calories: dto.Calories,
                 allowedDiscountPercent: dto.AllowedDiscountPercent,
                 discountPercent: dto.DiscountPercent,
-                isPromoted: dto.IsPromoted);
+                isPromoted: dto.IsPromoted,
+                nameAr: dto.NameAr,
+                descriptionAr: dto.DescriptionAr);
 
             await _unitOfWork.ProductRepository.AddAsync(product);
             await _unitOfWork.SaveChangesAsync();
@@ -123,7 +125,9 @@ namespace Rest.Application.Services
 
             product.UpdateDetails(
                 dto.Name, dto.Description, dto.ImageUrl,
-                dto.PreparationTime, dto.Calories, dto.CategoryId);
+                dto.PreparationTime, dto.Calories, dto.CategoryId,
+                nameAr: dto.NameAr,
+                descriptionAr: dto.DescriptionAr);
 
             if (dto.Price.HasValue)
                 product.UpdatePrice(dto.Price.Value);

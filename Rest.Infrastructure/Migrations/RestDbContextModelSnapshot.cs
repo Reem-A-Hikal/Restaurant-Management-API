@@ -229,6 +229,10 @@ namespace Rest.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<string>("NameAr")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("nvarchar(20)");
@@ -523,6 +527,10 @@ namespace Rest.Infrastructure.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<string>("DescriptionAr")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
                     b.Property<decimal>("DiscountPercent")
                         .HasColumnType("decimal(5,2)");
 
@@ -535,6 +543,10 @@ namespace Rest.Infrastructure.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("NameAr")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 

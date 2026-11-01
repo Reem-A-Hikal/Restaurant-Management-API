@@ -24,6 +24,9 @@ namespace Rest.Infrastructure.Data.Configurations
                    .IsRequired()
                    .HasMaxLength(50);
 
+            builder.Property(c => c.NameAr)
+                   .HasMaxLength(50);
+
             builder.Property(c => c.Status)
                 .HasConversion<string>()
                 .HasColumnType("nvarchar(20)")

@@ -9,6 +9,8 @@ namespace Rest.Domain.Entities
 
         public string Name { get; private set; }
 
+        public string? NameAr { get; private set; }
+
         public CategoryStatus Status { get; private set; } = CategoryStatus.Active;
 
         public int DisplayOrder { get; private set; }
@@ -16,20 +18,25 @@ namespace Rest.Domain.Entities
         // Navigation property
         public virtual ICollection<Product> Products { get; private set; } = new List<Product>();
 
-        public static Category Create(string name, int displayOrder, CategoryStatus status = CategoryStatus.Active)
+        public static Category Create(
+            string name,
+            int displayOrder,
+            CategoryStatus status = CategoryStatus.Active,
+            string? nameAr = null)
         {
             ValidateName(name);
 
             return new Category
             {
                 Name = name,
+                NameAr = NormalizeNameAr(nameAr),
                 DisplayOrder = displayOrder,
                 Status = status
             };
         }
 
         #region Domain Methods
-        public void UpdateDetails(string? name, int? displayOrder)
+        public void UpdateDetails(string? name, int? displayOrder, string? nameAr = null)
         {
             if (name != null)
             {
@@ -43,6 +50,9 @@ namespace Rest.Domain.Entities
                     throw new ValidationException("Display order cannot be negative.");
                 DisplayOrder = displayOrder.Value;
             }
+
+            if (nameAr != null)
+                NameAr = NormalizeNameAr(nameAr);
         }
 
         public void Activate() => Status = CategoryStatus.Active;
@@ -71,6 +81,17 @@ namespace Rest.Domain.Entities
 
             if (name.Length > 50)
                 throw new ValidationException("Category name cannot exceed 50 characters.");
+        }
+
+        private static string? NormalizeNameAr(string? nameAr)
+        {
+            if (string.IsNullOrWhiteSpace(nameAr)) return null;
+
+            var trimmed = nameAr.Trim();
+            if (trimmed.Length > 50)
+                throw new ValidationException("Arabic category name cannot exceed 50 characters.");
+
+            return trimmed;
         }
     }
 }

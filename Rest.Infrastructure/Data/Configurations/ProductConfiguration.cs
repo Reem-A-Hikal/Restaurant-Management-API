@@ -26,10 +26,18 @@ namespace Rest.Infrastructure.Data.Configurations
                    .HasMaxLength(100)
                    .HasColumnType("nvarchar(100)");
 
+            builder.Property(p => p.NameAr)
+                   .HasMaxLength(100)
+                   .HasColumnType("nvarchar(100)");
+
             builder.Property(p => p.Price)
                    .HasColumnType("decimal(18,2)");
 
             builder.Property(p => p.Description)
+                   .HasMaxLength(1000)
+                   .HasColumnType("nvarchar(1000)");
+
+            builder.Property(p => p.DescriptionAr)
                    .HasMaxLength(1000)
                    .HasColumnType("nvarchar(1000)");
 

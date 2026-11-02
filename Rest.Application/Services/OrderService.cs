@@ -1,8 +1,10 @@
 ﻿using AutoMapper;
+using Microsoft.Extensions.Options;
 using Rest.Application.Dtos.OrderDetailsDtos;
 using Rest.Application.Dtos.OrderDtos;
 using Rest.Application.Interfaces;
 using Rest.Application.Interfaces.IServices;
+using Rest.Application.Options;
 using Rest.Domain.Constants;
 using Rest.Domain.Entities;
 using Rest.Domain.Entities.Enums;
@@ -14,10 +16,19 @@ namespace Rest.Application.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
-        public OrderService(IUnitOfWork unitOfWork, IMapper mapper)
+        private readonly OrderPricingOptions _pricing;
+        private readonly IKitchenSchedule _kitchen;
+
+        public OrderService(
+            IUnitOfWork unitOfWork,
+            IMapper mapper,
+            IOptions<OrderPricingOptions> pricing,
+            IKitchenSchedule kitchen)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _pricing = pricing.Value;
+            _kitchen = kitchen;
         }
         #region Private Methods
         private async Task<Address> ValidateCustomerAddressAsync(string customerId, int deliveryAddressId)
@@ -25,10 +36,14 @@ namespace Rest.Application.Services
             var customerAddresses = await _unitOfWork.AddressRepository.GetUserAddressesAsync(customerId);
 
             if (!customerAddresses.Any())
-                throw new BusinessException("You don't have any saved addresses. Please add a delivery address before placing an order.");
+                throw new BusinessException(
+                    "You don't have any saved addresses. Please add a delivery address before placing an order.",
+                        ErrorCodes.NoSavedAddress);
 
             var deliveryAddress = customerAddresses.FirstOrDefault(a => a.AddressId == deliveryAddressId)
-                ?? throw new ForbiddenException("The selected address does not belong to this customer.");
+                ?? throw new ForbiddenException(
+                    "The selected address does not belong to this customer.",
+                    ErrorCodes.AddressNotOwned);
 
             return deliveryAddress;
         }
@@ -41,13 +56,23 @@ namespace Rest.Application.Services
 
         public async Task<OrderDto> CreateOrderAsync(string userId,CreateOrderDto orderDto)
         {
+            if (!_kitchen.IsAcceptingOrders(DateTime.UtcNow))
+                throw new BusinessException(
+                    $"We take orders daily between {_kitchen.OpensAt:hh\\:mm} and {_kitchen.ClosesAt:hh\\:mm} (Cairo time).",
+                    ErrorCodes.KitchenClosed,
+                    new Dictionary<string, object?>
+                    {
+                        ["opensAt"] = _kitchen.OpensAt.ToString(@"hh\:mm"),
+                        ["closesAt"] = _kitchen.ClosesAt.ToString(@"hh\:mm"),
+                    });
+
             User customer = await _unitOfWork.UserRepository.GetByIdAsync(userId)
                 ?? throw new NotFoundException("Customer", userId);
 
             Address deliveryAddress = await ValidateCustomerAddressAsync(customer.Id, orderDto.DeliveryAddressId);
 
             if (orderDto.OrderDetails == null || !orderDto.OrderDetails.Any())
-                throw new ValidationException("Order must contain at least one item.");
+                throw new ValidationException("Order must contain at least one item.", ErrorCodes.OrderEmpty);
 
             var order = new Order
             {
@@ -56,9 +81,9 @@ namespace Rest.Application.Services
                 User = customer,
                 DeliveryAddressId = deliveryAddress.AddressId,
                 DeliveryAddress = deliveryAddress,
-                DeliveryFee = orderDto.DeliveryFee,
-                Tax = orderDto.Tax,
-                Discount = orderDto.Discount,
+                DeliveryFee = _pricing.DeliveryFee,
+                Tax = 0m, // no tax model yet (decision pending)
+                Discount = 0m, // item discounts are already inside UnitPrice
                 CustomerNotes = orderDto.CustomerNotes,
             };
 
@@ -66,6 +91,16 @@ namespace Rest.Application.Services
             {
                 var product = await _unitOfWork.ProductRepository.GetByIdAsync(item.ProductId)
                     ?? throw new NotFoundException("Product", item.ProductId);
+
+                if (!product.IsAvailable)
+                    throw new BusinessException(
+                        $"'{product.Name}' is no longer available. Please remove it from your cart and try again.",
+                        ErrorCodes.ProductUnavailable,
+                        new Dictionary<string, object?>
+                        {
+                            ["productId"] = product.ProductId,
+                            ["productName"] = product.Name,
+                        });
 
                 order.AddItem(product, item.Quantity);
             }
@@ -94,7 +129,7 @@ namespace Rest.Application.Services
             var order = await _unitOfWork.OrderRepository.GetByIdWithDetailsAsync(orderId)
                 ?? throw new NotFoundException("Order", orderId);
 
-            order.Cancel(cancellationReason);
+            order.Cancel(cancellationReason,isCustomer);
 
             _unitOfWork.OrderRepository.Update(order);
             await _unitOfWork.SaveChangesAsync();

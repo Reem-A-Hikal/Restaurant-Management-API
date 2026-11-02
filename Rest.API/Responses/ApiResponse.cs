@@ -1,6 +1,4 @@
-﻿using static System.Runtime.InteropServices.JavaScript.JSType;
-
-namespace Rest.API.Responses
+﻿namespace Rest.API.Responses
 {
     public class ApiResponse<T>
     {
@@ -8,6 +6,10 @@ namespace Rest.API.Responses
         public string Message { get; set; }
         public T? Data { get; set; }
         public List<string>? Errors { get; set; }
+
+        /// <summary>Machine-readable error code (clients translate it). Null for most errors.</summary>
+        public string? ErrorCode { get; set; }
+        public IReadOnlyDictionary<string, object?>? ErrorParams { get; set; }
 
         public static ApiResponse<T> SuccessResponse( T? data, string message = "Success")
         {
@@ -20,14 +22,20 @@ namespace Rest.API.Responses
             };
         }
 
-        public static ApiResponse<T> FailResponse(List<string> errors, string message = "Error")
+        public static ApiResponse<T> FailResponse(
+            List<string> errors,
+            string message = "Error",
+            string? errorCode = null,
+            IReadOnlyDictionary<string, object?> errorParams = null)
         {
             return new ApiResponse<T>
             {
                 Success = false,
                 Message = message,
                 Data = default,
-                Errors = errors
+                Errors = errors,
+                ErrorCode = errorCode,
+                ErrorParams = errorParams
             };
         }
     }

@@ -29,6 +29,12 @@ namespace Rest.Application.Services
             var order = await _unitOfWork.OrderRepository.GetByIdAsync(orderId)
                 ?? throw new NotFoundException("Order", orderId);
 
+            if(order.Status == OrderStatus.Cancelled)
+                throw new BusinessException("Cannot record a payment for a cancelled order.");
+
+            if (dto.Method != PaymentMethod.Cash)
+                throw new BusinessException("Online payments are not available yet. Only cash on delivery is supported.");
+
             if (await _unitOfWork.PaymentRepository.HasCompletedPaymentAsync(orderId))
                 throw new BusinessException("Order already has a completed payment.");
 

@@ -11,6 +11,7 @@ using Rest.Application.Interfaces;
 using Rest.Application.Interfaces.IRepositories;
 using Rest.Application.Interfaces.IServices;
 using Rest.Application.Interfaces.IServices.StrategyFactory;
+using Rest.Application.Options;
 using Rest.Application.Profiles;
 using Rest.Application.Services;
 using Rest.Domain.Entities;
@@ -85,6 +86,8 @@ namespace Rest.API
             builder.Services.AddScoped<IImageUploadService>(
                 sp => new ImageUploadService( builder.Environment.WebRootPath));
             builder.Services.AddScoped<IDashboardService, DashboardService>();
+
+            builder.Services.AddSingleton<IKitchenSchedule, KitchenSchedule>();
 
             builder.Services.AddRateLimiter(options =>
             {
@@ -243,6 +246,11 @@ namespace Rest.API
                     }
                 });
             });
+
+            builder.Services.Configure<OrderPricingOptions>(
+                builder.Configuration.GetSection(OrderPricingOptions.SectionName));
+            builder.Services.Configure<KitchenHoursOptions>(
+                builder.Configuration.GetSection(KitchenHoursOptions.SectionName));
 
             var app = builder.Build();
 

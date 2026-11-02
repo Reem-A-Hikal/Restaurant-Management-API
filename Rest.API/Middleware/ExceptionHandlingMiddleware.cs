@@ -32,6 +32,7 @@ namespace Rest.API.Middleware
 
         private async Task HandleExceptionAsync(HttpContext context, Exception exception)
         {
+            var domain = exception as DomainException;
             var (statusCode, errors) = exception switch
             {
                 NotFoundException ex =>
@@ -64,7 +65,9 @@ namespace Rest.API.Middleware
 
             var response = ApiResponse<string>.FailResponse(
                 errors.ToList(),
-                GetMessageFromStatusCode(statusCode));
+                GetMessageFromStatusCode(statusCode),
+                domain?.Code,
+                domain?.Params);
 
             context.Response.ContentType = "application/json";
             context.Response.StatusCode = (int)statusCode;

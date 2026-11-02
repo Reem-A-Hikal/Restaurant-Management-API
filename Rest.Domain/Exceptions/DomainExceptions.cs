@@ -11,7 +11,23 @@ namespace Rest.Domain.Exceptions
     /// </summary>
     public class DomainException : Exception
     {
-        protected DomainException(string message) : base(message) { }
+        /// <summary>
+        /// Machine-readable code clients translate. Null when an error has none yet.
+        /// </summary>
+        public string? Code { get; }
+
+        /// <summary>
+        /// Values the translated message needs (e.g. opening hours).
+        /// </summary>
+        public IReadOnlyDictionary<string, object?>? Params { get; }
+        protected DomainException(
+            string message,
+            string? code = null,
+            IReadOnlyDictionary<string, object?>? parameters = null) : base(message)
+        {
+            Code = code;
+            Params = parameters;
+        }
     }
 
 
@@ -34,7 +50,11 @@ namespace Rest.Domain.Exceptions
     /// </summary>
     public class BusinessException : DomainException
     {
-        public BusinessException(string message) : base(message) { }
+        public BusinessException(
+            string message,
+            string? code = null,
+            IReadOnlyDictionary<string, object?>? parameters = null) 
+            : base(message, code, parameters) { }
     }
 
     /// <summary>
@@ -45,7 +65,8 @@ namespace Rest.Domain.Exceptions
     {
         public IEnumerable<string> Errors { get; set; }
 
-        public ValidationException(string message) : base(message)
+        public ValidationException(string message, string? code = null) 
+            : base(message, code)
         {
             Errors = new[] { message };
         }
@@ -63,7 +84,9 @@ namespace Rest.Domain.Exceptions
     /// </summary>
     public class ForbiddenException : DomainException
     {
-        public ForbiddenException(string message = "You are not authorized to perform this action.")
-            : base(message) { }
+        public ForbiddenException(
+            string message = "You are not authorized to perform this action.",
+            string? code = null)
+            : base(message, code) { }
     }
 }

@@ -166,6 +166,12 @@ namespace Rest.Domain.Entities
             [OrderStatus.Cancelled] = Array.Empty<OrderStatus>(),
         };
 
+        private static readonly OrderStatus[] _customerCancellable =
+        {
+            OrderStatus.New,
+            OrderStatus.Confirmed,
+        };
+
         public bool CanTransitionTo(OrderStatus newStatus)
         {
             return _allowedTransitions.TryGetValue(Status, out var allowed) 
@@ -212,6 +218,11 @@ namespace Rest.Domain.Entities
         {
             if (string.IsNullOrWhiteSpace(cancellationReason))
                 throw new ValidationException("Cancellation reason is required.");
+
+            if (isCustomer && !_customerCancellable.Contains(Status))
+                throw new BusinessException(
+                    "This order can no longer be cancelled online. Please contact the restaurant.",
+                    ErrorCodes.OrderCancelNotAllowed);
 
             TransitionTo(OrderStatus.Cancelled);
 

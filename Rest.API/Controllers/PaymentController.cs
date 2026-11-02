@@ -29,21 +29,18 @@ namespace Rest.API.Controllers
         /// <param name="dto"></param>
         /// <returns></returns>
         [HttpPost("orders/{orderId}")]
-        [Authorize(Roles = "Customer")]
-        [SwaggerOperation(Summary = "Process payment", Description = "Customer only. Creates a payment for the specified order.")]
+        [Authorize(Roles = "Admin")]
+        [SwaggerOperation(
+            Summary = "Record a payment",
+            Description = "Admin only. Cash is recorded automatically when a delivery is completed; use this for manual corrections.")]
         [SwaggerResponse(200, "Payment processed successfully", typeof(PaymentDto))]
-        [SwaggerResponse(400, "Invalid payment or dublicate completed payment")]
+        [SwaggerResponse(400, "Invalid payment or duplicate completed payment")]
         [SwaggerResponse(404, "Order not found")]
         public async Task<IActionResult> ProcessPayment(int orderId, [FromBody] ProcessPaymentDto dto)
         {
             if (!ModelState.IsValid)
                 return ValidationErrorResponse(
                     ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)));
-
-            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var order = await _orderService.GetOrderByIdAsync(orderId);
-            if (order.CustomerId != currentUserId)
-                return ForbiddenResponse("You can only pay for your own orders.");
 
             var payment = await _paymentService.ProcessPaymentAsync(orderId, dto);
             return SuccessResponse(payment, "Payment processed successfully");

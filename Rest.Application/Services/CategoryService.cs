@@ -105,7 +105,7 @@ namespace Rest.Application.Services
 
             existingCategory.UpdateDetails(dto.Name, dto.DisplayOrder, dto.NameAr);
 
-            if (dto.Status.HasValue)
+            if (dto.Status.HasValue && dto.Status.Value != existingCategory.Status)
             {
                 switch (dto.Status.Value)
                 {

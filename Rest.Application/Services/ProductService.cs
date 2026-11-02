@@ -143,14 +143,17 @@ namespace Rest.Application.Services
                 else product.Unpromote();
             }
 
-            if (dto.Status.HasValue)
+            if (dto.Status.HasValue && dto.Status.Value != product.Status)
             {
-                switch (dto.Status.Value)
+                if (dto.Status.HasValue)
                 {
-                    case ProductStatus.Available: product.Activate(); break;
-                    case ProductStatus.Unavailable: product.Deactivate(); break;
-                    case ProductStatus.Archived:
-                        throw new BusinessException("Use the delete endpoint to archive a product.");
+                    switch (dto.Status.Value)
+                    {
+                        case ProductStatus.Available: product.Activate(); break;
+                        case ProductStatus.Unavailable: product.Deactivate(); break;
+                        case ProductStatus.Archived:
+                            throw new BusinessException("Use the delete endpoint to archive a product.");
+                    }
                 }
             }
 

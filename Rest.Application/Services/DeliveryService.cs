@@ -101,7 +101,7 @@ namespace Rest.Application.Services
             
             order.TransitionTo(OrderStatus.Delivered);
 
-            if(order.PaymentStatus != PaymentStatus.Completed)
+            if(!await _unitOfWork.PaymentRepository.HasCompletedPaymentAsync(order.OrderId))
             {
                 var payment = new Payment
                 {

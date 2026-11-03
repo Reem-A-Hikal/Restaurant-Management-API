@@ -18,17 +18,20 @@ namespace Rest.Application.Services
         private readonly IMapper _mapper;
         private readonly OrderPricingOptions _pricing;
         private readonly IKitchenSchedule _kitchen;
+        private readonly IDeliveryZone _deliveryZone;
 
         public OrderService(
             IUnitOfWork unitOfWork,
             IMapper mapper,
             IOptions<OrderPricingOptions> pricing,
-            IKitchenSchedule kitchen)
+            IKitchenSchedule kitchen,
+            IDeliveryZone deliveryZone)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _pricing = pricing.Value;
             _kitchen = kitchen;
+            _deliveryZone = deliveryZone;
         }
         #region Private Methods
         private async Task<Address> ValidateCustomerAddressAsync(string customerId, int deliveryAddressId)
@@ -70,6 +73,11 @@ namespace Rest.Application.Services
                 ?? throw new NotFoundException("Customer", userId);
 
             Address deliveryAddress = await ValidateCustomerAddressAsync(customer.Id, orderDto.DeliveryAddressId);
+
+            if (!_deliveryZone.IsDeliverable(deliveryAddress.City, deliveryAddress.Governorate))
+                throw new BusinessException(
+                    "We don't deliver to this address yet. Please choose an address inside our delivery areas.",
+                    ErrorCodes.AddressOutsideDeliveryArea);
 
             if (orderDto.OrderDetails == null || !orderDto.OrderDetails.Any())
                 throw new ValidationException("Order must contain at least one item.", ErrorCodes.OrderEmpty);

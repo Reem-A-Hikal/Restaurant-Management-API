@@ -15,13 +15,16 @@ namespace Rest.Application.Services
     {
         private readonly IAddressRepository _addressRepository;
         private readonly IMapper _mapper;
+
+        private readonly IDeliveryZone _deliveryZone;
         /// <summary>
         /// Initializes a new instance of the <see cref="AddressService"/> class.
         /// </summary>
-        public AddressService(IAddressRepository repository, IMapper mapper)
+        public AddressService(IAddressRepository repository, IMapper mapper, IDeliveryZone deliveryZone)
         {
             _addressRepository = repository;
             _mapper = mapper;
+            _deliveryZone = deliveryZone;
         }
 
         /// <summary>
@@ -32,6 +35,9 @@ namespace Rest.Application.Services
         /// <returns> A task representing the asynchronous operation.</returns>
         public async Task<AddressDto> CreateAddress(string userId, AddressCreateDto addressDto)
         {
+            if (!_deliveryZone.IsDeliverable(addressDto.City, addressDto.Governorate))
+                throw OutsideDeliveryArea();
+
             var userAddresses = await _addressRepository.GetUserAddressesAsync(userId);
             var isFirstAddress = !userAddresses.Any();
 
@@ -68,14 +74,23 @@ namespace Rest.Application.Services
             var address = await _addressRepository.GetUserAddressAsync(userId, addressId)
                 ?? throw new NotFoundException("Address", addressId);
 
+            if (addressDto.City != null || addressDto.Governorate != null)
+            {
+                var city = addressDto.City ?? address.City;
+                var governorate = addressDto.Governorate ?? address.Governorate;
+
+                if (!_deliveryZone.IsDeliverable(city, governorate))
+                    throw OutsideDeliveryArea();
+            }
+
             address.Update(
-            addressDto.AddressLine1,
-            addressDto.AddressLine2,
-            addressDto.City,
-            addressDto.Governorate,
-            addressDto.Latitude,
-            addressDto.Longitude,
-            addressDto.AddressType);
+                addressDto.AddressLine1,
+                addressDto.AddressLine2,
+                addressDto.City,
+                addressDto.Governorate,
+                addressDto.Latitude,
+                addressDto.Longitude,
+                addressDto.AddressType);
 
             _addressRepository.Update(address);
             await _addressRepository.SaveChangesAsync();
@@ -150,5 +165,11 @@ namespace Rest.Application.Services
         {
             await _addressRepository.SetDefaultAddressAsync(userId, addressId);
         }
+
+
+
+        private static BusinessException OutsideDeliveryArea() =>
+            new("We don't deliver to this address yet. Please choose an address inside our delivery areas.",
+                ErrorCodes.AddressOutsideDeliveryArea);
     }
 }

@@ -14,5 +14,6 @@ namespace Rest.Domain.Exceptions
         public const string AddressNotOwned = "ADDRESS_NOT_OWNED";
         public const string OrderEmpty = "ORDER_EMPTY";
         public const string OrderCancelNotAllowed = "ORDER_CANCEL_NOT_ALLOWED";
+        public const string AddressOutsideDeliveryArea = "ADDRESS_OUTSIDE_DELIVERY_AREA";
     }
 }

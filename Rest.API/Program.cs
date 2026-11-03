@@ -88,6 +88,7 @@ namespace Rest.API
             builder.Services.AddScoped<IDashboardService, DashboardService>();
 
             builder.Services.AddSingleton<IKitchenSchedule, KitchenSchedule>();
+            builder.Services.AddSingleton<IDeliveryZone, DeliveryZone>();
 
             builder.Services.AddRateLimiter(options =>
             {
@@ -251,6 +252,12 @@ namespace Rest.API
                 builder.Configuration.GetSection(OrderPricingOptions.SectionName));
             builder.Services.Configure<KitchenHoursOptions>(
                 builder.Configuration.GetSection(KitchenHoursOptions.SectionName));
+
+            builder.Services.Configure<DeliveryZoneOptions>(
+                builder.Configuration.GetSection(DeliveryZoneOptions.SectionName));
+
+            builder.Services.Configure<DeliveryEstimateOptions>(
+                builder.Configuration.GetSection(DeliveryEstimateOptions.SectionName));
 
             var app = builder.Build();
 

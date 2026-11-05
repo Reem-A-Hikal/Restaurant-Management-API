@@ -22,7 +22,6 @@ namespace Rest.Application.Profiles
             CreateMap<CreateOrderDetailDto, OrderDetail>();
 
             CreateMap<OrderDetail, OrderDetailDto>()
-                .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.Product != null ? src.Product.Name : "Unknown"));
-        }
+                .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.Product != null ? src.Product.Name : "Unknown"));        }
     }
 }

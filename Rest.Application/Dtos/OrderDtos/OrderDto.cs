@@ -16,6 +16,7 @@ namespace Rest.Application.Dtos.OrderDtos
         /// Gets or sets the date and time when the order was placed.
         /// </summary>
         public DateTime OrderDate { get; set; } = DateTime.UtcNow;
+        public int? EstimatedDeliveryTime { get; set; }
 
         /// <summary>
         /// Gets or sets the status of the order.

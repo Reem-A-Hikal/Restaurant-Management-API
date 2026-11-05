@@ -14,5 +14,11 @@ namespace Rest.Application.Interfaces.IRepositories
         /// <returns></returns>
         Task<IEnumerable<Category>> GetAllWithProductsAsync();
         Task<PaginatedList<Category>> GetPaginatedAsync(int pageIndex, int pageSize, string? searchTerm, string? selectedFilter);
+
+        /// <summary>
+        /// Active categories with their available products only;
+        /// empty categories are left out.
+        /// </summary>
+        Task<List<Category>> GetMenuAsync();
     }
 }

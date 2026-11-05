@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Rest.Application.Dtos.CategoryDtos;
+using Rest.Application.Dtos.MenuDtos;
 using Rest.Application.Dtos.ProductDtos;
 using Rest.Domain.Entities;
 
@@ -20,6 +21,7 @@ namespace Rest.Application.Profiles
                     opt => opt.MapFrom(src => src.Products != null ? src.Products.Count : 0));
 
             CreateMap<Category, SimpleCategoryDto>();
+            CreateMap<Category, MenuCategoryDto>();
         }
     }
 }

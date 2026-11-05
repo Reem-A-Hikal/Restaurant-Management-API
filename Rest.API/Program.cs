@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Rest.API.Converters;
 using Rest.API.Middleware;
 using Rest.API.Responses;
 using Rest.Application.Interfaces;
@@ -51,7 +52,10 @@ namespace Rest.API
                         .UseSqlServer(builder.Configuration
                             .GetConnectionString("DefaultConnection")));
 
-            builder.Services.AddControllers();
+            builder.Services.AddControllers().AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.Converters.Add(new UtcDateTimeJsonConverter());
+            });
             builder.Services.AddOpenApi();
 
             // Repositories
@@ -86,6 +90,7 @@ namespace Rest.API
             builder.Services.AddScoped<IImageUploadService>(
                 sp => new ImageUploadService( builder.Environment.WebRootPath));
             builder.Services.AddScoped<IDashboardService, DashboardService>();
+            builder.Services.AddScoped<IMenuService, MenuService>();
 
             builder.Services.AddSingleton<IKitchenSchedule, KitchenSchedule>();
             builder.Services.AddSingleton<IDeliveryZone, DeliveryZone>();

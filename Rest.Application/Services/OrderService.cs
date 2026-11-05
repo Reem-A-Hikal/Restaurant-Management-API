@@ -19,19 +19,22 @@ namespace Rest.Application.Services
         private readonly OrderPricingOptions _pricing;
         private readonly IKitchenSchedule _kitchen;
         private readonly IDeliveryZone _deliveryZone;
+        private readonly DeliveryEstimateOptions _estimate;
 
         public OrderService(
             IUnitOfWork unitOfWork,
             IMapper mapper,
             IOptions<OrderPricingOptions> pricing,
             IKitchenSchedule kitchen,
-            IDeliveryZone deliveryZone)
+            IDeliveryZone deliveryZone,
+           IOptions<DeliveryEstimateOptions> estimate)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _pricing = pricing.Value;
             _kitchen = kitchen;
             _deliveryZone = deliveryZone;
+            _estimate = estimate.Value;
         }
         #region Private Methods
         private async Task<Address> ValidateCustomerAddressAsync(string customerId, int deliveryAddressId)
@@ -93,14 +96,24 @@ namespace Rest.Application.Services
                 Tax = 0m, // no tax model yet (decision pending)
                 Discount = 0m, // item discounts are already inside UnitPrice
                 CustomerNotes = orderDto.CustomerNotes,
+                EstimatedDeliveryTime = _estimate.MaxMinutes
             };
+
+            var categoryStatuses = new Dictionary<int, CategoryStatus>();
 
             foreach (var item in orderDto.OrderDetails)
             {
                 var product = await _unitOfWork.ProductRepository.GetByIdAsync(item.ProductId)
                     ?? throw new NotFoundException("Product", item.ProductId);
 
-                if (!product.IsAvailable)
+                if(!categoryStatuses.TryGetValue(product.CategoryId, out var categoryStatus))
+                {
+                    var category = await _unitOfWork.CategoryRepository.GetByIdAsync(product.CategoryId);
+                    categoryStatus = category?.Status ?? CategoryStatus.Archived;
+                    categoryStatuses[product.CategoryId] = categoryStatus;
+                }
+
+                if (!product.IsAvailable || categoryStatus != CategoryStatus.Active)
                     throw new BusinessException(
                         $"'{product.Name}' is no longer available. Please remove it from your cart and try again.",
                         ErrorCodes.ProductUnavailable,

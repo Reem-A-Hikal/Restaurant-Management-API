@@ -109,5 +109,19 @@ namespace Rest.Infrastructure.Implementations.Repositories
         /// </summary>
         /// <param name="entity"></param>
         public void Update(Category entity) => _repository.Update(entity);
+
+        public async Task<List<Category>> GetMenuAsync()
+        {
+            var categories = await _context.Categories
+                .AsNoTracking()
+                .Where(c => c.Status == CategoryStatus.Active)
+                .Include(c => c.Products
+                    .Where(p => p.Status == ProductStatus.Available)
+                    .OrderBy(p => p.ProductId))
+                .OrderBy(p => p.DisplayOrder)
+                .ToListAsync();
+
+            return categories.Where(c => c.Products.Count > 0).ToList();
+        }
     }
 }

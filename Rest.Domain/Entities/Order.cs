@@ -280,18 +280,6 @@ namespace Rest.Domain.Entities
         {
             SubTotal = OrderDetails.Sum(od => od.UnitPrice * od.Quantity);
         }
-
-        public void RemoveItem(int productId)
-        {
-            if (Status != OrderStatus.New)
-                throw new BusinessException("Cannot modify items after the order has been confirmed.");
-
-            var detail = OrderDetails.FirstOrDefault(od => od.ProductId == productId)
-                ?? throw new NotFoundException("Product in order", productId);
-
-            OrderDetails.Remove(detail);
-            RecalculateSubTotal();
-        }
         #endregion
     }
 }

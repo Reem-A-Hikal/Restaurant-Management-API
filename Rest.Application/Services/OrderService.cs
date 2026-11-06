@@ -158,33 +158,6 @@ namespace Rest.Application.Services
             return _mapper.Map<OrderDto>(order);
         }
 
-        public async Task<OrderDto> AddOrderItemAsync(int orderId, CreateOrderDetailDto itemDto)
-        {
-            var order = await _unitOfWork.OrderRepository.GetByIdWithDetailsAsync(orderId)
-                ?? throw new NotFoundException("Order", orderId);
-
-            var product = await _unitOfWork.ProductRepository.GetByIdAsync(itemDto.ProductId)
-                ?? throw new NotFoundException("Product", itemDto.ProductId);
-
-            order.AddItem(product, itemDto.Quantity);
-
-            _unitOfWork.OrderRepository.Update(order);
-            await _unitOfWork.SaveChangesAsync();
-
-            return _mapper.Map<OrderDto>(order);
-        }
-        public async Task<OrderDto> RemoveOrderItemAsync(int orderId, int productId)
-        {
-            var order = await _unitOfWork.OrderRepository.GetByIdWithDetailsAsync(orderId)
-        ?? throw new NotFoundException("Order", orderId);
-
-            order.RemoveItem(productId);
-
-            _unitOfWork.OrderRepository.Update(order);
-            await _unitOfWork.SaveChangesAsync();
-
-            return _mapper.Map<OrderDto>(order);
-        }
 
         public async Task<OrderDto> GetOrderByIdAsync(int id)
         {

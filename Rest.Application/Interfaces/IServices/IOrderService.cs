@@ -36,8 +36,5 @@ namespace Rest.Application.Interfaces.IServices
         Task<IEnumerable<OrderDto>> GetOrdersByDateRangeAsync(DateTime startDate, DateTime endDate);
         Task<decimal> GetDailyRevenueAsync(DateTime date);
         Task<int> GetOrderCountByStatusAsync(OrderStatus status);
-
-        Task<OrderDto> AddOrderItemAsync(int orderId, CreateOrderDetailDto itemDto);
-        Task<OrderDto> RemoveOrderItemAsync(int orderId, int productId);
     }
 }

@@ -223,44 +223,6 @@ namespace Rest.API.Controllers
             return SuccessResponse(orders);
         }
 
-        /// <summary>Adds an item to an order.</summary>
-        [HttpPost("{id}/items")]
-        [Authorize(Roles = "Customer")]
-        [SwaggerOperation(Summary = "Add item to order", Description = "Customer only. Order must be in New status.")]
-        [SwaggerResponse(200, "Item added successfully", typeof(OrderDto))]
-        [SwaggerResponse(400, "Invalid operation")]
-        [SwaggerResponse(403, "Forbidden")]
-        [SwaggerResponse(404, "Order or product not found")]
-        public async Task<IActionResult> AddOrderItem(int id, [FromBody] CreateOrderDetailDto dto)
-        {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-            var order = await _orderService.GetOrderByIdAsync(id);
-            if (order.CustomerId != userId)
-                return ForbiddenResponse();
-
-            var updatedOrder = await _orderService.AddOrderItemAsync(id, dto);
-            return SuccessResponse(updatedOrder, "Item added successfully");
-        }
-
-        /// <summary>Removes an item from an order.</summary>
-        [HttpDelete("{id}/items/{productId}")]
-        [Authorize(Roles = "Customer")]
-        [SwaggerOperation(Summary = "Remove item from order", Description = "Customer only. Order must be in New status.")]
-        [SwaggerResponse(200, "Item removed successfully", typeof(OrderDto))]
-        [SwaggerResponse(400, "Invalid operation")]
-        [SwaggerResponse(403, "Forbidden")]
-        [SwaggerResponse(404, "Order or product not found")]
-        public async Task<IActionResult> RemoveOrderItem(int id, int productId)
-        {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-            var order = await _orderService.GetOrderByIdAsync(id);
-            if (order.CustomerId != userId)
-                return ForbiddenResponse();
-
-            var updatedOrder = await _orderService.RemoveOrderItemAsync(id, productId);
-            return SuccessResponse(updatedOrder, "Item removed successfully");
-        }
-
         /// <summary>Gets orders within a date range.</summary>
         [HttpGet("date-range")]
         [Authorize(Roles = "Admin")]

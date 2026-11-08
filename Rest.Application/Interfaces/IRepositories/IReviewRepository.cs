@@ -10,5 +10,7 @@ namespace Rest.Application.Interfaces.IRepositories
 
         Task<PaginatedList<Review>> GetPaginatedAsync(int productId, int pageIndex, int pageSize);
         IQueryable<Review> GetByProductIdQueryable(int productId);
+
+        Task<(double Average, int Count)> GetProductRatingSummaryAsync(int productId);
     }
 }

@@ -58,6 +58,17 @@ namespace Rest.Infrastructure.Implementations.Repositories
                 .AsQueryable();
         }
 
+        public async Task<(double Average, int Count)> GetProductRatingSummaryAsync(int productId)
+        {
+            var stats = await _context.Reviews
+                .Where(r => r.ProductId == productId)
+                .GroupBy(_ => 1)
+                .Select(g => new { Count = g.Count(), Average = g.Average(r => (double)r.Rating) })
+                .FirstOrDefaultAsync();
+
+            return stats is null ? (0, 0) : (Math.Round(stats.Average, 1), stats.Count);
+        }
+
         public async Task<IEnumerable<Review>> GetAllAsync() => await _repository.GetAllAsync();
         public async Task AddAsync(Review entity) => await _repository.AddAsync(entity);
         public void Update(Review entity) => _repository.Update(entity);

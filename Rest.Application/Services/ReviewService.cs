@@ -5,6 +5,7 @@ using Rest.Application.Interfaces.IRepositories;
 using Rest.Application.Interfaces.IServices;
 using Rest.Application.Utilities;
 using Rest.Domain.Entities;
+using Rest.Domain.Entities.Enums;
 using Rest.Domain.Exceptions;
 
 namespace Rest.Application.Services
@@ -36,22 +37,30 @@ namespace Rest.Application.Services
         {
             var paginated = await _unitOfWork.ReviewRepository.GetPaginatedAsync(productId, pageIndex, pageSize);
             var mapped = _mapper.Map<List<ReviewDto>>(paginated.Items);
-            return new PaginatedList<ReviewDto>(mapped, paginated.TotalItems, pageIndex, pageSize);
+            return new PaginatedList<ReviewDto>(mapped, paginated.TotalItems, paginated.PageIndex, paginated.PageSize);
         }
 
         public async Task<ReviewDto> CreateReviewAsync(int orderId, string customerId, CreateReviewDto dto)
         {
-            var order = await _unitOfWork.OrderRepository.GetByIdAsync(orderId)
+            var order = await _unitOfWork.OrderRepository.GetByIdWithDetailsAsync(orderId)
                 ?? throw new NotFoundException("Order", orderId);
 
             if (order.UserId != customerId)
                 throw new ForbiddenException("You can only review your own orders");
 
-            if (order.Status != Domain.Entities.Enums.OrderStatus.Delivered)
+            if (order.Status != OrderStatus.Delivered)
                 throw new BusinessException("You can only review a delivered order");
 
-            var existingReview = await _unitOfWork.ReviewRepository.GetByOrderIdAsync(orderId);
-            if (existingReview != null)
+            if (dto.ProductId.HasValue)
+            {
+                var line = order.OrderDetails.FirstOrDefault(d => d.ProductId == dto.ProductId.Value)
+                    ?? throw new ValidationException("The selected product is not part of this order.");
+
+                if (line.Product.Status == ProductStatus.Archived)
+                    throw new BusinessException("This product is no longer on the menu and can't be reviewed.");
+            }
+
+            if (await _unitOfWork.ReviewRepository.GetByOrderIdAsync(orderId) != null)
                 throw new BusinessException("You have already reviewed this order.");
 
             var review = Review.Create(
@@ -63,7 +72,7 @@ namespace Rest.Application.Services
                 dto.DeliveryRating,
                 dto.FoodRating,
                 dto.ProductId);
-            
+
             await _unitOfWork.ReviewRepository.AddAsync(review);
             await _unitOfWork.SaveChangesAsync();
 
@@ -93,6 +102,12 @@ namespace Rest.Application.Services
 
             await _unitOfWork.ReviewRepository.DeleteAsync(reviewId);
             await _unitOfWork.SaveChangesAsync();
+        }
+
+        public async Task<RatingSummaryDto> GetProductRatingSummaryAsync(int productId)
+        {
+            var (average, count) = await _unitOfWork.ReviewRepository.GetProductRatingSummaryAsync(productId);
+            return new RatingSummaryDto { Average = average, Count = count };
         }
     }
 }

@@ -116,5 +116,13 @@ namespace Rest.API.Controllers
             var result = await _reviewService.GetReviewsByCustomerIdAsync(customerId);
             return SuccessResponse(result, "Reviews retrieved successfully");
         }
+
+        [HttpGet("product/{productId}/summary")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetProductRatingSummary(int productId)
+        {
+            var summary = await _reviewService.GetProductRatingSummaryAsync(productId);
+            return SuccessResponse(summary, "Rating summary retrieved successfully");
+        }
     }
 }

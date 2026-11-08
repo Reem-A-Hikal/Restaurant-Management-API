@@ -23,7 +23,18 @@ namespace Rest.Application.Services
             if (!result.Succeeded)
                 throw new ValidationException(result.Errors.Select(e => e.Description));
 
-            var roleResult = await _userManager.AddToRoleAsync(user, role);
+            IdentityResult roleResult;
+            try
+            {
+                roleResult = await _userManager.AddToRoleAsync(user, role);
+
+            }
+            catch
+            {
+                await _userManager.DeleteAsync(user);
+                throw;
+            }
+
             if (!roleResult.Succeeded)
             {
                 await _userManager.DeleteAsync(user);

@@ -23,13 +23,16 @@ namespace Rest.Infrastructure.Implementations.StrategyFactory
             if (string.IsNullOrWhiteSpace(dto.VehicleNumber))
                 throw new ValidationException("Vehicle number is required for DeliveryPerson role.");
 
-            return DeliveryPerson.Create(
+            var dp =  DeliveryPerson.Create(
                 dto.Email,
                 dto.UserName,
                 dto.FullName,
                 dto.PhoneNumber,
                 dto.ProfileImageUrl,
                 dto.VehicleNumber);
+
+            dp.SetAvailability(dto.IsAvailable);
+            return dp;
         }
         public async Task EnrichDtoAsync(UserDto dto)
         {

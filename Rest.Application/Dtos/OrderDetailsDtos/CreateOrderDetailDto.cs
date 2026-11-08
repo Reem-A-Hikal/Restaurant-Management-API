@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Rest.Domain.Entities;
+using System.ComponentModel.DataAnnotations;
 
 namespace Rest.Application.Dtos.OrderDetailsDtos
 {
@@ -8,7 +9,7 @@ namespace Rest.Application.Dtos.OrderDetailsDtos
         public int ProductId { get; set; }
 
         [Required]
-        [Range(1, 50, ErrorMessage = "Quantity must be between 1 and 10")]
+        [Range(1, Order.MaxQuantityPerItem, ErrorMessage = "Quantity must be between 1 and 10")]
         public int Quantity { get; set; }
     }
 }

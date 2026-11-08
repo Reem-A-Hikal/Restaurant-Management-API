@@ -34,10 +34,6 @@ namespace Rest.API.Controllers
         [SwaggerResponse(403, "Forbidden")]
         public async Task<IActionResult> CreateOrder([FromBody] CreateOrderDto dto)
         {
-            if (!ModelState.IsValid)
-                return ValidationErrorResponse(
-                    ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)));
-
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
             var order = await _orderService.CreateOrderAsync(userId, dto);
 
@@ -50,21 +46,17 @@ namespace Rest.API.Controllers
 
         /// <summary>Gets an order by ID.</summary>
         [HttpGet("{id}")]
-        [SwaggerOperation(Summary = "Get order by ID", Description = "Admin/Chef see any order. Customer sees own orders only.")]
+        [SwaggerOperation(Summary = "Get order by ID",
+           Description = "Admin: any. Customer: own. Chef: New/Confirmed/Preparing/Ready. DeliveryPerson: assigned orders.")]
         [SwaggerResponse(200, "Order retrieved successfully", typeof(OrderDto))]
         [SwaggerResponse(403, "Forbidden")]
         [SwaggerResponse(404, "Order not found")]
         public async Task<IActionResult> GetOrderById(int id)
         {
-            var order = await _orderService.GetOrderByIdAsync(id);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            var role = User.FindFirstValue(ClaimTypes.Role)!;
 
-            if(User.IsInRole("Customer"))
-            {
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                if (order.CustomerId != userId)
-                    return ForbiddenResponse();
-            }
-
+            var order = await _orderService.GetOrderForUserAsync(id,userId,role);
             return SuccessResponse(order);
         }
 
@@ -73,7 +65,7 @@ namespace Rest.API.Controllers
         [Authorize(Roles = "Admin, Chef")]
         [SwaggerOperation(
             Summary = "Get orders (role-scoped)",
-            Description = "Admin sees all orders. Chef sees only Confirmed, Preparing, and Ready orders.")]
+            Description = "Admin sees all orders. Chef sees New, Confirmed, Preparing, and Ready orders.")]
         [SwaggerResponse(200, "Orders retrieved successfully", typeof(IEnumerable<OrderDto>))]
         [SwaggerResponse(401, "Unauthorized")]
         [SwaggerResponse(403, "Forbidden")]
@@ -86,6 +78,7 @@ namespace Rest.API.Controllers
 
         /// <summary>Gets orders for a specific customer.</summary>
         [HttpGet("customer/{customerId}")]
+        [Authorize(Roles = "Admin,Customer")]
         [SwaggerOperation(Summary = "Get orders by customer", Description = "Admin sees any customer orders. Customer sees own orders only.")]
         [SwaggerResponse(200, "Orders retrieved successfully", typeof(IEnumerable<OrderDto>))]
         [SwaggerResponse(403, "Forbidden")]
@@ -131,19 +124,14 @@ namespace Rest.API.Controllers
         /// <summary>Gets orders by status.</summary>
         [HttpGet("status/{status}")]
         [Authorize(Roles = "Admin,Chef")]
-        [SwaggerOperation(Summary = "Get orders by status", Description = "Admin sees all statuses. Chef sees Confirmed, Preparing, Ready only.")]
+        [SwaggerOperation(Summary = "Get orders by status",
+           Description = "Admin sees all statuses. Chef sees New, Confirmed, Preparing, Ready only.")]
         [SwaggerResponse(200, "Orders retrieved successfully", typeof(IEnumerable<OrderDto>))]
         [SwaggerResponse(403, "Forbidden")]
         public async Task<IActionResult> GetOrdersByStatus(OrderStatus status)
         {
-            if (User.IsInRole("Chef"))
-            {
-                var allowedStatuses = new[] { OrderStatus.Confirmed, OrderStatus.Preparing, OrderStatus.Ready };
-                if (!allowedStatuses.Contains(status))
-                    return ForbiddenResponse("Chefs can only view Confirmed, Preparing, and Ready orders.");
-            }
-
-            var orders = await _orderService.GetOrdersByStatusAsync(status);
+            var role = User.FindFirstValue(ClaimTypes.Role)!;
+            var orders = await _orderService.GetOrdersByStatusAsync(status, role);
             return SuccessResponse(orders);
         }
 
@@ -166,23 +154,19 @@ namespace Rest.API.Controllers
         /// <summary>Cancels an order.</summary>
         [HttpPatch("{id}/cancel")]
         [Authorize(Roles = "Admin,Customer")]
-        [SwaggerOperation(Summary = "Cancel an order", Description = "Admin cancels any order. Customer cancels own orders only.")]
+        [SwaggerOperation(Summary = "Cancel an order",
+            Description = "Admin cancels before delivery." +
+            " Customer cancels own orders while New or Confirmed only.")]
         [SwaggerResponse(200, "Order cancelled successfully", typeof(OrderDto))]
         [SwaggerResponse(400, "Invalid transition")]
         [SwaggerResponse(403, "Forbidden")]
         [SwaggerResponse(404, "Order not found")]
         public async Task<IActionResult> CancelOrder(int id, [FromBody] CancelOrderDto dto)
         {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
             var isCustomer = User.IsInRole("Customer");
-            if (isCustomer)
-            {
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-                var order = await _orderService.GetOrderByIdAsync(id);
-                if (order.CustomerId != userId)
-                    return ForbiddenResponse();
-            }
 
-            var cancelledOrder = await _orderService.CancelOrderAsync(id, dto.CancellationReason, isCustomer);
+            var cancelledOrder = await _orderService.CancelOrderAsync(id, dto.CancellationReason, userId, isCustomer);
             return SuccessResponse(cancelledOrder, "Order cancelled successfully");
         }
 
@@ -236,6 +220,9 @@ namespace Rest.API.Controllers
             if (startDate > endDate)
                 return ValidationErrorResponse(new[] { "Start date cannot be after end date" });
 
+            if (endDate - startDate > TimeSpan.FromDays(62))
+                return ValidationErrorResponse(new[] { "Date range cannot exceed 62 days." });
+
             var orders = await _orderService.GetOrdersByDateRangeAsync(startDate, endDate);
             return SuccessResponse(orders);
         }
@@ -258,6 +245,9 @@ namespace Rest.API.Controllers
         [SwaggerResponse(200, "Count retrieved successfully", typeof(int))]
         public async Task<IActionResult> GetOrderCountByStatus(OrderStatus status)
         {
+            if (!Enum.IsDefined(status))
+                return ValidationErrorResponse(new[] { "Invalid order status." });
+
             var count = await _orderService.GetOrderCountByStatusAsync(status);
             return SuccessResponse(count);
         }

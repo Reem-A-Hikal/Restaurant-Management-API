@@ -74,6 +74,24 @@ namespace Rest.Domain.Entities
             TransitionTo(PaymentStatus.Refunded);
             GatewayResponse = gatewayResponse;
         }
+
+        /// <summary>
+        /// Cash collected by the courier at the door. The amount always comes from
+        /// the order itself — never from a client request.
+        /// </summary>
+        public static Payment CashCollected(Order order)
+        {
+            var payment = new Payment
+            {
+                OrderId = order.OrderId,
+                Order = order,
+                Amount = order.TotalAmount,
+                Method = PaymentMethod.Cash
+            };
+
+            payment.Complete();
+            return payment;
+        }
         #endregion
     }
 }

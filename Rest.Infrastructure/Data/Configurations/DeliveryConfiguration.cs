@@ -56,6 +56,9 @@ namespace Rest.Infrastructure.Data.Configurations
             builder.HasIndex(d => d.OrderId)
                    .HasDatabaseName("IX_Deliveries_OrderId");
 
+            builder.HasIndex(d => d.Status)
+                   .HasDatabaseName("IX_Deliveries_Status");
+
             // Database-level guard: prevents more than one active delivery
             // (Assigned or PickedUp) per order
             builder.HasIndex(d => d.OrderId)

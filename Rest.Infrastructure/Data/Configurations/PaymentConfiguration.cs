@@ -54,6 +54,9 @@ namespace Rest.Infrastructure.Data.Configurations
             builder.HasIndex(p => p.OrderId)
                    .HasDatabaseName("IX_Payments_OrderId");
 
+            builder.HasIndex(p => new { p.Status, p.PaidAt })
+                .HasDatabaseName("IX_Payments_Status_PaidAt");
+
             // Database-level guard: prevents more than one Completed payment
             // per order, regardless of application-layer race conditions.
             builder.HasIndex(p => p.OrderId)

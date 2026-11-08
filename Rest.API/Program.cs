@@ -1,10 +1,12 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Rest.API.Auth;
+using Rest.API.BackgroundServices;
 using Rest.API.Converters;
 using Rest.API.Middleware;
 using Rest.API.Responses;
@@ -16,18 +18,15 @@ using Rest.Application.Options;
 using Rest.Application.Profiles;
 using Rest.Application.Services;
 using Rest.Domain.Entities;
-using Rest.Domain.Entities.Enums;
 using Rest.Infrastructure.Data;
 using Rest.Infrastructure.Implementations;
 using Rest.Infrastructure.Implementations.Repositories;
 using Rest.Infrastructure.Implementations.Services;
 using Rest.Infrastructure.Implementations.StrategyFactory;
-using System.Collections.Concurrent;
-using System.Net.Http;
 using System.Reflection;
 using System.Security.Claims;
 using System.Text;
-using System.Threading;
+using System.Text.Json;
 using System.Threading.RateLimiting;
 
 namespace Rest.API
@@ -37,6 +36,26 @@ namespace Rest.API
     /// </summary>
     public class Program
     {
+        private static readonly JsonSerializerOptions ErrorJson = new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+
+        /// <summary>
+        /// Writes an <see cref="ApiResponse{T}"/>-shaped error so every failure
+        /// (middleware, auth, rate limit, validation) has the same body.
+        /// </summary>
+        private static Task WriteErrorAsync(
+            HttpResponse response, int statusCode, string title, string error,
+            CancellationToken cancellationToken = default)
+        {
+            response.StatusCode = statusCode;
+            response.ContentType = "application/json";
+
+            var body = ApiResponse<string>.FailResponse(new List<string> { error }, title);
+            return response.WriteAsync(JsonSerializer.Serialize(body, ErrorJson), cancellationToken);
+        }
+
         /// <summary>
         /// Main method to run the application.
         /// </summary>
@@ -52,11 +71,31 @@ namespace Rest.API
                         .UseSqlServer(builder.Configuration
                             .GetConnectionString("DefaultConnection")));
 
-            builder.Services.AddControllers().AddJsonOptions(options =>
-            {
-                options.JsonSerializerOptions.Converters.Add(new UtcDateTimeJsonConverter());
-            });
-            builder.Services.AddOpenApi();
+            // Controllers + one error shape for model-validation failures (M4)
+            builder.Services.AddControllers()
+                .AddJsonOptions(options =>
+                {
+                    options.JsonSerializerOptions.Converters.Add(new UtcDateTimeJsonConverter());
+                })
+                .ConfigureApiBehaviorOptions(options =>
+                {
+                    options.InvalidModelStateResponseFactory = context =>
+                    {
+                        var errors = context.ModelState
+                            .Where(e => e.Value?.Errors.Count > 0)
+                            .SelectMany(e => e.Value!.Errors.Select(err =>
+                                !string.IsNullOrWhiteSpace(err.ErrorMessage)
+                                    ? err.ErrorMessage
+                                    : string.IsNullOrEmpty(e.Key)
+                                        ? "Invalid request body."
+                                        : $"Invalid value for '{e.Key}'."))
+                            .Distinct()
+                            .ToList();
+
+                        return new BadRequestObjectResult(
+                            ApiResponse<string>.FailResponse(errors, "Validation Error"));
+                    };
+                });
 
             // Repositories
             builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
@@ -76,6 +115,12 @@ namespace Rest.API
             // Unit of Work
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
+            // Images: wwwroot may not exist in a fresh clone / deployment (WebRootPath = null)
+            var webRoot = builder.Environment.WebRootPath
+                          ?? Path.Combine(builder.Environment.ContentRootPath, "wwwroot");
+            Directory.CreateDirectory(webRoot);
+            builder.Services.AddSingleton<IImageUploadService>(new ImageUploadService(webRoot));
+
             // Services
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<IAccountService, AccountService>();
@@ -87,14 +132,17 @@ namespace Rest.API
             builder.Services.AddScoped<IDeliveryService, DeliveryService>();
             builder.Services.AddScoped<IReviewService, ReviewService>();
             builder.Services.AddScoped<IPaymentService, PaymentService>();
-            builder.Services.AddScoped<IImageUploadService>(
-                sp => new ImageUploadService( builder.Environment.WebRootPath));
             builder.Services.AddScoped<IDashboardService, DashboardService>();
             builder.Services.AddScoped<IMenuService, MenuService>();
 
             builder.Services.AddSingleton<IKitchenSchedule, KitchenSchedule>();
             builder.Services.AddSingleton<IDeliveryZone, DeliveryZone>();
 
+            builder.Services.Configure<ImageCleanupOptions>(
+                builder.Configuration.GetSection(ImageCleanupOptions.SectionName));
+            builder.Services.AddHostedService<OrphanImageCleanupService>();
+
+            // Rate limiting
             builder.Services.AddRateLimiter(options =>
             {
                 options.AddPolicy("AuthPolicy", httpContext =>
@@ -106,25 +154,38 @@ namespace Rest.API
                             Window = TimeSpan.FromMinutes(1),
                             QueueLimit = 0,
                             QueueProcessingOrder = QueueProcessingOrder.OldestFirst
-                        }));
+                        })
+                    );
+
+                options.AddPolicy("UploadPolicy", httpContext =>
+                    RateLimitPartition.GetFixedWindowLimiter(
+                        partitionKey: httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)
+                                      ?? httpContext.Connection.RemoteIpAddress?.ToString()
+                                      ?? "unknown",
+                        factory: _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = 10,
+                            Window = TimeSpan.FromMinutes(1),
+                            QueueLimit = 0
+                        })
+                    );
 
                 options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
-                options.OnRejected = async (context, cancellationToken) =>
-                {
-                    context.HttpContext.Response.ContentType = "application/json";
-                    var response = ApiResponse<string>.FailResponse(
-                        new List<string> { "Too many attempts. Please try again later." },
-                        "Rate limit exceeded");
+                options.OnRejected = (context, cancellationToken) =>
+                    new ValueTask(WriteErrorAsync(
+                        context.HttpContext.Response,
+                        StatusCodes.Status429TooManyRequests,
+                        "Rate limit exceeded",
+                        "Too many attempts. Please try again later.",
+                        cancellationToken));
+            });
 
-                    await context.HttpContext.Response.WriteAsync(
-                        System.Text.Json.JsonSerializer.Serialize(response,
-                            new System.Text.Json.JsonSerializerOptions
-                            {
-                                PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
-                            }),
-                        cancellationToken);
-                };
+            builder.Services.Configure<ForwardedHeadersOptions>(options =>
+            {
+                options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+                options.KnownNetworks.Clear();
+                options.KnownProxies.Clear();
             });
 
             // Role Strategies
@@ -136,20 +197,35 @@ namespace Rest.API
             builder.Services.AddScoped<IRoleStrategyResolver, RoleStrategyResolver>();
             builder.Services.AddScoped<UserCreationHelper>();
 
-            // CORS
-            string txt = "AllowAll";
-            builder.Services.AddCors( options =>
+            // CORS: explicit origins from configuration (Cors:AllowedOrigins)
+            const string corsPolicy = "AllowedOrigins";
+            var allowedOrigins = builder.Configuration
+                .GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+
+            if (allowedOrigins.Length == 0)
             {
-                options.AddPolicy(txt,
-                    builder =>
-                    {
-                        builder.AllowAnyOrigin()
-                            .AllowAnyMethod()
-                            .AllowAnyHeader();
-                    });
+                if (!builder.Environment.IsDevelopment())
+                    throw new InvalidOperationException(
+                        "Cors:AllowedOrigins is not configured (set Cors__AllowedOrigins__0, __1 ...).");
+
+                allowedOrigins = 
+                [
+                    "http://localhost:4200",
+                    "http://localhost:4201",
+                    "http://myrest.runasp.net",
+                    "https://myrest.runasp.net",
+                ];
+            }
+
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy(corsPolicy, policy =>
+                    policy.WithOrigins(allowedOrigins)
+                          .AllowAnyMethod()
+                          .AllowAnyHeader());
             });
 
-            // Identity 
+            // Identity
             builder.Services.AddIdentity<User, IdentityRole>(options =>
             {
                 options.User.RequireUniqueEmail = true;
@@ -158,13 +234,21 @@ namespace Rest.API
                 options.Password.RequireNonAlphanumeric = false;
                 options.Password.RequireUppercase = true;
                 options.Password.RequireLowercase = true;
+
+                options.Lockout.AllowedForNewUsers = true;
+                options.Lockout.MaxFailedAccessAttempts = 5;
+                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
             })
             .AddEntityFrameworkStores<RestDbContext>()
             .AddDefaultTokenProviders();
 
-            //JWT Configuration
+            // JWT Configuration
             var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-            var secretKey = jwtSettings["SecretKey"]!;
+            var secretKey = jwtSettings["SecretKey"];
+            if (string.IsNullOrWhiteSpace(secretKey) || Encoding.ASCII.GetByteCount(secretKey) < 32)
+                throw new InvalidOperationException(
+                    "JwtSettings:SecretKey is missing or shorter than 32 bytes.");
+
             var key = Encoding.ASCII.GetBytes(secretKey);
 
             builder.Services.AddAuthentication(options =>
@@ -173,7 +257,6 @@ namespace Rest.API
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
             }).AddJwtBearer(options =>
             {
-                options.SaveToken = true;
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuerSigningKey = true,
@@ -186,33 +269,53 @@ namespace Rest.API
                     ClockSkew = TimeSpan.Zero, // Remove delay of token when expired
                     RequireExpirationTime = true
                 };
+
+                options.Events = new JwtBearerEvents
+                {
+                    // Rejects suspended / inactive / deleted users even with a valid token
+                    OnTokenValidated = ActiveUserTokenValidator.ValidateAsync,
+
+                    // Same body shape as every other error. Status stays 401 so the
+                    // frontend's refresh-token flow keeps working.
+                    OnChallenge = context =>
+                    {
+                        context.HandleResponse();
+                        return WriteErrorAsync(
+                            context.Response,
+                            StatusCodes.Status401Unauthorized,
+                            "Unauthorized",
+                            "Authentication is required.");
+                    },
+
+                    OnForbidden = context => WriteErrorAsync(
+                        context.Response,
+                        StatusCodes.Status403Forbidden,
+                        "Access denied",
+                        "You are not allowed to perform this action.")
+                };
             });
 
             // Authorization
             builder.Services.AddAuthorizationBuilder()
-            .AddPolicy("SelfOrAdmin", policy =>
-                policy.RequireAssertion(context =>
-                {
-                    var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                    var routeUserId = context.Resource is HttpContext httpContext
-                    ? httpContext.Request.RouteValues["userId"]?.ToString()
-                    : null;
+                .AddPolicy("SelfOrAdmin", policy =>
+                    policy.RequireAuthenticatedUser().RequireAssertion(context =>
+                    {
+                        if (context.User.IsInRole("Admin")) return true;
 
-                    return userIdClaim == routeUserId || context.User.IsInRole("Admin");
-                })
-            );
+                        var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                        var routeUserId = (context.Resource as HttpContext)?
+                            .Request.RouteValues["userId"]?.ToString();
+
+                        // Both must exist: null == null must never grant access.
+                        return userIdClaim is not null && userIdClaim == routeUserId;
+                    }));
 
             // AutoMapper
             builder.Services.AddAutoMapper(typeof(UserProfile).Assembly);
-            //builder.Services.AddAutoMapper(typeof(ProductProfile));
-            //builder.Services.AddAutoMapper(typeof(AddressProfile));
-            //builder.Services.AddAutoMapper(typeof(OrderProfile));
-            //builder.Services.AddAutoMapper(typeof(CategoryProfile));
 
             // Swagger
             builder.Services.AddSwaggerGen(c =>
             {
-               
                 c.SwaggerDoc("v1", new OpenApiInfo
                 {
                     Title = "Restaurant Management API",
@@ -228,12 +331,12 @@ namespace Rest.API
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
                 c.IncludeXmlComments(xmlPath);
 
-                // JWT in Swagger
+                // JWT in Swagger: paste the token only (no "Bearer " prefix)
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
                     Name = "Authorization",
-                    Type = SecuritySchemeType.ApiKey,
-                    Scheme = "Bearer",
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "bearer",
                     BearerFormat = "JWT",
                     In = ParameterLocation.Header
                 });
@@ -253,73 +356,66 @@ namespace Rest.API
                 });
             });
 
-            builder.Services.Configure<OrderPricingOptions>(
-                builder.Configuration.GetSection(OrderPricingOptions.SectionName));
-            builder.Services.Configure<KitchenHoursOptions>(
-                builder.Configuration.GetSection(KitchenHoursOptions.SectionName));
+            // Options (validated at startup so a bad setting fails fast, not on a customer's order)
+            builder.Services.AddOptions<OrderPricingOptions>()
+                .Bind(builder.Configuration.GetSection(OrderPricingOptions.SectionName))
+                .Validate(o => o.DeliveryFee >= 0, "OrderPricing:DeliveryFee must be >= 0.")
+                .ValidateOnStart();
 
-            builder.Services.Configure<DeliveryZoneOptions>(
-                builder.Configuration.GetSection(DeliveryZoneOptions.SectionName));
+            builder.Services.AddOptions<DeliveryEstimateOptions>()
+                .Bind(builder.Configuration.GetSection(DeliveryEstimateOptions.SectionName))
+                .Validate(o => o.MinMinutes > 0 && o.MinMinutes <= o.MaxMinutes,
+                          "DeliveryEstimate: 0 < MinMinutes <= MaxMinutes required.")
+                .ValidateOnStart();
 
-            builder.Services.Configure<DeliveryEstimateOptions>(
-                builder.Configuration.GetSection(DeliveryEstimateOptions.SectionName));
+
+            builder.Services.AddOptions<KitchenHoursOptions>()
+                .Bind(builder.Configuration.GetSection(KitchenHoursOptions.SectionName))
+                .Validate(o => o.OrdersOpenAt != o.OrdersCloseAt, "KitchenHours: OpensAt and ClosesAt must differ.")
+                .ValidateOnStart();
+
+            builder.Services.AddOptions<DeliveryZoneOptions>()
+                .Bind(builder.Configuration.GetSection(DeliveryZoneOptions.SectionName))
+                .Validate(o => o.Areas?.Count > 0, "DeliveryZone: at least one area required.")
+                .ValidateOnStart();
 
             var app = builder.Build();
 
-            // Seed Roles
+            // Seed roles + optional bootstrap admin (credentials come from configuration only)
             using (var scope = app.Services.CreateScope())
             {
-                var roleManager = scope.ServiceProvider
-                    .GetRequiredService<RoleManager<IdentityRole>>();
-                var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
-
-                string[] roles = ["Admin", "Chef", "DeliveryPerson", "Customer"];
-                foreach (var role in roles)
-                {
-                    if (!await roleManager.RoleExistsAsync(role))
-                        await roleManager.CreateAsync(new IdentityRole(role));
-                }
-
-                string adminEmail = "admin@restora.com";
-                string adminPassword = "Admin@123456";
-                string adminUserName = adminEmail.Split('@')[0];
-
-                var adminUser = await userManager.FindByEmailAsync(adminEmail);
-                if (adminUser == null)
-                {
-                    adminUser = User.Create(
-                        adminEmail,
-                        adminUserName,
-                        "System Administrator",
-                        "01065235485",
-                        "1.png");
-
-                    var createResult = await userManager.CreateAsync(adminUser, adminPassword);
-                    if (createResult.Succeeded)
-                    {
-                        await userManager.AddToRoleAsync(adminUser, "Admin");
-                    }
-                    else
-                    {
-                        var errors = string.Join(", ", createResult.Errors.Select(e => e.Description));
-                        Console.WriteLine($"❌ Failed to seed admin: {errors}");
-                    }
-                }
+                await DbSeeder.SeedAsync(scope.ServiceProvider);
             }
 
-            // Middleware Pipeline
+            // Middleware pipeline
+            app.UseForwardedHeaders();
             app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-            // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
-            {
+            //if (app.Environment.IsDevelopment())
+            //{
                 app.UseSwagger();
                 app.UseSwaggerUI(op => op.SwaggerEndpoint("/swagger/v1/swagger.json", "v1"));
-            }
+            //}
+            //else
+            //{
+            //app.UseHsts();
+            //}
+            app.MapGet("/", () => Results.Redirect("/swagger"));
 
             app.UseHttpsRedirection();
-            app.UseCors(txt);
-            app.UseStaticFiles();
+            app.UseCors(corsPolicy);
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                OnPrepareResponse = ctx =>
+                    ctx.Context.Response.Headers["X-Content-Type-Options"] = "nosniff"
+            });
+
+            if (!app.Environment.IsDevelopment())
+            {
+                app.UseHsts();
+            }
+            app.UseHttpsRedirection();
+
             app.UseAuthentication();
             app.UseAuthorization();
             app.UseRateLimiter();

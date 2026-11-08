@@ -53,7 +53,7 @@ namespace Rest.Application.Services
                 FullName = user.FullName,
                 Token = token,
                 RefreshToken = refreshToken,
-                Role = userRoles[0],
+                Role = userRoles.FirstOrDefault() ?? string.Empty,
             };
 
         }

@@ -92,7 +92,9 @@ namespace Rest.Infrastructure.Implementations.Repositories
                 .ToListAsync();
 
             return await _context.DeliveryPersons
-                .Where(dp => dp.IsAvailable == true && !busyPersonIds.Contains(dp.Id))
+                .Where(dp => dp.IsAvailable == true 
+                    && dp.Status == UserStatus.Active &&
+                    !busyPersonIds.Contains(dp.Id))
                 .OrderBy(dp => dp.Deliveries.Count(d => d.Status == DeliveryStatus.Delivered))
                 .ToListAsync();
         }

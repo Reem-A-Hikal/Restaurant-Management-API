@@ -4,6 +4,7 @@ using Rest.Application.Dtos.PaymentDtos;
 using Rest.Application.Interfaces.IServices;
 using Rest.Application.Services;
 using Swashbuckle.AspNetCore.Annotations;
+using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 
 namespace Rest.API.Controllers
@@ -14,50 +15,40 @@ namespace Rest.API.Controllers
     public class PaymentController : BaseController
     {
         private readonly IPaymentService _paymentService;
-        private readonly IOrderService _orderService;
 
-        public PaymentController(IPaymentService paymentService, IOrderService orderService)
+        public PaymentController(IPaymentService paymentService)
         {
             _paymentService = paymentService;
-            _orderService = orderService;
         }
 
         /// <summary>
-        /// Processes a payment for an order.
+        /// Admin fallback: records cash collected for a delivered order.
+        /// Normally this happens automatically when the courier marks the order delivered.
         /// </summary>
-        /// <param name="orderId"></param>
-        /// <param name="dto"></param>
-        /// <returns></returns>
-        [HttpPost("orders/{orderId}")]
+        [HttpPost("orders/{orderId}/cash")]
         [Authorize(Roles = "Admin")]
-        [SwaggerOperation(
-            Summary = "Record a payment",
-            Description = "Admin only. Cash is recorded automatically when a delivery is completed; use this for manual corrections.")]
-        [SwaggerResponse(200, "Payment processed successfully", typeof(PaymentDto))]
-        [SwaggerResponse(400, "Invalid payment or duplicate completed payment")]
+        [SwaggerOperation(Summary = "Record cash payment", Description = "Admin only. Amount is taken from the order, never from the request.")]
+        [SwaggerResponse(200, "Cash payment recorded", typeof(PaymentDto))]
+        [SwaggerResponse(400, "Order not delivered or already paid")]
         [SwaggerResponse(404, "Order not found")]
-        public async Task<IActionResult> ProcessPayment(int orderId, [FromBody] ProcessPaymentDto dto)
+        public async Task<IActionResult> RecordCashPayment(int orderId)
         {
-            if (!ModelState.IsValid)
-                return ValidationErrorResponse(
-                    ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)));
-
-            var payment = await _paymentService.ProcessPaymentAsync(orderId, dto);
-            return SuccessResponse(payment, "Payment processed successfully");
+            var payment = await _paymentService.RecordCashPaymentAsync(orderId);
+            return SuccessResponse(payment, "Cash payment recorded successfully");
         }
+
         /// <summary>
         /// Refunds a completed payment for an order.
         /// </summary>
-        /// <param name="orderId"></param>
-        /// <param name="gatewayResponse"></param>
-        /// <returns></returns>
         [HttpPost("orders/{orderId}/refund")]
         [Authorize(Roles = "Admin")]
         [SwaggerOperation(Summary = "Refund payment", Description = "Admin only. Refunds the completed payment for the specified order.")]
         [SwaggerResponse(200, "Payment refunded successfully", typeof(PaymentDto))]
         [SwaggerResponse(400, "No completed payment found")]
         [SwaggerResponse(404, "Order not found")]
-        public async Task<IActionResult> RefundPayment(int orderId, [FromQuery] string? gatewayResponse = null)
+        public async Task<IActionResult> RefundPayment(
+            int orderId,
+            [FromQuery, StringLength(500)] string? gatewayResponse = null)
         {
             var payment = await _paymentService.RefundPaymentAsync(orderId, gatewayResponse);
             return SuccessResponse(payment, "Payment refunded successfully");
@@ -66,27 +57,18 @@ namespace Rest.API.Controllers
         /// <summary>
         /// Gets payment history for an order.
         /// </summary>
-        /// <param name="orderId"></param>
-        /// <returns></returns>
         [HttpGet("orders/{orderId}")]
-        [Authorize(Roles = "Admin, Customer")]
-        [SwaggerOperation(Summary = "Get payment history", Description = "Admin or Customer. Returns all payment attempts for the specified order.")]
+        [Authorize(Roles = "Admin,Customer")]
+        [SwaggerOperation(Summary = "Get payment history", Description = "Admin: any order. Customer: own orders only.")]
         [SwaggerResponse(200, "Payment history retrieved successfully", typeof(IEnumerable<PaymentDto>))]
         [SwaggerResponse(403, "Forbidden")]
         [SwaggerResponse(404, "Order not found")]
         public async Task<IActionResult> GetPaymentHistory(int orderId)
         {
-            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var userRole = User.FindFirstValue(ClaimTypes.Role);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            var isAdmin = User.IsInRole("Admin");
 
-            if (userRole == "Customer")
-            {
-                var order = await _orderService.GetOrderByIdAsync(orderId);
-                if (order.CustomerId != currentUserId)
-                    return ForbiddenResponse("You can only view your own payments.");
-            }
-
-            var payments = await _paymentService.GetPaymentHistoryAsync(orderId);
+            var payments = await _paymentService.GetPaymentHistoryAsync(orderId, userId, isAdmin);
             return SuccessResponse(payments, "Payment history retrieved successfully");
         }
     }

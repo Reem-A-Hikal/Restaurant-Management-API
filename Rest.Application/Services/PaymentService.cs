@@ -24,32 +24,18 @@ namespace Rest.Application.Services
             _mapper = mapper;
         }
 
-        public async Task<PaymentDto> ProcessPaymentAsync(int orderId, ProcessPaymentDto dto)
+        public async Task<PaymentDto> RecordCashPaymentAsync(int orderId)
         {
             var order = await _unitOfWork.OrderRepository.GetByIdAsync(orderId)
                 ?? throw new NotFoundException("Order", orderId);
 
-            if(order.Status == OrderStatus.Cancelled)
-                throw new BusinessException("Cannot record a payment for a cancelled order.");
-
-            if (dto.Method != PaymentMethod.Cash)
-                throw new BusinessException("Online payments are not available yet. Only cash on delivery is supported.");
+            if (order.Status != OrderStatus.Delivered)
+                throw new BusinessException("Cash can only be recorded for a delivered order.");
 
             if (await _unitOfWork.PaymentRepository.HasCompletedPaymentAsync(orderId))
                 throw new BusinessException("Order already has a completed payment.");
 
-            if (dto.Method == PaymentMethod.Stripe && string.IsNullOrWhiteSpace(dto.TransactionId))
-                throw new ValidationException("Stripe payments require a TransactionId.");
-
-            var payment = new Payment
-            {
-                OrderId = orderId,
-                Order = order,
-                Amount = order.TotalAmount,
-                Method = dto.Method,
-            };
-
-            payment.Complete(dto.TransactionId, dto.GatewayResponse);
+            var payment = Payment.CashCollected(order);
 
             await _unitOfWork.PaymentRepository.AddAsync(payment);
             await _unitOfWork.SaveChangesAsync();
@@ -70,8 +56,14 @@ namespace Rest.Application.Services
             return _mapper.Map<PaymentDto>(payment);
         }
 
-        public async Task<IEnumerable<PaymentDto>> GetPaymentHistoryAsync(int orderId)
+        public async Task<IEnumerable<PaymentDto>> GetPaymentHistoryAsync(int orderId, string userId, bool isAdmin)
         {
+            var order = await _unitOfWork.OrderRepository.GetByIdAsync(orderId)
+                ?? throw new NotFoundException("Order", orderId);
+
+            if (!isAdmin && order.UserId != userId)
+                throw new ForbiddenException("You can only view your own payments.");
+
             var payments = await _unitOfWork.PaymentRepository.GetByOrderIdAsync(orderId);
             return _mapper.Map<PaymentDto[]>(payments);
         }

@@ -15,17 +15,17 @@ namespace Rest.Application.Interfaces.IServices
         /// Marks the specified delivery as PickedUp (only if its current status is Assigned).
         /// Verifies that the caller is the assigned delivery person.
         /// </summary>
-        Task<DeliveryDto> MarkAsPickedUpAsync(int deliveryId);
+        Task<DeliveryDto> MarkAsPickedUpAsync(int deliveryId, string deliveryPersonId);
 
         /// <summary>
         /// Marks the specified delivery as Delivered (only if its current status is PickedUp).
         /// </summary>
-        Task<DeliveryDto> MarkAsDeliveredAsync(int deliveryId);
+        Task<DeliveryDto> MarkAsDeliveredAsync(int deliveryId, string deliveryPersonId);
 
         /// <summary>
         /// Cancels the specified delivery with a mandatory reason.
         /// </summary>
-        Task<DeliveryDto> CancelDeliveryAsync(int deliveryId, string reason);
+        Task<DeliveryDto> CancelDeliveryAsync(int deliveryId, string reason, string actorUserId, bool isAdmin);
 
         /// <summary>
         /// Returns the active delivery (Assigned or PickedUp) for a given order, or null.

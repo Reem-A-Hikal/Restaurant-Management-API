@@ -107,6 +107,11 @@ namespace Rest.Application.Services
         /// <returns> A task representing the asynchronous operation.</returns>
         public async Task DeleteAddressAsync(string userId, int addressId)
         {
+            if (await _addressRepository.IsUsedByOrdersAsync(addressId))
+                throw new BusinessException(
+                    "This address is linked to previous orders and can't be deleted.",
+                    ErrorCodes.AddressInUse);
+
             var address = await _addressRepository.GetUserAddressAsync(userId, addressId)
                 ?? throw new NotFoundException("Address", addressId);
 

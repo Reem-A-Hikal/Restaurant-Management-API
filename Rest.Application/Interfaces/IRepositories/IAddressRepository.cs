@@ -10,5 +10,6 @@ namespace Rest.Application.Interfaces.IRepositories
         Task<Address?> GetUserDefaultAddressAsync(string userId);
         Task SetDefaultAddressAsync(string userId, int addressId);
         Task<bool> HasAddressAsync(int addressId, string userId);
+        Task<bool> IsUsedByOrdersAsync(int addressId);
     }
 }

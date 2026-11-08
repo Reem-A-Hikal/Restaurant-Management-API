@@ -1,10 +1,6 @@
 ﻿using Rest.Application.Interfaces.IServices;
+using Rest.Application.Validation;
 using Rest.Domain.Exceptions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Rest.Infrastructure.Implementations.Services
 {
@@ -12,6 +8,7 @@ namespace Rest.Infrastructure.Implementations.Services
     {
         private readonly string _webRootPath;
         private static readonly string[] _allowedExtensions = { ".jpg", ".jpeg", ".png", ".webp" };
+        private static readonly string[] _allowedFolders = { "products", "users" };
         private const long MaxFileSizeBytes = 5 * 1024 * 1024; // 5 MB
 
         public ImageUploadService(string webRootPath)
@@ -21,6 +18,9 @@ namespace Rest.Infrastructure.Implementations.Services
 
         public async Task<string> UploadAsync(Stream fileStream, string originalFileName, long fileLength, string folder)
         {
+            if (!_allowedFolders.Contains(folder))
+                throw new ValidationException("Invalid folder.");
+
             if (fileStream == null || fileLength == 0)
                 throw new ValidationException("No file was uploaded.");
 
@@ -31,8 +31,16 @@ namespace Rest.Infrastructure.Implementations.Services
             if (!_allowedExtensions.Contains(extension))
                 throw new ValidationException($"Invalid image type. Allowed: {string.Join(", ", _allowedExtensions)}");
 
+            // never trust the declared length: read at most MaxFileSizeBytes + 1
             using var memoryStream = new MemoryStream();
-            await fileStream.CopyToAsync(memoryStream);
+            var buffer = new byte[81920];
+            int read;
+            while ((read = await fileStream.ReadAsync(buffer)) > 0)
+            {
+                await memoryStream.WriteAsync(buffer.AsMemory(0, read));
+                if (memoryStream.Length > MaxFileSizeBytes)
+                    throw new ValidationException("Image size cannot exceed 5 MB.");
+            }
             var fileBytes = memoryStream.ToArray();
 
             if (!IsValidImageSignature(fileBytes, extension))
@@ -42,28 +50,39 @@ namespace Rest.Infrastructure.Implementations.Services
             Directory.CreateDirectory(folderPath);
 
             var fileName = $"{Guid.NewGuid()}{extension}";
-            var filePath = Path.Combine(folderPath, fileName);
-
-            await File.WriteAllBytesAsync(filePath, fileBytes);
+            await File.WriteAllBytesAsync(Path.Combine(folderPath, fileName), fileBytes);
 
             return $"/images/{folder}/{fileName}";
         }
 
+        /// <summary>
+        /// Deletes ONLY files that (1) match the URL shape we generate and
+        /// (2) resolve to a path inside wwwroot/images. Anything else is ignored.
+        /// </summary>
         public void Delete(string? relativeUrl)
         {
-            if (string.IsNullOrWhiteSpace(relativeUrl))
-                return;
-
-            var fullPath = Path.Combine(_webRootPath, relativeUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
-            if (File.Exists(fullPath))
-                File.Delete(fullPath);
+            if (!TryResolvePath(relativeUrl, out var fullPath)) return;
+            if (File.Exists(fullPath)) File.Delete(fullPath);
         }
 
-        /// <summary>
-        /// Verifies the file's actual binary signature matches its claimed
-        /// extension — prevents renaming a malicious file to ".jpg" and
-        /// bypassing the extension check.
-        /// </summary>
+        private bool TryResolvePath(string? url, out string fullPath)
+        {
+            fullPath = string.Empty;
+            if (!ImageUrlRules.IsValid(url)) return false;
+
+            var imagesRoot = Path.GetFullPath(Path.Combine(_webRootPath, "images"))
+                             + Path.DirectorySeparatorChar;
+
+            var candidate = Path.GetFullPath(Path.Combine(
+                _webRootPath,
+                url!.TrimStart('/').Replace('/', Path.DirectorySeparatorChar)));
+
+            if (!candidate.StartsWith(imagesRoot, StringComparison.OrdinalIgnoreCase)) return false;
+
+            fullPath = candidate;
+            return true;
+        }
+
         private static bool IsValidImageSignature(byte[] bytes, string extension)
         {
             if (bytes.Length < 12) return false;

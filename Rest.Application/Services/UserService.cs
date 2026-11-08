@@ -5,6 +5,7 @@ using Rest.Application.Interfaces.IRepositories;
 using Rest.Application.Interfaces.IServices;
 using Rest.Application.Interfaces.IServices.StrategyFactory;
 using Rest.Application.Utilities;
+using Rest.Application.Validation;
 using Rest.Domain.Constants;
 using Rest.Domain.Entities;
 using Rest.Domain.Entities.Enums;
@@ -76,7 +77,7 @@ namespace Rest.Application.Services
             }
 
             await _userRepository.BulkEnrichUsersAsync(dtos);
-            return new PaginatedList<UserDto>(dtos, paginated.TotalItems, pageIndex, pageSize);
+            return new PaginatedList<UserDto>(dtos, paginated.TotalItems, paginated.PageIndex, paginated.PageSize);
         }
 
         public async Task<UserDto> GetUserByIdAsync(string userId)
@@ -120,6 +121,12 @@ namespace Rest.Application.Services
             {
                 user.ChangeStatus(dto.Status.Value);
 
+                if (dto.Status.Value == UserStatus.Active)
+                {
+                    await _userManager.SetLockoutEndDateAsync(user, null);
+                    await _userManager.ResetAccessFailedCountAsync(user);
+                }
+
                 var result = await _userManager.UpdateAsync(user);
                 if (!result.Succeeded)
                     throw new ValidationException(result.Errors.Select(e => e.Description));
@@ -143,6 +150,10 @@ namespace Rest.Application.Services
                 ?? throw new NotFoundException("User", userId);
 
             var oldImageUrl = user.ProfileImageUrl;
+
+            if (!string.IsNullOrWhiteSpace(dto.ProfileImageUrl) && dto.ProfileImageUrl != user.ProfileImageUrl
+                && await _userRepository.IsImageUrlUsedAsync(dto.ProfileImageUrl, userId))
+                throw new ValidationException("Invalid image URL.");
 
             user.UpdateProfile(dto.FullName, dto.PhoneNumber, dto.ProfileImageUrl);
 

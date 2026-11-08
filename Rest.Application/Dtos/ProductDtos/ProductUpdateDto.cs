@@ -1,4 +1,6 @@
-﻿using Rest.Domain.Entities.Enums;
+﻿using Rest.Application.Validation;
+using Rest.Domain.Entities.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace Rest.Application.Dtos.ProductDtos
 {
@@ -12,6 +14,8 @@ namespace Rest.Application.Dtos.ProductDtos
         public decimal? Price { get; set; }
         public string? Description { get; set; }
         public string? DescriptionAr { get; set; }
+
+        [LocalImageUrl(ImageUrlRules.Products), StringLength(255)]
         public string? ImageUrl { get; set; }
         public int? PreparationTime { get; set; }
         public int? Calories { get; set; }

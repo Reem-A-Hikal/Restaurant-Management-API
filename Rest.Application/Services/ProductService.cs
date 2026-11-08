@@ -45,7 +45,7 @@ namespace Rest.Application.Services
             var paginated = await _unitOfWork.ProductRepository.GetPaginatedAsync(pageIndex, pageSize, searchTerm, selectedFilter);
 
             var dtos = _mapper.Map<List<ProductDto>>(paginated.Items);
-            return new PaginatedList<ProductDto>(dtos, paginated.TotalItems, pageIndex, pageSize);
+            return new PaginatedList<ProductDto>(dtos, paginated.TotalItems, paginated.PageIndex, paginated.PageSize);
         }
 
         /// <summary>
@@ -82,6 +82,12 @@ namespace Rest.Application.Services
         /// <returns> The created product</returns>
         public async Task<ProductDto> CreateProductAsync(ProductCreateDto dto)
         {
+            if (!string.IsNullOrWhiteSpace(dto.ImageUrl)
+                && await _unitOfWork.ProductRepository.IsImageUrlUsedAsync(dto.ImageUrl))
+            {
+                throw new ValidationException("Invalid image URL.");
+            }
+
             if (dto.DiscountPercent > dto.AllowedDiscountPercent)
                 throw new ValidationException("Discount percent cannot exceed allowed discount percent.");
 
@@ -122,6 +128,13 @@ namespace Rest.Application.Services
                     ?? throw new NotFoundException("Category", dto.CategoryId.Value);
 
             var oldImageUrl = product.ImageUrl;
+
+            if (!string.IsNullOrWhiteSpace(dto.ImageUrl)
+                && dto.ImageUrl != oldImageUrl
+                && await _unitOfWork.ProductRepository.IsImageUrlUsedAsync(dto.ImageUrl, id))
+            {
+                throw new ValidationException("Invalid image URL.");
+            }
 
             product.UpdateDetails(
                 dto.Name, dto.Description, dto.ImageUrl,

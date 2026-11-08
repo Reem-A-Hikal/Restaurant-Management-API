@@ -4,6 +4,7 @@ using Rest.Application.Dtos.ProductDtos;
 using Rest.Application.Interfaces.IServices;
 using Rest.Infrastructure.Implementations.Services;
 using Swashbuckle.AspNetCore.Annotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Rest.API.Controllers
 {
@@ -33,6 +34,7 @@ namespace Rest.API.Controllers
         /// <returns></returns>
 
         [HttpGet("all")]
+        [Authorize(Roles = "Admin")]
         [SwaggerOperation(Summary = "Get all products")]
         [SwaggerResponse(StatusCodes.Status200OK, "Returns list of all products")]
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal server error")]
@@ -51,12 +53,13 @@ namespace Rest.API.Controllers
         /// <param name="selectedFilter">Selected filter (default is "All")</param>
         /// <returns>Paginated list of products</returns>
         [HttpGet("paginated")]
+        [Authorize(Roles = "Admin")]
         [SwaggerOperation(Summary = "Get paginated products with optional filtering")]
         [SwaggerResponse(StatusCodes.Status200OK, "Returns paginated list of products")]
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal server error")]
         public async Task<IActionResult> GetPaginatedProductsWithFilter(
             int pageIndex = 1, int pageSize = 8,
-            string? searchTerm = null,
+            [FromQuery, MaxLength(100)] string? searchTerm = null,
             string? selectedFilter = "All")
         {
             var products = await productService.GetPaginatedProductsWithFilterAsync(pageIndex, pageSize, searchTerm, selectedFilter);
@@ -68,6 +71,7 @@ namespace Rest.API.Controllers
         /// </summary>
         /// <param name="id">Product ID</param>
         [HttpGet("GetProduct/{id}")]
+        [Authorize(Roles = "Admin")]
         [SwaggerOperation(Summary = "Get product by ID")]
         [SwaggerResponse(StatusCodes.Status200OK, "Returns the requested product")]
         [SwaggerResponse(StatusCodes.Status404NotFound, "Product not found")]
@@ -83,6 +87,7 @@ namespace Rest.API.Controllers
         /// </summary>
         /// <param name="categoryId">Category ID</param>
         [HttpGet("category/{categoryId}")]
+        [Authorize(Roles = "Admin")]
         [SwaggerOperation(Summary = "Get products by category")]
         [SwaggerResponse(StatusCodes.Status200OK, "Returns list of products in the category")]
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Internal server error")]
@@ -157,20 +162,6 @@ namespace Rest.API.Controllers
         {
             await productService.DeleteProductAsync(id);
             return SuccessResponse(id, "Product archived successfully");
-        }
-
-        /// <summary>
-        /// Deletes a previously uploaded image. Used for cleanup when the
-        /// associated entity save fails after a successful upload.
-        /// </summary>
-        [HttpDelete("image")]
-        [Authorize(Roles = "Admin")]
-        [SwaggerOperation(Summary = "Delete an uploaded image")]
-        [SwaggerResponse(StatusCodes.Status200OK, "Image deleted successfully")]
-        public IActionResult DeleteImage([FromQuery] string url)
-        {
-            _imageUploadService.Delete(url);
-            return SuccessResponse<string>(null, "Image deleted successfully");
         }
     }
 }

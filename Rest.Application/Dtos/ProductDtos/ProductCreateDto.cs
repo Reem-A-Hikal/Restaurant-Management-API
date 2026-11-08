@@ -1,4 +1,7 @@
-﻿namespace Rest.Application.Dtos.ProductDtos
+﻿using Rest.Application.Validation;
+using System.ComponentModel.DataAnnotations;
+
+namespace Rest.Application.Dtos.ProductDtos
 {
     public class ProductCreateDto
     {
@@ -22,6 +25,7 @@
         /// <summary>
         /// Image URL of the product
         /// </summary>
+        [LocalImageUrl(ImageUrlRules.Products), StringLength(255)]
         public string? ImageUrl { get; set; }
 
         /// <summary>

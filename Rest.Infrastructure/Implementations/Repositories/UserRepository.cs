@@ -127,6 +127,10 @@ namespace Rest.Infrastructure.Implementations.Repositories
                 .Where(u => !adminUserIds.Contains(u.Id))
                 .ToListAsync();
         }
+
+        public Task<bool> IsImageUrlUsedAsync(string url, string excludeUserId) =>
+            _context.Users.IgnoreQueryFilters()
+                .AnyAsync(u => u.ProfileImageUrl == url && u.Id != excludeUserId);
         public async Task AddAsync(User entity) => await _context.Users.AddAsync(entity);
         public void Update(User entity) => _context.Users.Update(entity);
         public async Task SaveChangesAsync() => await _context.SaveChangesAsync();

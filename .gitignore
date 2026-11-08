@@ -19,3 +19,4 @@ appsettings.*.json
 *.tmp
 *.bak
 Rest.API/wwwroot/images/
+*.pubxml

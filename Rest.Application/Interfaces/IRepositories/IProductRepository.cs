@@ -23,5 +23,6 @@ namespace Rest.Application.Interfaces.IRepositories
         /// <returns> List of products within the specified price range</returns>
         Task<IEnumerable<Product>> GetProductsByPriceRangeAsync(decimal minPrice, decimal maxPrice);
         Task<IEnumerable<Product>> GetAllWithCatAsync();
+        Task<bool> IsImageUrlUsedAsync(string url, int? excludeProductId = null);
     }
 }

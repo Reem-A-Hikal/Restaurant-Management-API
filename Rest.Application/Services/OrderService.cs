@@ -92,9 +92,6 @@ namespace Rest.Application.Services
                 User = customer,
                 DeliveryAddressId = deliveryAddress.AddressId,
                 DeliveryAddress = deliveryAddress,
-                DeliveryFee = _pricing.DeliveryFee,
-                Tax = 0m, // no tax model yet (decision pending)
-                Discount = 0m, // item discounts are already inside UnitPrice
                 CustomerNotes = orderDto.CustomerNotes,
                 EstimatedDeliveryTime = _estimate.MaxMinutes
             };
@@ -104,9 +101,12 @@ namespace Rest.Application.Services
             foreach (var item in orderDto.OrderDetails)
             {
                 var product = await _unitOfWork.ProductRepository.GetByIdAsync(item.ProductId)
-                    ?? throw new NotFoundException("Product", item.ProductId);
+                ?? throw new BusinessException(
+                    "An item in your cart is no longer available. Please remove it and try again.",
+                    ErrorCodes.ProductUnavailable,
+                    new Dictionary<string, object?> { ["productId"] = item.ProductId });
 
-                if(!categoryStatuses.TryGetValue(product.CategoryId, out var categoryStatus))
+                if (!categoryStatuses.TryGetValue(product.CategoryId, out var categoryStatus))
                 {
                     var category = await _unitOfWork.CategoryRepository.GetByIdAsync(product.CategoryId);
                     categoryStatus = category?.Status ?? CategoryStatus.Archived;
@@ -125,7 +125,7 @@ namespace Rest.Application.Services
 
                 order.AddItem(product, item.Quantity);
             }
-
+            order.ApplyCharges(_pricing.DeliveryFee); // tax/discount = 0 (no tax model yet)
             await _unitOfWork.OrderRepository.AddAsync(order);
             await _unitOfWork.SaveChangesAsync();
 
@@ -145,10 +145,13 @@ namespace Rest.Application.Services
             return _mapper.Map<OrderDto>(order);
         }
 
-        public async Task<OrderDto> CancelOrderAsync(int orderId, string cancellationReason, bool isCustomer = false)
+        public async Task<OrderDto> CancelOrderAsync(int orderId, string cancellationReason, string actorUserId, bool isCustomer)
         {
             var order = await _unitOfWork.OrderRepository.GetByIdWithDetailsAsync(orderId)
                 ?? throw new NotFoundException("Order", orderId);
+
+            if (isCustomer && order.UserId != actorUserId)
+                throw new ForbiddenException();
 
             order.Cancel(cancellationReason,isCustomer);
 
@@ -175,8 +178,17 @@ namespace Rest.Application.Services
             return _mapper.Map<OrderDto[]>(orders);
         }
 
-        public async Task<IEnumerable<OrderDto>> GetOrdersByStatusAsync(OrderStatus status)
+        public async Task<IEnumerable<OrderDto>> GetOrdersByStatusAsync(OrderStatus status, string role)
         {
+            if (!Enum.IsDefined(status))
+                throw new ValidationException("Invalid order status.");
+
+            var allowed = GetAllowedStatusesForRole(role).ToList();
+            if (!allowed.Contains(status))
+                throw new ForbiddenException(allowed.Count > 0
+                    ? $"Your role can only view orders with status: {string.Join(", ", allowed)}."
+                    : $"Role '{role}' is not permitted to view orders.");
+
             var orders = await _unitOfWork.OrderRepository.GetOrdersByStatusAsync(status)
                 ?? [];
 
@@ -222,7 +234,9 @@ namespace Rest.Application.Services
 
         public async Task<IEnumerable<OrderDto>> GetOrdersByDateRangeAsync(DateTime startDate, DateTime endDate)
         {
-            var orders = await _unitOfWork.OrderRepository.GetOrdersByDateRangeAsync(startDate, endDate) ?? [];
+            var endExclusive = endDate.TimeOfDay == TimeSpan.Zero ? endDate.AddDays(1) : endDate;
+
+            var orders = await _unitOfWork.OrderRepository.GetOrdersByDateRangeAsync(startDate, endExclusive) ?? [];
             return _mapper.Map<OrderDto[]>(orders);
         }
 
@@ -236,9 +250,29 @@ namespace Rest.Application.Services
             return await _unitOfWork.OrderRepository.GetOrderCountByStatusAsync(status);
         }
 
+        public async Task<OrderDto> GetOrderForUserAsync(int id, string userId, string role)
+        {
+            var order = await _unitOfWork.OrderRepository.GetByIdAsync(id)
+                ?? throw new NotFoundException("Order", id);
+
+            var allowed = role switch
+            {
+                AppRoles.Admin => true,
+                AppRoles.Customer => order.UserId == userId,
+                AppRoles.Chef => _roleVisibleStatuses[AppRoles.Chef].Contains(order.Status),
+                AppRoles.DeliveryPerson => order.Deliveries.Any(s => s.DeliveryPersonId == userId),
+                _ => false
+            };
+
+            if(!allowed)
+                throw new ForbiddenException();
+
+            return _mapper.Map<OrderDto>(order);
+        }
+
         public async Task<OrderDto> MarkAsPreparingAsync(int orderId)
         {
-            var order = await _unitOfWork.OrderRepository.GetByIdAsync(orderId)
+            var order = await _unitOfWork.OrderRepository.GetByIdWithDetailsAsync(orderId)
                 ?? throw new NotFoundException("Order", orderId);
 
             order.TransitionTo(OrderStatus.Preparing);
@@ -251,7 +285,7 @@ namespace Rest.Application.Services
 
         public async Task<OrderDto> MarkAsReadyAsync(int orderId)
         {
-            var order = await _unitOfWork.OrderRepository.GetByIdAsync(orderId)
+            var order = await _unitOfWork.OrderRepository.GetByIdWithDetailsAsync(orderId)
                 ?? throw new NotFoundException("Order", orderId);
 
             order.TransitionTo(OrderStatus.Ready);
@@ -264,7 +298,13 @@ namespace Rest.Application.Services
 
         private static readonly Dictionary<string, OrderStatus[]> _roleVisibleStatuses = new()
         {
-            [AppRoles.Chef] = new[] { OrderStatus.Confirmed, OrderStatus.Preparing, OrderStatus.Ready },
+            [AppRoles.Chef] = new[] 
+            { 
+                OrderStatus.New,
+                OrderStatus.Confirmed,
+                OrderStatus.Preparing,
+                OrderStatus.Ready
+            },
         };
     }
 }

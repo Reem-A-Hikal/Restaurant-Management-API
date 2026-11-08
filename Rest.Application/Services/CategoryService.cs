@@ -76,7 +76,7 @@ namespace Rest.Application.Services
 
             var dtos = _mapper.Map<List<CategoryWithProductsDto>>(paginated.Items);
             return new PaginatedList<CategoryWithProductsDto>(
-                dtos, paginated.TotalItems, pageIndex, pageSize);
+                dtos, paginated.TotalItems, paginated.PageIndex, paginated.PageSize);
         }
 
         /// <summary>

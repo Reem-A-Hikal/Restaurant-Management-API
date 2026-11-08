@@ -67,14 +67,27 @@ namespace Rest.Infrastructure.Implementations.Services
         public async Task<User?> ValidateUserCredentialsAsync(string email, string password)
         {
             var user = await _userManager.FindByEmailAsync(email);
-            if (user != null && await _userManager.CheckPasswordAsync(user, password))
+            if (user is null) return null;
+
+            if (await _userManager.IsLockedOutAsync(user))
+                throw await BuildLockedOutExceptionAsync(user);
+
+            if (!await _userManager.CheckPasswordAsync(user, password))
             {
-                if (user.Status != UserStatus.Active)
-                    throw new ValidationException("Account is not active");
-                return user;
+                await _userManager.AccessFailedAsync(user);
+
+                if (await _userManager.IsLockedOutAsync(user))
+                    throw await BuildLockedOutExceptionAsync(user);
+
+                return null;
             }
-            
-            return null;
+
+            await _userManager.ResetAccessFailedCountAsync(user);
+
+            if (user.Status != UserStatus.Active) 
+                throw new ValidationException("Account is not active");
+
+            return user;
         }
 
         #region Refresh Tokens
@@ -148,5 +161,18 @@ namespace Rest.Infrastructure.Implementations.Services
         }
 
         #endregion
+
+        private async Task<BusinessException> BuildLockedOutExceptionAsync(User user)
+        {
+            var lockoutEnd = await _userManager.GetLockoutEndDateAsync(user);
+            var minutes = lockoutEnd.HasValue
+                ? Math.Max(1, (int)Math.Ceiling((lockoutEnd.Value - DateTimeOffset.UtcNow).TotalMinutes))
+                : 15;
+
+            return new BusinessException(
+                $"Too many failed sign-in attempts. Please try again in {minutes} minute(s).",
+                ErrorCodes.AccountLocked,
+                new Dictionary<string, object?> { ["retryAfterMinutes"] = minutes });
+        }
     }
 }

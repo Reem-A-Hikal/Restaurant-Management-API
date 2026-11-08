@@ -65,6 +65,9 @@ namespace Rest.Infrastructure.Implementations.Repositories
             return await _context.Addresses
                 .AnyAsync(a => a.AddressId == addressId && a.UserId == userId);
         }
+
+        public async Task<bool> IsUsedByOrdersAsync(int addressId) =>
+            await _context.Orders.IgnoreQueryFilters().AnyAsync(o => o.DeliveryAddressId == addressId);
         public async Task AddAsync(Address entity) => await _repository.AddAsync(entity);
 
         public async Task DeleteAsync(int addressId) => await _repository.DeleteAsync(addressId);

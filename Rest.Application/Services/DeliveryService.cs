@@ -32,25 +32,25 @@ namespace Rest.Application.Services
             if (activeDelivery != null)
                 throw new BusinessException("Order already has an active delivery in progress.");
 
-            string deliveryPersonId;
+            DeliveryPerson chosen;
             if (!string.IsNullOrWhiteSpace(dto.DeliveryPersonId))
             {
-                var isBusy = await _unitOfWork.DeliveryRepository.HasActiveDeliveryAsync(dto.DeliveryPersonId);
-                if (isBusy)
-                    throw new BusinessException("The selected delivery person already has an active delivery.");
+                chosen = await _unitOfWork.DeliveryPersonRepository.GetDeliveryPersonByIdAsync(dto.DeliveryPersonId)
+                    ?? throw new NotFoundException("DeliveryPerson", dto.DeliveryPersonId);
 
-                deliveryPersonId = dto.DeliveryPersonId;
+                if (!chosen.IsActive || chosen.IsAvailable != true)
+                    throw new BusinessException("The selected delivery person is not available.");
+
+                if (await _unitOfWork.DeliveryRepository.HasActiveDeliveryAsync(chosen.Id))
+                    throw new BusinessException("The selected delivery person already has an active delivery.");
             }
             else
             {
-                var availableDeliveryPersons = await _unitOfWork.DeliveryRepository.GetAvailableDeliveryPersonsAsync();
-
-                if (availableDeliveryPersons is null || !availableDeliveryPersons.Any())
-                    throw new BusinessException("No delivery persons are available at the moment.");
-
-
-                deliveryPersonId = availableDeliveryPersons.First().Id;
+                var availableDeliveryPersons = (await _unitOfWork.DeliveryRepository.GetAvailableDeliveryPersonsAsync()).ToList();
+                chosen = availableDeliveryPersons.FirstOrDefault()
+                    ?? throw new BusinessException("No delivery persons are available at the moment.");
             }
+            var deliveryPersonId = chosen.Id;
 
             var delivery = new Delivery
             {
@@ -65,10 +65,7 @@ namespace Rest.Application.Services
             
             _unitOfWork.OrderRepository.Update(order);
             
-            var deliveryPerson = await _unitOfWork.DeliveryPersonRepository.GetDeliveryPersonByIdAsync(deliveryPersonId)
-                ?? throw new NotFoundException("DeliveryPerson", deliveryPersonId);
-            
-            deliveryPerson.MarkBusy();
+            chosen.MarkBusy();
 
             await _unitOfWork.SaveChangesAsync();
 
@@ -76,10 +73,9 @@ namespace Rest.Application.Services
             return _mapper.Map<DeliveryDto>(result);
         }
 
-        public async Task<DeliveryDto> MarkAsPickedUpAsync(int deliveryId)
+        public async Task<DeliveryDto> MarkAsPickedUpAsync(int deliveryId, string deliveryPersonId)
         {
-            var delivery = await _unitOfWork.DeliveryRepository.GetByIdAsync(deliveryId)
-                ?? throw new NotFoundException("Delivery", deliveryId);
+            var delivery = await GetOwnedDeliveryAsync(deliveryId, deliveryPersonId);
             
             delivery.MarkAsPickedUp();
 
@@ -89,49 +85,41 @@ namespace Rest.Application.Services
             return _mapper.Map<DeliveryDto>(delivery);
         }
 
-        public async Task<DeliveryDto> MarkAsDeliveredAsync(int deliveryId)
+        public async Task<DeliveryDto> MarkAsDeliveredAsync(int deliveryId, string deliveryPersonId)
         {
-            var delivery = await _unitOfWork.DeliveryRepository.GetByIdAsync(deliveryId)
-                ?? throw new NotFoundException("Delivery", deliveryId);
+            var delivery = await GetOwnedDeliveryAsync(deliveryId, deliveryPersonId);
+
+            if (delivery.DeliveryPersonId != deliveryPersonId)
+                throw new ForbiddenException("You can only update your own deliveries.");
 
             var order = await _unitOfWork.OrderRepository.GetByIdAsync(delivery.OrderId)
                 ?? throw new NotFoundException("Order", delivery.OrderId);
 
+            var deliveryPerson = await _unitOfWork.DeliveryPersonRepository.GetDeliveryPersonByIdAsync(delivery.DeliveryPersonId)
+                ?? throw new NotFoundException("DeliveryPerson", delivery.DeliveryPersonId);
+            
             delivery.MarkAsDelivered();
             
             order.TransitionTo(OrderStatus.Delivered);
 
             if(!await _unitOfWork.PaymentRepository.HasCompletedPaymentAsync(order.OrderId))
             {
-                var payment = new Payment
-                {
-                    OrderId = order.OrderId,
-                    Order = order,
-                    Amount = order.TotalAmount,
-                    Method = PaymentMethod.Cash
-                };
-                payment.Complete();
+                var payment = Payment.CashCollected(order);
                 await _unitOfWork.PaymentRepository.AddAsync(payment);
             }
+            deliveryPerson.MarkAvailable();
 
             _unitOfWork.DeliveryRepository.Update(delivery);
             _unitOfWork.OrderRepository.Update(order);
-
-            var deliveryPerson = await _unitOfWork.DeliveryPersonRepository.GetDeliveryPersonByIdAsync(delivery.DeliveryPersonId)
-                ?? throw new NotFoundException("DeliveryPerson", delivery.DeliveryPersonId);
-            
-            deliveryPerson.MarkAvailable();
 
             await _unitOfWork.SaveChangesAsync();
 
             return _mapper.Map<DeliveryDto>(delivery);
         }
 
-        public async Task<DeliveryDto> CancelDeliveryAsync(int deliveryId, string reason)
+        public async Task<DeliveryDto> CancelDeliveryAsync(int deliveryId, string reason, string actorUserId, bool isAdmin)
         {
-            var delivery = await _unitOfWork.DeliveryRepository.GetByIdAsync(deliveryId)
-                ?? throw new NotFoundException("Delivery", deliveryId);
-
+            var delivery = await GetOwnedDeliveryAsync(deliveryId, actorUserId, isAdmin);
             var order = await _unitOfWork.OrderRepository.GetByIdAsync(delivery.OrderId)
                 ?? throw new NotFoundException("Order", delivery.OrderId);
 
@@ -206,6 +194,17 @@ namespace Rest.Application.Services
         {
             var deliveryPersons = await _unitOfWork.DeliveryRepository.GetAvailableDeliveryPersonsAsync();
             return _mapper.Map<IEnumerable<AvailableDeliveryPersonDto>>(deliveryPersons);
+        }
+
+        private async Task<Delivery> GetOwnedDeliveryAsync(int deliveryId, string actorUserId, bool isAdmin = false)
+        {
+            var delivery = await _unitOfWork.DeliveryRepository.GetByIdAsync(deliveryId)
+                ?? throw new NotFoundException("Delivery", deliveryId);
+
+            if (!isAdmin && delivery.DeliveryPersonId != actorUserId)
+                throw new ForbiddenException("You can only update your own deliveries.");
+
+            return delivery;
         }
     }
 }

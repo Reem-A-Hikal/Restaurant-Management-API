@@ -62,7 +62,7 @@ namespace Rest.Infrastructure.Data.Configurations
             builder.HasOne(od => od.Product)
                    .WithMany(p => p.OrderDetails)
                    .HasForeignKey(od => od.ProductId)
-                   .OnDelete(DeleteBehavior.Cascade)
+                   .OnDelete(DeleteBehavior.Restrict)
                    .IsRequired();
 
             builder.HasQueryFilter(od => od.Order.User.Status != UserStatus.Deleted);

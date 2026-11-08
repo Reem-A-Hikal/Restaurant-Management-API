@@ -29,6 +29,7 @@ namespace Rest.Application.Interfaces.IServices
         /// </summary>
         Task<ReviewDto> UpdateReviewAsync(int reviewId, string customerId, UpdateReviewDto dto);
 
+        Task<RatingSummaryDto> GetProductRatingSummaryAsync(int productId);
         /// <summary>
         /// Admin deletes a review
         /// </summary>

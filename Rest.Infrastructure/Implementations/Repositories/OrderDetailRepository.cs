@@ -2,6 +2,7 @@
 using Rest.Application.Dtos.DashboardDtos;
 using Rest.Application.Interfaces.IRepositories;
 using Rest.Domain.Entities;
+using Rest.Domain.Entities.Enums;
 using Rest.Infrastructure.Data;
 
 namespace Rest.Infrastructure.Implementations.Repositories
@@ -53,7 +54,11 @@ namespace Rest.Infrastructure.Implementations.Repositories
 
         public async Task<List<TopDishDto>> GetTopSellingDishesAsync(int topN)
         {
+            topN = Math.Clamp(topN, 1, 50);
+
             return await _context.OrderDetails
+                .IgnoreQueryFilters()    // archived dishes keep their history
+                .Where(od => od.Order.Status == OrderStatus.Delivered)
                 .GroupBy(od => new { od.ProductId, od.Product.Name, od.Product.ImageUrl })
                 .Select(g => new TopDishDto
                 {

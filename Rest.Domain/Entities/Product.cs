@@ -134,7 +134,7 @@ namespace Rest.Domain.Entities
         public decimal GetDiscountedPrice()
         {
             var discountToApply = Math.Min(DiscountPercent, AllowedDiscountPercent);
-            return Price * (100 - discountToApply) / 100;
+            return Math.Round(Price * (100 - discountToApply) / 100,2,MidpointRounding.AwayFromZero);
         }
 
         // Helper properties

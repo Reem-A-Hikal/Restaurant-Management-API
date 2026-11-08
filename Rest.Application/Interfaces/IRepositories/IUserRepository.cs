@@ -11,6 +11,7 @@ namespace Rest.Application.Interfaces.IRepositories
         Task<User?> GetByIdAsync(string id);
         Task<Dictionary<string, string>> GetUsersRolesDictAsync(IEnumerable<string> userIds);
         Task BulkEnrichUsersAsync(List<UserDto> userDtos);
+        Task<bool> IsImageUrlUsedAsync(string url, string excludeUserId);
         Task AddAsync(User entity);
         void Update(User entity);
         Task SaveChangesAsync();

@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using Rest.API.Responses;
 using Rest.Domain.Exceptions;
 using System.Net;
@@ -30,8 +32,20 @@ namespace Rest.API.Middleware
             }
         }
 
+        private static bool IsUniqueViolation(DbUpdateException ex) =>
+            ex.InnerException is SqlException { Number: 2601 or 2627 };
+
+        private static bool IsForeignKeyViolation(DbUpdateException ex) =>
+            ex.InnerException is SqlException { Number: 547 };
+
         private async Task HandleExceptionAsync(HttpContext context, Exception exception)
         {
+            if (context.Response.HasStarted)
+            {
+                _logger.LogError(exception, "Exception after response started");
+                return;
+            }
+
             var domain = exception as DomainException;
             var (statusCode, errors) = exception switch
             {
@@ -49,6 +63,20 @@ namespace Rest.API.Middleware
                 // 403 - Not authorized
                 ForbiddenException ex =>
                     (HttpStatusCode.Forbidden, new[] { ex.Message }),
+
+                // two staff members changed the same order at the same time (needs RowVersion on Order)
+                DbUpdateConcurrencyException =>
+                    (HttpStatusCode.Conflict,
+                    new[] { "This record was changed by someone else. Please reload and try again." }),
+
+                // duplicate name / duplicate review / order number collision
+                DbUpdateException { InnerException: SqlException { Number: 2601 or 2627 } } =>
+                    (HttpStatusCode.Conflict,
+                     new[] { "This action conflicts with a request that was already processed." }),
+
+                // deleting / changing something that other records depend on
+                DbUpdateException ex when IsForeignKeyViolation(ex) =>
+                    (HttpStatusCode.Conflict, new[] { "This record is linked to other data and cannot be changed." }),
 
                 ApplicationException ex =>
                     (HttpStatusCode.BadRequest, new[] { ex.Message }),
@@ -80,12 +108,13 @@ namespace Rest.API.Middleware
             await context.Response.WriteAsync(json);
         }
 
-        private static string GetMessageFromStatusCode(HttpStatusCode statusCode) =>
+        private static string GetMessageFromStatusCode(HttpStatusCode statusCode) => 
             statusCode switch
             {
                 HttpStatusCode.NotFound => "Resource not found",
                 HttpStatusCode.BadRequest => "Bad request",
                 HttpStatusCode.Forbidden => "Access denied",
+                HttpStatusCode.Conflict => "Conflict",
                 _ => "Internal server error"
             };
     }

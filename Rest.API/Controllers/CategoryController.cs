@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Rest.Application.Dtos.CategoryDtos;
 using Rest.Application.Interfaces.IServices;
 using Swashbuckle.AspNetCore.Annotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Rest.API.Controllers
 {
@@ -31,7 +32,7 @@ namespace Rest.API.Controllers
         /// <returns></returns>
         [HttpGet("all")]
         [SwaggerOperation(Summary = "Get all categories")]
-        [AllowAnonymous]
+        //[AllowAnonymous]
         public async Task<IActionResult> GetAll()
         {
             var categories = await _categoryService.GetAllAsync();
@@ -50,7 +51,7 @@ namespace Rest.API.Controllers
         public async Task<IActionResult> GetPaginated(
             [FromQuery] int pageIndex = 1,
             [FromQuery] int pageSize = 10,
-            [FromQuery] string? searchTerm = "",
+            [FromQuery, MaxLength(100)] string? searchTerm = "",
             [FromQuery] string? selectedFilter = "All")
         {
             var categories = await _categoryService.GetPaginatedCatsWithFilterAsync(
@@ -64,7 +65,7 @@ namespace Rest.API.Controllers
         /// <param name="id"></param>
         /// <returns></returns>
         [HttpGet("getcategory/{id}")]
-        [AllowAnonymous]
+        //[AllowAnonymous]
         public async Task<IActionResult> GetById(int id)
         {
             var category = await _categoryService.GetByIdAsync(id);
@@ -74,7 +75,7 @@ namespace Rest.API.Controllers
         /// <summary>
         /// Add a new category
         /// </summary>
-        /// <param name="category"></param>
+        /// <param name="dto"></param>
         /// <returns></returns>
         [HttpPost("add")]
         public async Task<IActionResult> Add([FromBody] CategoryCreateDto dto)
@@ -104,7 +105,7 @@ namespace Rest.API.Controllers
                     ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)));
            
             await _categoryService.UpdateAsync(id, request);
-            return SuccessResponse<string>(null, "Category updated successfully");
+            return SuccessResponse<string>(null!, "Category updated successfully");
         }
         /// <summary>
         /// Delete a category by ID (soft delete / deactivate).
@@ -115,7 +116,7 @@ namespace Rest.API.Controllers
         public async Task<IActionResult> Archive(int id)
         {
             await _categoryService.ArchiveAsync(id);
-            return SuccessResponse<string>(null, "Category archived successfully");
+            return SuccessResponse<string>(null!, "Category archived successfully");
         }
     }
 }

@@ -10,9 +10,10 @@ namespace Rest.Application.Interfaces.IServices
     public interface IPaymentService
     {
         /// <summary>
-        /// Creates a new Payment attempt. Prevents duplicate Completed payments.
+        /// Admin fallback: records the cash collected for a Delivered order.
+        /// Amount is taken from the order; duplicate Completed payments are rejected.
         /// </summary>
-        Task<PaymentDto> ProcessPaymentAsync(int orderId, ProcessPaymentDto dto);
+        Task<PaymentDto> RecordCashPaymentAsync(int orderId);
 
         /// <summary>
         /// Refunds the completed payment for an order.
@@ -22,6 +23,6 @@ namespace Rest.Application.Interfaces.IServices
         /// <summary>
         /// Full payment history for an order (audit/support).
         /// </summary>
-        Task<IEnumerable<PaymentDto>> GetPaymentHistoryAsync(int orderId);
+        Task<IEnumerable<PaymentDto>> GetPaymentHistoryAsync(int orderId, string userId, bool isAdmin);
     }
 }

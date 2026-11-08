@@ -15,7 +15,7 @@
             Items = items;
             TotalItems = totalItems;
             PageIndex = pageIndex;
-            PageSize = pageSize;
+            PageSize = Math.Max(pageSize, 1);
         }
     }
 }

@@ -302,6 +302,9 @@ namespace Rest.Infrastructure.Migrations
                         .HasDatabaseName("IX_Deliveries_OrderId_ActiveOnly")
                         .HasFilter("[Status] IN ('Assigned', 'PickedUp')");
 
+                    b.HasIndex("Status")
+                        .HasDatabaseName("IX_Deliveries_Status");
+
                     b.ToTable("Deliveries", (string)null);
                 });
 
@@ -357,6 +360,11 @@ namespace Rest.Infrastructure.Migrations
                     b.Property<DateTime?>("RequiredTime")
                         .HasColumnType("datetime2");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<string>("Source")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -393,6 +401,9 @@ namespace Rest.Infrastructure.Migrations
 
                     b.HasIndex("DeliveryAddressId");
 
+                    b.HasIndex("OrderDate")
+                        .HasDatabaseName("IX_Orders_OrderDate");
+
                     b.HasIndex("OrderNumber")
                         .IsUnique()
                         .HasDatabaseName("IX_Orders_OrderNumber");
@@ -403,7 +414,10 @@ namespace Rest.Infrastructure.Migrations
                     b.HasIndex("UserId")
                         .HasDatabaseName("IX_Orders_UserId");
 
-                    b.ToTable("Orders", (string)null);
+                    b.ToTable("Orders", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Orders_Amounts", "[DeliveryFee] >= 0 AND [Tax] >= 0 AND [Discount] >= 0 AND [Discount] <= [SubTotal]");
+                        });
                 });
 
             modelBuilder.Entity("Rest.Domain.Entities.OrderDetail", b =>
@@ -499,6 +513,9 @@ namespace Rest.Infrastructure.Migrations
                         .IsUnique()
                         .HasDatabaseName("IX_Payments_OrderId_CompletedOnly")
                         .HasFilter("[Status] = 'Completed'");
+
+                    b.HasIndex("Status", "PaidAt")
+                        .HasDatabaseName("IX_Payments_Status_PaidAt");
 
                     b.ToTable("Payments", null, t =>
                         {
@@ -914,7 +931,7 @@ namespace Rest.Infrastructure.Migrations
                     b.HasOne("Rest.Domain.Entities.Product", "Product")
                         .WithMany("OrderDetails")
                         .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Order");
@@ -938,7 +955,7 @@ namespace Rest.Infrastructure.Migrations
                     b.HasOne("Rest.Domain.Entities.Category", "Category")
                         .WithMany("Products")
                         .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Category");

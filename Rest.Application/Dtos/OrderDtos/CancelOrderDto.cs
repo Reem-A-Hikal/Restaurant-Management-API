@@ -4,7 +4,7 @@ namespace Rest.Application.Dtos.OrderDtos
 {
     public class CancelOrderDto
     {
-        [Required, StringLength(1000)]
-        public string CancellationReason { get; set; }
+        [Required, StringLength(250, MinimumLength = 3)]
+        public string CancellationReason { get; set; } = string.Empty;
     }
 }

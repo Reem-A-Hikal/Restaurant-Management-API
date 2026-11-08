@@ -15,7 +15,7 @@ namespace Rest.Domain.Entities
 
         // Foreign keys
         public int OrderId { get; private set; }
-        public string CustomerId { get; private set; }
+        public string CustomerId { get; private set; } = null!;
         public int? ProductId { get; private set; }
 
         // Navigation properties
@@ -39,7 +39,7 @@ namespace Rest.Domain.Entities
             {
                 OrderId = orderId,
                 CustomerId = customerId,
-                ReviewerName = reviewerName,
+                ReviewerName = Truncate(reviewerName, 50),
                 Rating = rating,
                 Comment = comment,
                 DeliveryRating = deliveryRating,
@@ -57,32 +57,13 @@ namespace Rest.Domain.Entities
             int? foodRating)
         {
             ValidateRating(rating, deliveryRating, foodRating);
-            
-            Rating = rating.Value;
-            DeliveryRating = deliveryRating.Value;
-            FoodRating = foodRating.Value;
 
-            if (comment != null)
-                Comment = comment;
+            if (rating.HasValue) Rating = rating.Value;
+            if (deliveryRating.HasValue) DeliveryRating = deliveryRating;
+            if (foodRating.HasValue) FoodRating = foodRating;
+            if (comment != null) Comment = comment;
         }
         #endregion
-
-        public double GetAvgRating()
-        {
-            double totalRating = 0;
-            int count = 0;
-            if (DeliveryRating.HasValue)
-            {
-                totalRating += DeliveryRating.Value;
-                count++;
-            }
-            if (FoodRating.HasValue)
-            {
-                totalRating += FoodRating.Value;
-                count++;
-            }
-            return count > 0 ? totalRating / count : 0;
-        }
 
         private static void ValidateRating(int? rating, int? deliveryRating, int? foodRating)
         {
@@ -95,5 +76,8 @@ namespace Rest.Domain.Entities
             if (foodRating.HasValue && (foodRating < 1 || foodRating > 5))
                 throw new ValidationException("Food rating must be between 1 and 5.");
         }
+
+        private static string? Truncate(string? v, int max) =>
+            string.IsNullOrWhiteSpace(v) ? null : (v.Length <= max ? v : v[..max]);
     }
 }

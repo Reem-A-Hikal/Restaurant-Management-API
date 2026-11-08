@@ -9,11 +9,13 @@ namespace Rest.Domain.Exceptions
     public static class ErrorCodes
     {
         public const string KitchenClosed = "KITCHEN_CLOSED";
+        public const string AccountLocked = "ACCOUNT_LOCKED";
         public const string ProductUnavailable = "PRODUCT_UNAVAILABLE";
         public const string NoSavedAddress = "NO_SAVED_ADDRESS";
         public const string AddressNotOwned = "ADDRESS_NOT_OWNED";
         public const string OrderEmpty = "ORDER_EMPTY";
         public const string OrderCancelNotAllowed = "ORDER_CANCEL_NOT_ALLOWED";
         public const string AddressOutsideDeliveryArea = "ADDRESS_OUTSIDE_DELIVERY_AREA";
+        public const string AddressInUse = "ADDRESS_IN_USE";
     }
 }

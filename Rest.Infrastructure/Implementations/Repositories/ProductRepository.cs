@@ -130,5 +130,11 @@ namespace Rest.Infrastructure.Implementations.Repositories
         /// </summary>
         /// <returns> List of all products</returns>
         public async Task<IEnumerable<Product>> GetAllAsync() => await _repository.GetAllAsync();
+
+        public Task<bool> IsImageUrlUsedAsync(string url, int? excludeProductId = null) =>
+            _context.Products
+                .IgnoreQueryFilters()
+                .AnyAsync(p => p.ImageUrl == url
+                            && (excludeProductId == null || p.ProductId != excludeProductId));
     }
 }

@@ -17,6 +17,8 @@ namespace Rest.Infrastructure.Data.Configurations
             builder.ToTable("Orders");
             builder.HasKey(x => x.OrderId);
 
+            builder.Property<byte[]>("RowVersion").IsRowVersion();
+
             builder.Property(o => o.OrderNumber)
                    .IsRequired()
                    .HasMaxLength(50);
@@ -92,6 +94,15 @@ namespace Rest.Infrastructure.Data.Configurations
 
             builder.HasIndex(o => o.UserId)
                    .HasDatabaseName("IX_Orders_UserId");
+
+            builder.HasIndex(o => o.OrderDate)
+                .HasDatabaseName("IX_Orders_OrderDate");
+
+            builder.ToTable(t =>
+            {
+                t.HasCheckConstraint("CK_Orders_Amounts",
+                    "[DeliveryFee] >= 0 AND [Tax] >= 0 AND [Discount] >= 0 AND [Discount] <= [SubTotal]");
+            });
 
             builder.HasOne(o => o.User)
                    .WithMany(u => u.CustomerOrders)

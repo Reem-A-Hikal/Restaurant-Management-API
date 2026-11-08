@@ -18,6 +18,8 @@ namespace Rest.API.Controllers
             _deliveryService = deliveryService;
         }
 
+        private string CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
         /// <summary>
         /// Assign a delivery person to a Ready order (auto or manual override)
         /// </summary>
@@ -30,70 +32,36 @@ namespace Rest.API.Controllers
         }
 
         /// <summary>
-        /// DeliveryPerson marks order as picked up
+        /// DeliveryPerson marks order as picked up (own deliveries only — enforced in the service)
         /// </summary>
         [HttpPut("{deliveryId}/pickup")]
         [Authorize(Roles = "DeliveryPerson")]
         public async Task<IActionResult> MarkAsPickedUp(int deliveryId)
         {
-            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-            var delivery = await _deliveryService.GetDeliveryByIdAsync(deliveryId);
-            if (delivery == null)
-                return NotFoundResponse("Delivery not found.");
-
-            if (delivery.DeliveryPersonId != currentUserId)
-                return ForbiddenResponse("You can only update your own deliveries.");
-
-            var result = await _deliveryService.MarkAsPickedUpAsync(deliveryId);
+            var result = await _deliveryService.MarkAsPickedUpAsync(deliveryId, CurrentUserId);
             return SuccessResponse(result, "Order marked as picked up");
         }
 
         /// <summary>
-        /// DeliveryPerson marks order as delivered
+        /// DeliveryPerson marks order as delivered (own deliveries only — enforced in the service)
         /// </summary>
         [HttpPut("{deliveryId}/delivered")]
         [Authorize(Roles = "DeliveryPerson")]
         public async Task<IActionResult> MarkAsDelivered(int deliveryId)
         {
-            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-            var delivery = await _deliveryService.GetDeliveryByIdAsync(deliveryId);
-            if (delivery == null)
-                return NotFoundResponse("Delivery not found.");
-
-            if (delivery.DeliveryPersonId != currentUserId)
-                return ForbiddenResponse("You can only update your own deliveries.");
-
-            var result = await _deliveryService.MarkAsDeliveredAsync(deliveryId);
+            var result = await _deliveryService.MarkAsDeliveredAsync(deliveryId, CurrentUserId);
             return SuccessResponse(result, "Order marked as delivered");
         }
 
         /// <summary>
-        /// Cancel an active delivery — Admin, Chef, or the assigned DeliveryPerson
+        /// Cancel an active delivery — Admin, or the assigned DeliveryPerson
         /// </summary>
         [HttpPut("{deliveryId}/cancel")]
         [Authorize(Roles = "Admin,DeliveryPerson")]
         public async Task<IActionResult> CancelDelivery(int deliveryId, [FromBody] CancelDeliveryDto dto)
         {
-            if (!ModelState.IsValid)
-                return ValidationErrorResponse(
-                    ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)));
-
-            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var userRole = User.FindFirstValue(ClaimTypes.Role);
-
-            if (userRole == "DeliveryPerson")
-            {
-                var delivery = await _deliveryService.GetDeliveryByIdAsync(deliveryId);
-                if (delivery == null)
-                    return NotFoundResponse("Delivery not found.");
-
-                if (delivery.DeliveryPersonId != currentUserId)
-                    return ForbiddenResponse("You can only cancel your own deliveries.");
-            }
-
-            var result = await _deliveryService.CancelDeliveryAsync(deliveryId, dto.Reason);
+            var isAdmin = User.IsInRole("Admin");
+            var result = await _deliveryService.CancelDeliveryAsync(deliveryId, dto.Reason, CurrentUserId, isAdmin);
             return SuccessResponse(result, "Delivery cancelled successfully");
         }
 
@@ -105,9 +73,6 @@ namespace Rest.API.Controllers
         public async Task<IActionResult> GetActiveDeliveryForOrder(int orderId)
         {
             var result = await _deliveryService.GetActiveDeliveryForOrderAsync(orderId);
-            //if (result == null)
-            //    return NotFoundResponse("No active delivery found for this order.");
-
             return SuccessResponse(result, "Active delivery retrieved successfully");
         }
 
@@ -129,8 +94,7 @@ namespace Rest.API.Controllers
         [Authorize(Roles = "DeliveryPerson")]
         public async Task<IActionResult> GetMyDeliveries()
         {
-            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var result = await _deliveryService.GetMyDeliveriesAsync(currentUserId!);
+            var result = await _deliveryService.GetMyDeliveriesAsync(CurrentUserId);
             return SuccessResponse(result, "Your active deliveries retrieved successfully");
         }
 
@@ -148,15 +112,11 @@ namespace Rest.API.Controllers
         /// <summary>
         /// DeliveryPerson updates their current location
         /// </summary>
-        /// <param name="deliveryId"></param>
-        /// <param name="dto"></param>
-        /// <returns></returns>
         [HttpPut("{deliveryId}/location")]
         [Authorize(Roles = "DeliveryPerson")]
         public async Task<IActionResult> UpdateLocation(int deliveryId, [FromBody] UpdateLocationDto dto)
         {
-            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var result = await _deliveryService.UpdateLocationAsync(deliveryId, currentUserId!, dto);
+            var result = await _deliveryService.UpdateLocationAsync(deliveryId, CurrentUserId, dto);
             return SuccessResponse(result, "Location updated successfully");
         }
 

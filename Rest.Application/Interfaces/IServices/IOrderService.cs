@@ -12,11 +12,11 @@ namespace Rest.Application.Interfaces.IServices
         Task<OrderDto> CreateOrderAsync(string userId,CreateOrderDto orderDto);
 
         Task<OrderDto> ConfirmOrderAsync(int orderId, string confirmedBy, ConfirmOrderDto confirmDto);
-        Task<OrderDto> CancelOrderAsync(int orderId, string cancellationReason, bool isCustomer = false);
+        Task<OrderDto> CancelOrderAsync(int orderId, string cancellationReason, string actorUserId, bool isCustomer);
         Task<OrderDto> MarkAsPreparingAsync(int orderId);
         Task<OrderDto> MarkAsReadyAsync(int orderId);
 
-        Task<IEnumerable<OrderDto>> GetOrdersByStatusAsync(OrderStatus status);
+        Task<IEnumerable<OrderDto>> GetOrdersByStatusAsync(OrderStatus status, string role);
 
         /// <summary>
         /// Returns the order statuses the given role is allowed to filter by.
@@ -27,7 +27,7 @@ namespace Rest.Application.Interfaces.IServices
 
         // <summary>
         /// Returns orders scoped to what the given role is allowed to see.
-        /// Admin sees everything; Chef sees only Confirmed/Preparing/Ready.
+        /// Admin sees everything; Chef sees only New/Confirmed/Preparing/Ready.
         /// </summary>
         Task<IEnumerable<OrderDto>> GetOrdersVisibleToRoleAsync(string role);
         Task<IEnumerable<OrderDto>> GetOrdersByCustomerAsync(string customerId);
@@ -36,5 +36,11 @@ namespace Rest.Application.Interfaces.IServices
         Task<IEnumerable<OrderDto>> GetOrdersByDateRangeAsync(DateTime startDate, DateTime endDate);
         Task<decimal> GetDailyRevenueAsync(DateTime date);
         Task<int> GetOrderCountByStatusAsync(OrderStatus status);
+
+        /// <summary>
+        /// Returns the order only if the caller's role is allowed to see it.
+        /// Admin: any. Customer: own. Chef: New/Confirmed/Preparing/Ready. DeliveryPerson: assigned to them.
+        /// </summary>
+        Task<OrderDto> GetOrderForUserAsync(int id, string userId, string role);
     }
 }

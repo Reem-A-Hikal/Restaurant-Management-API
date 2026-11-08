@@ -19,7 +19,7 @@ namespace Rest.Application.Services
         {
             var today = DateTime.UtcNow.Date;
 
-            var todayOrders = await _unitOfWork.OrderRepository.GetOrdersByDateRangeAsync(today, today.AddDays(1));
+            var todayOrders = await _unitOfWork.OrderRepository.CountByDateRangeAsync(today, today.AddDays(1));
             var dailyRevenue = await _unitOfWork.OrderRepository.GetDailyRevenueAsync(today);
             var statusCounts = await _unitOfWork.OrderRepository.GetOrderCountsByStatusAsync();
             var activeDeliveries = await _unitOfWork.DeliveryRepository.GetAllActiveDeliveriesAsync();
@@ -43,7 +43,7 @@ namespace Rest.Application.Services
 
             return new DashboardStatsDto
             {
-                TotalOrdersToday = todayOrders.Count(),
+                TotalOrdersToday = todayOrders,
                 DailyRevenue = dailyRevenue,
                 PendingOrdersCount = pendingCount,
                 ActiveDeliveriesCount = activeDeliveries.Count(),

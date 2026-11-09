@@ -12,15 +12,14 @@ namespace Rest.Infrastructure.Helpers
 
             var count = await source.CountAsync();
 
-            // long math: a huge pageIndex must not overflow int and turn into a negative Skip
-            var skip = (int)Math.Min((long)(pageIndex - 1) * pageSize, int.MaxValue);
+            var skip = (int)Math.Min((long)(index - 1) * size, int.MaxValue);
 
             var items = await source
                 .Skip(skip)
                 .Take(size)
                 .ToListAsync();
 
-            return new PaginatedList<T>(items, count, pageIndex, pageSize);
+            return new PaginatedList<T>(items, count, index, size);
         }
     }
 }

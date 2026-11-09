@@ -18,14 +18,18 @@ namespace Rest.Application.Validation
         public const string Products = "products";
 
         private static readonly Regex Pattern = new(
-            @"^/images/(products|users)/[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}\.(jpg|jpeg|png|webp)$",
+            @"^/images/(?<folder>products|users)/[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}\.(jpg|jpeg|png|webp)\z",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         public static bool IsValid(string? url, string? folder = null)
         {
-            if (!string.IsNullOrWhiteSpace(url)) return false;
+            // Was inverted (`!IsNullOrWhiteSpace → false`): every real URL was rejected.
+            if (string.IsNullOrWhiteSpace(url)) return false;
+
             var match = Pattern.Match(url);
-            return match.Success && (folder is null || match.Groups["folder"].Value == folder);
+            return match.Success
+                && (folder is null
+                    || string.Equals(match.Groups["folder"].Value, folder, StringComparison.OrdinalIgnoreCase));
         }
     }
 

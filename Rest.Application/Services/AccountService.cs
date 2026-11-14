@@ -13,6 +13,7 @@ namespace Rest.Application.Services
         private readonly UserManager<User> _userManager;
         private readonly IAuthService _authService;
         private readonly UserCreationHelper _creationHelper;
+        private static readonly TimeSpan RotationGracePeriod = TimeSpan.FromSeconds(10);
 
         public AccountService(
             UserManager<User> userManager,
@@ -63,8 +64,12 @@ namespace Rest.Application.Services
             var existingToken = await _authService.FindRefreshTokenAsync(refreshToken)
                 ?? throw new ForbiddenException("Invalid refresh token.");
 
+
             if (existingToken.IsRevoked)
             {
+                if(existingToken.WasRotatedWithin(RotationGracePeriod))
+                    throw new ForbiddenException("This refresh token was just replaced. Retry with the latest one.");
+
                 await _authService.RevokeAllUserRefreshTokensAsync(existingToken.UserId);
                 throw new ForbiddenException(
                     "This refresh token has already been used." +

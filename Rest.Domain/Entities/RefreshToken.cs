@@ -65,5 +65,14 @@ namespace Rest.Domain.Entities
             RevokedAt = DateTime.UtcNow;
             ReplacedByTokenHash = replacedByTokenHash;
         }
+
+        /// <summary>
+        /// True when this token was replaced by rotation a moment ago.
+        /// A second request carrying it is then most likely a harmless race (two tabs), not theft.
+        /// </summary>
+        public bool WasRotatedWithin(TimeSpan window) =>
+            ReplacedByTokenHash is not null
+            && RevokedAt.HasValue
+            && DateTime.UtcNow - RevokedAt.Value <= window;
     }
 }

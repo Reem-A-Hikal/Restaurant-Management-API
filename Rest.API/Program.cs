@@ -372,6 +372,10 @@ namespace Rest.API
             builder.Services.AddOptions<KitchenHoursOptions>()
                 .Bind(builder.Configuration.GetSection(KitchenHoursOptions.SectionName))
                 .Validate(o => o.OrdersOpenAt != o.OrdersCloseAt, "KitchenHours: OpensAt and ClosesAt must differ.")
+                .Validate(o => o.OrdersOpenAt < o.OrdersCloseAt,
+                    "KitchenHours: OrdersOpenAt must be earlier than OrdersCloseAt (window cannot cross midnight).")
+                .Validate(o => { try { TimeZoneInfo.FindSystemTimeZoneById(o.TimeZoneId); return true; } catch { return false; } },
+                    "KitchenHours: unknown TimeZoneId.")
                 .ValidateOnStart();
 
             builder.Services.AddOptions<DeliveryZoneOptions>()
